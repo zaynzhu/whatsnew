@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model MediaItem {
+  id                  String   @id @default(cuid())
+  mediaType           String
+  releaseForm         String
+  sourceContentType   String?
+  titleDisplay        String
+  titleOriginal       String?
+  titleAliases        String   @default("[]")
+  overview            String?
+  posterUrl           String?
+  productionCountries String   @default("[]")
+  originalLanguage    String?
+  genres              String   @default("[]")
+  firstReleaseDate    String?
+  status              String   @default("unknown")
+  heatScore           Float    @default(0)
+  tmdbId              Int?
+  tvmazeId            Int?
+  imdbId              String?
+  traktId             Int?
+  tvdbId              Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  releases          Release[]
+  popularitySignals PopularitySignal[]
+  changeEvents      ChangeEvent[]
+
+  @@index([mediaType])
+  @@index([releaseForm])
+  @@index([firstReleaseDate])
+  @@index([heatScore])
+  @@index([tmdbId])
+  @@index([tvmazeId])
+  @@index([imdbId])
+}
+
+model Release {
+  id             String   @id @default(cuid())
+  mediaItemId    String
+  platform       String
+  region         String
+  releaseDate    String?
+  releaseTime    String?
+  releasePattern String   @default("unknown")
+  releaseStatus  String   @default("unknown")
+  seasonNumber   Int?
+  episodeNumber  Int?
+  source         String
+  sourceUrl      String?
+  fetchedAt      DateTime @default(now())
+
+  mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@index([releaseDate])
+  @@index([platform])
+  @@index([region])
+  @@index([source])
+}
+
+model PopularitySignal {
+  id             String   @id @default(cuid())
+  mediaItemId    String
+  source         String
+  sourceCategory String
+  platform       String?
+  region         String?
+  window         String
+  rank           Int?
+  rankDelta      Int?
+  value          Float?
+  valueLabel     String?
+  capturedAt     DateTime @default(now())
+  sourceUrl      String?
+
+  mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@index([source])
+  @@index([window])
+  @@index([rank])
+  @@index([capturedAt])
+}
+
+model SourceSyncRun {
+  id           String    @id @default(cuid())
+  source       String
+  status       String
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  durationMs   Int?
+  itemCount    Int       @default(0)
+  errorMessage String?
+  nextRunAt    DateTime?
+
+  @@index([source])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model ChangeEvent {
+  id          String   @id @default(cuid())
+  mediaItemId String?
+  eventType   String
+  title       String
+  description String
+  source      String
+  sourceUrl   String?
+  eventAt     DateTime @default(now())
+  payload     String   @default("{}")
+
+  mediaItem MediaItem? @relation(fields: [mediaItemId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([eventAt])
+  @@index([source])
+}
