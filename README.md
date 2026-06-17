@@ -14,8 +14,30 @@
 
 ```bash
 npm install
+cp backend/.env.example backend/.env
+# 编辑 backend/.env，填入 NAS MySQL 的真实用户名和密码
+npm run prisma:generate --workspace backend
+npm run prisma:push --workspace backend
+npm run seed --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 前端默认端口 `19992`，后端默认端口 `19993`。
+
+## 验证
+
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
+
+## GitHub remote
+
+等空仓库地址确认后，再执行：
+
+```bash
+git remote add origin <github-empty-repo-url>
+git push -u origin main
+```
