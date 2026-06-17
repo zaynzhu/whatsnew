@@ -14,11 +14,13 @@ function hasSharedAlias(input: NormalizedMediaInput, candidate: ExistingMediaCan
 
 export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingMediaCandidate[]): ExistingMediaCandidate | null {
   const byExternalId = candidates.find((candidate) => {
+    const sameMediaType = candidate.mediaType === input.mediaType
+
     return (
-      (input.tmdbId != null && candidate.tmdbId === input.tmdbId) ||
+      (input.tmdbId != null && candidate.tmdbId === input.tmdbId && sameMediaType) ||
       (input.tvmazeId != null && candidate.tvmazeId === input.tvmazeId) ||
       (input.imdbId != null && candidate.imdbId === input.imdbId) ||
-      (input.traktId != null && candidate.traktId === input.traktId)
+      (input.traktId != null && candidate.traktId === input.traktId && sameMediaType)
     )
   })
   if (byExternalId) return byExternalId

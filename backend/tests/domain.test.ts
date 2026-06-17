@@ -62,6 +62,14 @@ describe("findBestMatch", () => {
     expect(findBestMatch(input, candidates)?.id).toBe("a")
   })
 
+  it("does not match TMDb ids across different media types", () => {
+    const candidates: ExistingMediaCandidate[] = [
+      { id: "movie", mediaType: "movie", titleDisplay: "Different Movie", titleAliases: [], firstReleaseDate: "2026-04-01", originalLanguage: "en", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+    ]
+
+    expect(findBestMatch(input, candidates)).toBeNull()
+  })
+
   it("does not force low-confidence title matches", () => {
     const candidates: ExistingMediaCandidate[] = [
       { id: "b", mediaType: "series", titleDisplay: "The Last Ship", titleAliases: [], firstReleaseDate: "2014-06-22", originalLanguage: "en", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }

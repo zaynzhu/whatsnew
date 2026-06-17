@@ -1,4 +1,5 @@
 import { env } from "../config/env.js"
+import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
 import { fetchJson } from "../utils/http.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
@@ -15,8 +16,25 @@ type TmdbMovie = {
   popularity: number | null
 }
 
-type TmdbListResponse = {
+type TmdbShow = {
+  id: number
+  name: string | null
+  original_name: string | null
+  overview: string | null
+  poster_path: string | null
+  first_air_date: string | null
+  original_language: string | null
+  genre_ids: number[]
+  popularity: number | null
+  origin_country?: string[]
+}
+
+type TmdbMovieListResponse = {
   results: TmdbMovie[]
+}
+
+type TmdbTvListResponse = {
+  results: TmdbShow[]
 }
 
 type TmdbGenreResponse = {
@@ -79,8 +97,12 @@ function releaseStatus(releaseDate: string | null, today: string): string {
   return "available"
 }
 
-function sourceUrl(movieId: number): string {
+function movieSourceUrl(movieId: number): string {
   return `https://www.themoviedb.org/movie/${movieId}`
+}
+
+function tvSourceUrl(showId: number): string {
+  return `https://www.themoviedb.org/tv/${showId}`
 }
 
 function isBearerToken(credential: string): boolean {
@@ -98,7 +120,7 @@ function releaseFromMovie(movie: TmdbMovie, region: string, today: string): Rele
     seasonNumber: null,
     episodeNumber: null,
     source: "tmdb",
-    sourceUrl: sourceUrl(movie.id)
+    sourceUrl: movieSourceUrl(movie.id)
   }
 }
 
@@ -113,7 +135,39 @@ function popularitySignalFromMovie(movie: TmdbMovie, rank: number, window: strin
     rankDelta: null,
     value: movie.popularity,
     valueLabel: "TMDb popularity",
-    sourceUrl: sourceUrl(movie.id)
+    sourceUrl: movieSourceUrl(movie.id)
+  }
+}
+
+function releaseFromShow(show: TmdbShow, region: string, today: string): ReleaseInput {
+  const releaseDate = cleanText(show.first_air_date)
+
+  return {
+    platform: "TMDb TV",
+    region: show.origin_country?.[0] ?? region,
+    releaseDate,
+    releaseTime: null,
+    releasePattern: "episode_release",
+    releaseStatus: releaseStatus(releaseDate, today),
+    seasonNumber: null,
+    episodeNumber: null,
+    source: "tmdb",
+    sourceUrl: tvSourceUrl(show.id)
+  }
+}
+
+function popularitySignalFromShow(show: TmdbShow, rank: number, window: string): PopularitySignalInput {
+  return {
+    source: "tmdb_tv_trending",
+    sourceCategory: "metadata_community",
+    platform: "TMDb",
+    region: null,
+    window,
+    rank,
+    rankDelta: null,
+    value: show.popularity,
+    valueLabel: "TMDb TV popularity",
+    sourceUrl: tvSourceUrl(show.id)
   }
 }
 
@@ -151,6 +205,45 @@ function itemFromMovie(movie: TmdbMovie, genres: string[], imageBaseUrl: string,
   }
 }
 
+function itemFromShow(show: TmdbShow, genres: string[], imageBaseUrl: string, region: string, today: string): AdapterItem {
+  const title = cleanText(show.name) ?? cleanText(show.original_name) ?? `TMDb Show ${show.id}`
+  const originalTitle = cleanText(show.original_name)
+  const aliases = originalTitle && originalTitle !== title ? [originalTitle] : []
+  const releaseDate = cleanText(show.first_air_date)
+  const classification = classifyMedia({
+    source: "tmdb",
+    sourceContentType: "tv",
+    genres
+  })
+
+  return {
+    media: {
+      source: "tmdb",
+      sourceId: `tmdb-tv-${show.id}`,
+      mediaType: classification.mediaType,
+      releaseForm: classification.releaseForm,
+      sourceContentType: "tv",
+      titleDisplay: title,
+      titleOriginal: originalTitle,
+      titleAliases: aliases,
+      overview: cleanText(show.overview),
+      posterUrl: posterUrl(imageBaseUrl, show.poster_path),
+      productionCountries: show.origin_country ?? [],
+      originalLanguage: cleanText(show.original_language),
+      genres,
+      firstReleaseDate: releaseDate,
+      status: mediaStatus(releaseDate, today),
+      tmdbId: show.id,
+      tvmazeId: null,
+      imdbId: null,
+      traktId: null,
+      tvdbId: null
+    },
+    releases: [releaseFromShow(show, region, today)],
+    popularitySignals: []
+  }
+}
+
 function mergeUniqueSignals(target: PopularitySignalInput[], signals: PopularitySignalInput[]) {
   const known = new Set(target.map((signal) => `${signal.source}:${signal.window}:${signal.rank}`))
 
@@ -163,19 +256,15 @@ function mergeUniqueSignals(target: PopularitySignalInput[], signals: Popularity
   }
 }
 
-function mergeMovie(
-  items: Map<number, AdapterItem>,
-  movie: TmdbMovie,
-  genreNames: string[],
-  imageBaseUrl: string,
-  region: string,
-  today: string
+function mergeItem(
+  items: Map<string, AdapterItem>,
+  key: string,
+  next: AdapterItem
 ) {
-  const current = items.get(movie.id)
-  const next = itemFromMovie(movie, genreNames, imageBaseUrl, region, today)
+  const current = items.get(key)
 
   if (!current) {
-    items.set(movie.id, next)
+    items.set(key, next)
     return
   }
 
@@ -187,12 +276,47 @@ function mergeMovie(
   current.media.genres = [...new Set([...current.media.genres, ...next.media.genres])]
 }
 
-function addTrendingSignals(items: Map<number, AdapterItem>, movies: TmdbMovie[], window: string) {
+function mergeMovie(
+  items: Map<string, AdapterItem>,
+  movie: TmdbMovie,
+  genreNames: string[],
+  imageBaseUrl: string,
+  region: string,
+  today: string
+) {
+  const next = itemFromMovie(movie, genreNames, imageBaseUrl, region, today)
+
+  mergeItem(items, `movie-${movie.id}`, next)
+}
+
+function mergeShow(
+  items: Map<string, AdapterItem>,
+  show: TmdbShow,
+  genreNames: string[],
+  imageBaseUrl: string,
+  region: string,
+  today: string
+) {
+  const next = itemFromShow(show, genreNames, imageBaseUrl, region, today)
+
+  mergeItem(items, `tv-${show.id}`, next)
+}
+
+function addMovieTrendingSignals(items: Map<string, AdapterItem>, movies: TmdbMovie[], window: string) {
   movies.forEach((movie, index) => {
-    const current = items.get(movie.id)
+    const current = items.get(`movie-${movie.id}`)
     if (!current) return
 
     mergeUniqueSignals(current.popularitySignals, [popularitySignalFromMovie(movie, index + 1, window)])
+  })
+}
+
+function addShowTrendingSignals(items: Map<string, AdapterItem>, shows: TmdbShow[], window: string) {
+  shows.forEach((show, index) => {
+    const current = items.get(`tv-${show.id}`)
+    if (!current) return
+
+    mergeUniqueSignals(current.popularitySignals, [popularitySignalFromShow(show, index + 1, window)])
   })
 }
 
@@ -231,21 +355,32 @@ export function createTmdbAdapter(options: TmdbAdapterOptions = {}): SourceAdapt
       if (!apiKey) return []
 
       const currentDate = today()
-      const [genreResponse, nowPlaying, upcoming, trending] = await Promise.all([
+      const [movieGenreResponse, tvGenreResponse, nowPlaying, upcoming, movieTrending, airingToday, onTheAir, tvTrending] = await Promise.all([
         fetchTmdb<TmdbGenreResponse>("/genre/movie/list"),
-        fetchTmdb<TmdbListResponse>("/movie/now_playing", { page, region }),
-        fetchTmdb<TmdbListResponse>("/movie/upcoming", { page, region }),
-        fetchTmdb<TmdbListResponse>("/trending/movie/week")
+        fetchTmdb<TmdbGenreResponse>("/genre/tv/list"),
+        fetchTmdb<TmdbMovieListResponse>("/movie/now_playing", { page, region }),
+        fetchTmdb<TmdbMovieListResponse>("/movie/upcoming", { page, region }),
+        fetchTmdb<TmdbMovieListResponse>("/trending/movie/week"),
+        fetchTmdb<TmdbTvListResponse>("/tv/airing_today", { page, timezone: "America/New_York" }),
+        fetchTmdb<TmdbTvListResponse>("/tv/on_the_air", { page, timezone: "America/New_York" }),
+        fetchTmdb<TmdbTvListResponse>("/trending/tv/week")
       ])
-      const genreMap = new Map(genreResponse.genres.map((genre) => [genre.id, genre.name]))
-      const items = new Map<number, AdapterItem>()
+      const movieGenreMap = new Map(movieGenreResponse.genres.map((genre) => [genre.id, genre.name]))
+      const tvGenreMap = new Map(tvGenreResponse.genres.map((genre) => [genre.id, genre.name]))
+      const items = new Map<string, AdapterItem>()
 
       for (const movie of [...nowPlaying.results, ...upcoming.results]) {
-        const genreNames = movie.genre_ids.map((id) => genreMap.get(id)).filter((name): name is string => Boolean(name))
+        const genreNames = movie.genre_ids.map((id) => movieGenreMap.get(id)).filter((name): name is string => Boolean(name))
         mergeMovie(items, movie, genreNames, imageBaseUrl, region, currentDate)
       }
 
-      addTrendingSignals(items, trending.results, "week")
+      for (const show of [...airingToday.results, ...onTheAir.results]) {
+        const genreNames = show.genre_ids.map((id) => tvGenreMap.get(id)).filter((name): name is string => Boolean(name))
+        mergeShow(items, show, genreNames, imageBaseUrl, region, currentDate)
+      }
+
+      addMovieTrendingSignals(items, movieTrending.results, "week")
+      addShowTrendingSignals(items, tvTrending.results, "week")
 
       return Array.from(items.values())
     }

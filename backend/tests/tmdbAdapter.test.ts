@@ -29,6 +29,32 @@ const upcomingMovie = {
   vote_count: 0
 }
 
+const airingTodayShow = {
+  id: 2001,
+  name: "边境回声",
+  original_name: "Border Echo",
+  overview: "A team follows a signal across a quiet border.",
+  poster_path: "/border.jpg",
+  first_air_date: "2026-06-17",
+  original_language: "en",
+  genre_ids: [18, 10759],
+  popularity: 72.3,
+  origin_country: ["US"]
+}
+
+const onTheAirShow = {
+  id: 2002,
+  name: "星环旅社",
+  original_name: "Star Ring Inn",
+  overview: "",
+  poster_path: null,
+  first_air_date: "2026-06-24",
+  original_language: "ko",
+  genre_ids: [16],
+  popularity: 51.9,
+  origin_country: ["KR"]
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -59,6 +85,16 @@ describe("tmdbAdapter", () => {
         }))
       }
 
+      if (url.includes("/genre/tv/list")) {
+        return new Response(JSON.stringify({
+          genres: [
+            { id: 18, name: "Drama" },
+            { id: 10759, name: "Action & Adventure" },
+            { id: 16, name: "Animation" }
+          ]
+        }))
+      }
+
       if (url.includes("/movie/now_playing")) {
         return new Response(JSON.stringify({ results: [nowPlayingMovie] }))
       }
@@ -76,6 +112,23 @@ describe("tmdbAdapter", () => {
         }))
       }
 
+      if (url.includes("/tv/airing_today")) {
+        return new Response(JSON.stringify({ results: [airingTodayShow] }))
+      }
+
+      if (url.includes("/tv/on_the_air")) {
+        return new Response(JSON.stringify({ results: [onTheAirShow] }))
+      }
+
+      if (url.includes("/trending/tv/week")) {
+        return new Response(JSON.stringify({
+          results: [
+            { ...onTheAirShow, popularity: 81.7 },
+            { ...airingTodayShow, popularity: 78.2 }
+          ]
+        }))
+      }
+
       return new Response("{}", { status: 404, statusText: "Not Found" })
     })
     vi.stubGlobal("fetch", fetchMock)
@@ -88,13 +141,17 @@ describe("tmdbAdapter", () => {
 
     const items = await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(fetchMock).toHaveBeenCalledTimes(8)
     expect(fetchMock.mock.calls[0][0]).toContain("/genre/movie/list")
-    expect(fetchMock.mock.calls[1][0]).toContain("/movie/now_playing")
-    expect(fetchMock.mock.calls[2][0]).toContain("/movie/upcoming")
-    expect(fetchMock.mock.calls[3][0]).toContain("/trending/movie/week")
-    expect(fetchMock.mock.calls[1][0]).toContain("api_key=test-key")
-    expect(items).toHaveLength(2)
+    expect(fetchMock.mock.calls[1][0]).toContain("/genre/tv/list")
+    expect(fetchMock.mock.calls[2][0]).toContain("/movie/now_playing")
+    expect(fetchMock.mock.calls[3][0]).toContain("/movie/upcoming")
+    expect(fetchMock.mock.calls[4][0]).toContain("/trending/movie/week")
+    expect(fetchMock.mock.calls[5][0]).toContain("/tv/airing_today")
+    expect(fetchMock.mock.calls[6][0]).toContain("/tv/on_the_air")
+    expect(fetchMock.mock.calls[7][0]).toContain("/trending/tv/week")
+    expect(fetchMock.mock.calls[2][0]).toContain("api_key=test-key")
+    expect(items).toHaveLength(4)
     expect(items[0].media).toMatchObject({
       source: "tmdb",
       sourceId: "tmdb-movie-1001",
@@ -148,11 +205,50 @@ describe("tmdbAdapter", () => {
         })
       ])
     )
+    expect(items[2].media).toMatchObject({
+      source: "tmdb",
+      sourceId: "tmdb-tv-2001",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      titleDisplay: "边境回声",
+      titleOriginal: "Border Echo",
+      posterUrl: "https://image.tmdb.org/t/p/w500/border.jpg",
+      originalLanguage: "en",
+      genres: ["Drama", "Action & Adventure"],
+      firstReleaseDate: "2026-06-17",
+      status: "released",
+      tmdbId: 2001
+    })
+    expect(items[2].releases[0]).toMatchObject({
+      platform: "TMDb TV",
+      region: "US",
+      releaseDate: "2026-06-17",
+      releasePattern: "episode_release",
+      releaseStatus: "airing_today",
+      source: "tmdb",
+      sourceUrl: "https://www.themoviedb.org/tv/2001"
+    })
+    expect(items[2].popularitySignals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "tmdb_tv_trending",
+          rank: 2,
+          value: 78.2
+        })
+      ])
+    )
+    expect(items[3].media).toMatchObject({
+      sourceId: "tmdb-tv-2002",
+      mediaType: "anime",
+      releaseForm: "animated_series",
+      genres: ["Animation"],
+      status: "upcoming"
+    })
   })
 
   it("uses Bearer authentication when configured with a TMDb read access token", async () => {
     const fetchMock = vi.fn(async (url: string, _options?: RequestInit) => {
-      const body = url.includes("/genre/movie/list")
+      const body = url.includes("/genre/movie/list") || url.includes("/genre/tv/list")
         ? { genres: [] }
         : { results: [] }
 
@@ -167,7 +263,7 @@ describe("tmdbAdapter", () => {
 
     await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(fetchMock).toHaveBeenCalledTimes(8)
     expect(fetchMock.mock.calls[0][0]).not.toContain("api_key=")
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       headers: {
