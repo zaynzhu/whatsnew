@@ -443,6 +443,10 @@ h1 {
   color: var(--muted);
 }
 
+.contentSplit .row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .emptyText {
   margin: 0;
   border: 1px dashed var(--line);
