@@ -32,4 +32,23 @@ describe("runSourceSync", () => {
     expect(eventCount).toBeGreaterThanOrEqual(4)
     expect(runCount).toBe(1)
   })
+
+  it("keeps source detail rows idempotent when syncing the same adapter twice", async () => {
+    await runSourceSync(prisma, demoSeedAdapter)
+
+    const firstCounts = {
+      media: await prisma.mediaItem.count(),
+      releases: await prisma.release.count(),
+      popularity: await prisma.popularitySignal.count(),
+      events: await prisma.changeEvent.count()
+    }
+
+    await runSourceSync(prisma, demoSeedAdapter)
+
+    expect(await prisma.mediaItem.count()).toBe(firstCounts.media)
+    expect(await prisma.release.count()).toBe(firstCounts.releases)
+    expect(await prisma.popularitySignal.count()).toBe(firstCounts.popularity)
+    expect(await prisma.changeEvent.count()).toBe(firstCounts.events)
+    expect(await prisma.sourceSyncRun.count()).toBe(2)
+  })
 })

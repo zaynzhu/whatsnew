@@ -14,6 +14,10 @@ function heatFromSignals(item: AdapterItem): number {
   return Math.max(0, 100 - Math.min(...ranked))
 }
 
+function uniqueValues(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))]
+}
+
 async function getCandidates(prisma: PrismaClient): Promise<ExistingMediaCandidate[]> {
   const rows = await prisma.mediaItem.findMany()
 
@@ -68,19 +72,39 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem) {
         }
       })
 
-  await prisma.release.createMany({
-    data: item.releases.map((release) => ({
-      mediaItemId: mediaItem.id,
-      ...release
-    }))
-  })
+  const releaseSources = uniqueValues(item.releases.map((release) => release.source))
+  if (releaseSources.length > 0) {
+    await prisma.release.deleteMany({
+      where: {
+        mediaItemId: mediaItem.id,
+        source: { in: releaseSources }
+      }
+    })
 
-  await prisma.popularitySignal.createMany({
-    data: item.popularitySignals.map((signal) => ({
-      mediaItemId: mediaItem.id,
-      ...signal
-    }))
-  })
+    await prisma.release.createMany({
+      data: item.releases.map((release) => ({
+        mediaItemId: mediaItem.id,
+        ...release
+      }))
+    })
+  }
+
+  const signalSources = uniqueValues(item.popularitySignals.map((signal) => signal.source))
+  if (signalSources.length > 0) {
+    await prisma.popularitySignal.deleteMany({
+      where: {
+        mediaItemId: mediaItem.id,
+        source: { in: signalSources }
+      }
+    })
+
+    await prisma.popularitySignal.createMany({
+      data: item.popularitySignals.map((signal) => ({
+        mediaItemId: mediaItem.id,
+        ...signal
+      }))
+    })
+  }
 
   if (!match) {
     await createMediaDetectedEvent(prisma, mediaItem.id, mediaItem.titleDisplay, item.media.source, item.releases[0]?.sourceUrl ?? null)
