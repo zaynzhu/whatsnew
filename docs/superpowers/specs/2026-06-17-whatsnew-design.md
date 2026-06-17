@@ -4,7 +4,7 @@
 >
 > 项目路径：`/Users/zaynzhu/code/claude code/project/whatsnew`
 >
-> 状态：设计稿，等待 review
+> 状态：设计通过，进入实现计划
 
 ## 背景
 
@@ -96,12 +96,12 @@
 
 ### 第三阶段：中国补强
 
-先选择 1-2 个中国网页源试水，再扩展：
+先选择 1-2 个中国网页源试水，再扩展。首选优酷，次选爱奇艺：
 
+- 优酷电视剧/电影频道
 - 爱奇艺新片速递、风云榜、热播榜
 - 腾讯视频电视剧频道、电影频道、热榜
 - 芒果TV 热播剧集、预约、追更日历
-- 优酷电视剧/电影频道
 - 豆瓣电影/电视口碑层
 
 中国源默认可失败、可关闭，不能影响核心 API 源同步。
@@ -190,7 +190,7 @@
 
 说明：
 
-- Netflix Top 10、JustWatch、FlixPatrol、IMDb TVMeter、TMDb Trending、Trakt Trending、爱奇艺风云榜、腾讯热榜都写入这里。
+- Netflix Top 10、JustWatch、FlixPatrol、IMDb TVMeter、TMDb Trending、Trakt Trending、优酷热播、爱奇艺风云榜、腾讯热榜都写入这里。
 - 不把不同来源伪装成同一个客观排名。
 - 可额外计算 `heatScore` 作为排序辅助，但 UI 必须显示原始来源和口径。
 
@@ -244,7 +244,8 @@
 - `tmdbAdapter`
 - `traktAdapter`
 - `demoSeedAdapter`
-- `chinaIqiyiAdapter` 或 `chinaTencentAdapter` 二选一试水
+- `chinaYoukuAdapter` 首选试水
+- `chinaIqiyiAdapter` 次选预留
 
 ### `normalizer`
 
@@ -323,7 +324,7 @@
 - 类型：电影 / 电视剧 / 动漫 / 综艺 / 短剧 / 纪录片
 - 地区：全球 / 美国 / 韩国 / 日本 / 中国大陆 / 港台 / 东南亚
 - 状态：即将上线 / 今日上线 / 正在播出 / 已上线 / 完结
-- 平台：Netflix / Disney+ / Apple TV+ / iQIYI / Tencent / MangoTV 等
+- 平台：Netflix / Disney+ / Apple TV+ / Youku / iQIYI / Tencent / MangoTV 等
 - 热度来源：TMDb / Trakt / IMDb / JustWatch / FlixPatrol / 国内榜单
 
 ### `/trending`
@@ -422,7 +423,7 @@
 
 查询参数：
 
-- `source=tmdb|trakt|imdb|iqiyi|tencent`
+- `source=tmdb|trakt|imdb|youku|iqiyi|tencent`
 - `mediaType=movie|series|anime|variety|short_drama|documentary`
 - `releaseForm=`
 - `region=`
@@ -459,12 +460,12 @@
 
 - 后端：Express + TypeScript
 - 前端：React + Vite + TypeScript
-- 数据库：SQLite 起步，后续可切 PostgreSQL
+- 数据库：MySQL，使用 NAS 上已有 MySQL 实例
 - ORM：Prisma
 - 定时任务：node-cron
 - HTTP：fetch 或 axios，统一封装 RateLimiter、timeout、重试
 
-选择 SQLite 是为了让独立项目先低成本跑通。数据模型稳定后，再迁移到 PostgreSQL 或 MySQL。
+选择 MySQL 是因为 NAS 已有可用 MySQL，不需要额外 Docker 服务，也避免后续迁移成本。`whatsnew` 数据库已独立于 PixelReel 创建。
 
 ## 视觉方向
 
@@ -510,9 +511,9 @@
 
 后续 implementation plan 需要进一步确认：
 
-- 首个中国网页源选爱奇艺还是腾讯
-- 首版是否需要 Docker Compose
-- API key 配置方式使用 `.env` 还是前端设置页
-- SQLite 是否满足你的部署预期
-- 是否需要从第一版开始支持中英文界面
+- 首个中国网页源优酷已确定，爱奇艺作为次选
+- 首版不需要 Docker Compose，直接连接 NAS MySQL
+- API key 配置方式使用后端 `.env`
+- NAS MySQL 连接参数是否需要单独建低权限用户
+- 首版中文优先，不做 i18n
 - 等你提供 GitHub 空仓库地址后，再配置 remote 并推送本地提交
