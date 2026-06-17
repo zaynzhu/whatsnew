@@ -19,6 +19,7 @@ cp backend/.env.example backend/.env
 npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
 npm run seed --workspace backend
+npm run sync:tvmaze --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```

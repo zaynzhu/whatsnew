@@ -52,4 +52,11 @@ describe("api routes", () => {
     expect(sourcesResponse.status).toBe(200)
     expect(sourcesResponse.body.items.length).toBeGreaterThan(0)
   })
+
+  it("rejects unknown source sync requests", async () => {
+    const response = await request(createApp()).post("/api/sources/unknown/sync")
+
+    expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: "source_not_available_in_mvp" })
+  })
 })

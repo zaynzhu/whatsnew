@@ -1,16 +1,23 @@
 import cron from "node-cron"
 import { demoSeedAdapter } from "./adapters/demoSeedAdapter.js"
+import { tvmazeAdapter } from "./adapters/tvmazeAdapter.js"
 import { db } from "./config/db.js"
 import { env } from "./config/env.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 
+const scheduledAdapters = [demoSeedAdapter, tvmazeAdapter]
+
 export async function runInitialSync() {
-  await runSourceSync(db, demoSeedAdapter)
+  for (const adapter of scheduledAdapters) {
+    await runSourceSync(db, adapter)
+  }
 }
 
 export function registerScheduler() {
   cron.schedule("0 * * * *", async () => {
-    await runSourceSync(db, demoSeedAdapter)
+    for (const adapter of scheduledAdapters) {
+      await runSourceSync(db, adapter)
+    }
   })
 
   if (env.SYNC_ON_START) {

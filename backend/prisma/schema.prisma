@@ -15,8 +15,8 @@ model MediaItem {
   titleDisplay        String
   titleOriginal       String?
   titleAliases        String   @default("[]")
-  overview            String?
-  posterUrl           String?
+  overview            String?  @db.Text
+  posterUrl           String?  @db.Text
   productionCountries String   @default("[]")
   originalLanguage    String?
   genres              String   @default("[]")
@@ -56,7 +56,7 @@ model Release {
   seasonNumber   Int?
   episodeNumber  Int?
   source         String
-  sourceUrl      String?
+  sourceUrl      String?  @db.Text
   fetchedAt      DateTime @default(now())
 
   mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
@@ -80,7 +80,7 @@ model PopularitySignal {
   value          Float?
   valueLabel     String?
   capturedAt     DateTime @default(now())
-  sourceUrl      String?
+  sourceUrl      String?  @db.Text
 
   mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
 
@@ -98,7 +98,7 @@ model SourceSyncRun {
   finishedAt   DateTime?
   durationMs   Int?
   itemCount    Int       @default(0)
-  errorMessage String?
+  errorMessage String?   @db.Text
   nextRunAt    DateTime?
 
   @@index([source])
@@ -111,9 +111,9 @@ model ChangeEvent {
   mediaItemId String?
   eventType   String
   title       String
-  description String
+  description String   @db.Text
   source      String
-  sourceUrl   String?
+  sourceUrl   String?  @db.Text
   eventAt     DateTime @default(now())
   payload     String   @default("{}")
 

@@ -1,7 +1,12 @@
 import type { MediaType, ReleaseForm } from "@whatsnew/shared/media"
 import type { SourceClassificationInput } from "./types.js"
 
-export function classifyMedia(input: SourceClassificationInput): { mediaType: MediaType; releaseForm: ReleaseForm } {
+type MediaClassification = {
+  mediaType: MediaType
+  releaseForm: ReleaseForm
+}
+
+export function classifyMedia(input: SourceClassificationInput): MediaClassification {
   const rawType = (input.sourceContentType ?? "").toLowerCase()
   const genreText = input.genres.join(" ").toLowerCase()
   const combined = `${rawType} ${genreText}`

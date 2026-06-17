@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   db: { name: "test-db" },
   demoSeedAdapter: { source: "demo" },
+  tvmazeAdapter: { source: "tvmaze" },
   env: { SYNC_ON_START: false },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   schedule: vi.fn()
@@ -26,6 +27,10 @@ vi.mock("../src/adapters/demoSeedAdapter.js", () => ({
   demoSeedAdapter: mocks.demoSeedAdapter
 }))
 
+vi.mock("../src/adapters/tvmazeAdapter.js", () => ({
+  tvmazeAdapter: mocks.tvmazeAdapter
+}))
+
 vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
@@ -37,7 +42,7 @@ beforeEach(() => {
 })
 
 describe("scheduler", () => {
-  it("registers an hourly demo sync job", async () => {
+  it("registers an hourly sync job for enabled sources", async () => {
     const { registerScheduler } = await import("../src/scheduler.js")
 
     registerScheduler()
@@ -48,6 +53,7 @@ describe("scheduler", () => {
     await scheduledJob()
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
   })
 
   it("runs initial sync when configured", async () => {
@@ -57,6 +63,7 @@ describe("scheduler", () => {
     registerScheduler()
     await vi.waitFor(() => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     })
   })
 })

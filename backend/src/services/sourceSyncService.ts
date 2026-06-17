@@ -34,6 +34,12 @@ async function getCandidates(prisma: PrismaClient): Promise<ExistingMediaCandida
   }))
 }
 
+function errorMessageFrom(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+
+  return message.slice(0, 5000)
+}
+
 async function upsertItem(prisma: PrismaClient, item: AdapterItem) {
   const candidates = await getCandidates(prisma)
   const match = findBestMatch(item.media, candidates)
@@ -145,7 +151,7 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
         status: "failed",
         finishedAt,
         durationMs: finishedAt.getTime() - startedAt.getTime(),
-        errorMessage: error instanceof Error ? error.message : String(error)
+        errorMessage: errorMessageFrom(error)
       }
     })
   }
