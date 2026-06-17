@@ -30,9 +30,11 @@ export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingM
     candidates.find((candidate) => {
       const sameTitle = normalizeTitle(candidate.titleDisplay) === inputTitle || hasSharedAlias(input, candidate)
       const sameYear = inputYear != null && year(candidate.firstReleaseDate) === inputYear
+      const hasUnknownDate = input.firstReleaseDate == null || candidate.firstReleaseDate == null
       const sameLanguage = input.originalLanguage != null && candidate.originalLanguage === input.originalLanguage
+      const sameMediaType = candidate.mediaType === input.mediaType
 
-      return sameTitle && sameYear && sameLanguage
+      return sameTitle && sameLanguage && (sameYear || (hasUnknownDate && sameMediaType))
     }) ?? null
   )
 }

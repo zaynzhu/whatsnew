@@ -56,7 +56,7 @@ describe("findBestMatch", () => {
 
   it("matches by external id first", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { id: "a", titleDisplay: "Different", titleAliases: [], firstReleaseDate: null, originalLanguage: null, tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+      { id: "a", mediaType: "series", titleDisplay: "Different", titleAliases: [], firstReleaseDate: null, originalLanguage: null, tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)?.id).toBe("a")
@@ -64,9 +64,61 @@ describe("findBestMatch", () => {
 
   it("does not force low-confidence title matches", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { id: "b", titleDisplay: "The Last Ship", titleAliases: [], firstReleaseDate: "2014-06-22", originalLanguage: "en", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+      { id: "b", mediaType: "series", titleDisplay: "The Last Ship", titleAliases: [], firstReleaseDate: "2014-06-22", originalLanguage: "en", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)).toBeNull()
+  })
+
+  it("matches title, media type, and language when both release dates are unknown", () => {
+    const undatedInput: NormalizedMediaInput = {
+      ...input,
+      source: "youku",
+      sourceId: "youku-short-1",
+      mediaType: "short_drama",
+      releaseForm: "micro_drama",
+      sourceContentType: "短剧",
+      titleDisplay: "红了樱桃绿了芭蕉",
+      titleOriginal: "红了樱桃绿了芭蕉",
+      titleAliases: [],
+      firstReleaseDate: null,
+      originalLanguage: "zh",
+      genres: ["短剧"],
+      productionCountries: ["CN"],
+      tmdbId: null
+    }
+
+    const candidates: ExistingMediaCandidate[] = [
+      { id: "movie", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
+      { id: "short", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "short_drama", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+    ]
+
+    expect(findBestMatch(undatedInput, candidates)?.id).toBe("short")
+  })
+
+  it("matches title, media type, and language when one release date is unknown", () => {
+    const datedInput: NormalizedMediaInput = {
+      ...input,
+      source: "iqiyi",
+      sourceId: "iqiyi-movie-1",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      sourceContentType: "电影",
+      titleDisplay: "镖人：风起大漠",
+      titleOriginal: "镖人：风起大漠",
+      titleAliases: [],
+      firstReleaseDate: "2026-06-18",
+      originalLanguage: "zh",
+      genres: ["电影"],
+      productionCountries: ["CN"],
+      tmdbId: null
+    }
+
+    const candidates: ExistingMediaCandidate[] = [
+      { id: "same", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
+      { id: "wrong-type", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "series", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+    ]
+
+    expect(findBestMatch(datedInput, candidates)?.id).toBe("same")
   })
 })

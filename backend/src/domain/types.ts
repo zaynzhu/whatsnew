@@ -68,6 +68,7 @@ export interface SourceAdapter {
 
 export interface ExistingMediaCandidate {
   id: string
+  mediaType: MediaType
   titleDisplay: string
   titleAliases: string[]
   firstReleaseDate: string | null

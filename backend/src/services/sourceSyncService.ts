@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
+import { MEDIA_TYPES, type MediaType } from "@whatsnew/shared/media"
 import { findBestMatch } from "../domain/matcher.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import type { AdapterItem, ExistingMediaCandidate, SourceAdapter } from "../domain/types.js"
@@ -18,11 +19,18 @@ function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
 }
 
+function mediaTypeFromRow(value: string): MediaType {
+  if (MEDIA_TYPES.includes(value as MediaType)) return value as MediaType
+
+  return "series"
+}
+
 async function getCandidates(prisma: PrismaClient): Promise<ExistingMediaCandidate[]> {
   const rows = await prisma.mediaItem.findMany()
 
   return rows.map((row) => ({
     id: row.id,
+    mediaType: mediaTypeFromRow(row.mediaType),
     titleDisplay: row.titleDisplay,
     titleAliases: parseJsonArray(row.titleAliases),
     firstReleaseDate: row.firstReleaseDate,
