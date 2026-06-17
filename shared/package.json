@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "main": "dist/media.js",
-  "types": "dist/media.d.ts",
+  "types": "src/media.ts",
   "exports": {
     "./media": {
-      "types": "./dist/media.d.ts",
+      "types": "./src/media.ts",
       "default": "./dist/media.js"
     }
   },
