@@ -7,6 +7,12 @@ import type { DashboardResponse } from "../api/types"
 import { MediaCard } from "../components/MediaCard"
 import { StatusBadge } from "../components/StatusBadge"
 
+type MetricPanelProps = {
+  icon: LucideIcon
+  label: string
+  value: string
+}
+
 export function DashboardPage() {
   const { data, isError, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -101,7 +107,7 @@ export function DashboardPage() {
   )
 }
 
-function MetricPanel({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+function MetricPanel({ icon: Icon, label, value }: MetricPanelProps) {
   return (
     <article className="panel">
       <Icon aria-hidden="true" size={20} />
