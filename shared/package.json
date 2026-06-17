@@ -1,0 +1,20 @@
+{
+  "name": "@whatsnew/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/media.js",
+  "types": "dist/media.d.ts",
+  "exports": {
+    "./media": {
+      "types": "./dist/media.d.ts",
+      "default": "./dist/media.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
