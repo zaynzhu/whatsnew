@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   tvmazeAdapter: { source: "tvmaze" },
   tmdbAdapter: { source: "tmdb" },
   youkuAdapter: { source: "youku" },
+  iqiyiAdapter: { source: "iqiyi" },
   env: { SYNC_ON_START: false },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   schedule: vi.fn()
@@ -41,6 +42,10 @@ vi.mock("../src/adapters/youkuAdapter.js", () => ({
   youkuAdapter: mocks.youkuAdapter
 }))
 
+vi.mock("../src/adapters/iqiyiAdapter.js", () => ({
+  iqiyiAdapter: mocks.iqiyiAdapter
+}))
+
 vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
@@ -66,6 +71,7 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
   })
 
   it("runs initial sync when configured", async () => {
@@ -78,6 +84,7 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
     })
   })
 })

@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { demoSeedAdapter } from "../adapters/demoSeedAdapter.js"
+import { iqiyiAdapter } from "../adapters/iqiyiAdapter.js"
 import { tmdbAdapter } from "../adapters/tmdbAdapter.js"
 import { tvmazeAdapter } from "../adapters/tvmazeAdapter.js"
 import { youkuAdapter } from "../adapters/youkuAdapter.js"
@@ -12,7 +13,8 @@ const availableAdapters = {
   demo: demoSeedAdapter,
   tvmaze: tvmazeAdapter,
   tmdb: tmdbAdapter,
-  youku: youkuAdapter
+  youku: youkuAdapter,
+  iqiyi: iqiyiAdapter
 }
 
 sourcesRouter.get("/", async (_req, res) => {
