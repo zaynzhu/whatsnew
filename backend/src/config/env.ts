@@ -1,7 +1,12 @@
 import dotenv from "dotenv"
 import { z } from "zod"
+import { deriveTestDatabaseUrl } from "./databaseUrl.js"
 
 dotenv.config()
+
+if (process.env.NODE_ENV === "test" && process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = deriveTestDatabaseUrl(process.env.DATABASE_URL)
+}
 
 const envSchema = z.object({
   DATABASE_URL: z.string().default("mysql://user:password@localhost:3306/whatsnew"),

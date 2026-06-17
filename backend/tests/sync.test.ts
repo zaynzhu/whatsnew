@@ -1,16 +1,13 @@
-import { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
+import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
-const prisma = new PrismaClient()
+const prisma: PrismaClient = testPrisma
 
 beforeEach(async () => {
-  await prisma.changeEvent.deleteMany()
-  await prisma.popularitySignal.deleteMany()
-  await prisma.release.deleteMany()
-  await prisma.mediaItem.deleteMany()
-  await prisma.sourceSyncRun.deleteMany()
+  await resetTestDatabase()
 })
 
 describe("runSourceSync", () => {

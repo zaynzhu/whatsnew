@@ -1,18 +1,20 @@
-import { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@prisma/client"
 import request from "supertest"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
-import { createApp } from "../src/app.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
+import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
-const prisma = new PrismaClient()
+let createApp: typeof import("../src/app.js").createApp
+const prisma: PrismaClient = testPrisma
+
+beforeAll(async () => {
+  const appModule = await import("../src/app.js")
+  createApp = appModule.createApp
+})
 
 beforeEach(async () => {
-  await prisma.changeEvent.deleteMany()
-  await prisma.popularitySignal.deleteMany()
-  await prisma.release.deleteMany()
-  await prisma.mediaItem.deleteMany()
-  await prisma.sourceSyncRun.deleteMany()
+  await resetTestDatabase()
   await runSourceSync(prisma, demoSeedAdapter)
 })
 
@@ -39,5 +41,15 @@ describe("api routes", () => {
 
     expect(response.status).toBe(200)
     expect(response.body.items.length).toBeGreaterThan(0)
+  })
+
+  it("returns trending and source status routes", async () => {
+    const trendingResponse = await request(createApp()).get("/api/trending?window=week")
+    const sourcesResponse = await request(createApp()).get("/api/sources")
+
+    expect(trendingResponse.status).toBe(200)
+    expect(trendingResponse.body.items.length).toBeGreaterThan(0)
+    expect(sourcesResponse.status).toBe(200)
+    expect(sourcesResponse.body.items.length).toBeGreaterThan(0)
   })
 })
