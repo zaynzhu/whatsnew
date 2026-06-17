@@ -21,6 +21,7 @@ npm run prisma:push --workspace backend
 npm run seed --workspace backend
 npm run sync:tvmaze --workspace backend
 npm run sync:tmdb --workspace backend
+npm run sync:youku --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```

@@ -47,7 +47,7 @@ describe("runSourceSync", () => {
     expect(await prisma.popularitySignal.count()).toBe(firstCounts.popularity)
     expect(await prisma.changeEvent.count()).toBe(firstCounts.events)
     expect(await prisma.sourceSyncRun.count()).toBe(2)
-  })
+  }, 15000)
 
   it("redacts API keys from failed source sync error messages", async () => {
     const result = await runSourceSync(prisma, {

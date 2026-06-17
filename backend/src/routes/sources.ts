@@ -2,6 +2,7 @@ import { Router } from "express"
 import { demoSeedAdapter } from "../adapters/demoSeedAdapter.js"
 import { tmdbAdapter } from "../adapters/tmdbAdapter.js"
 import { tvmazeAdapter } from "../adapters/tvmazeAdapter.js"
+import { youkuAdapter } from "../adapters/youkuAdapter.js"
 import { db } from "../config/db.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
 
@@ -10,7 +11,8 @@ export const sourcesRouter = Router()
 const availableAdapters = {
   demo: demoSeedAdapter,
   tvmaze: tvmazeAdapter,
-  tmdb: tmdbAdapter
+  tmdb: tmdbAdapter,
+  youku: youkuAdapter
 }
 
 sourcesRouter.get("/", async (_req, res) => {
