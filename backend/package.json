@@ -8,6 +8,7 @@
     "start": "node dist/src/server.js",
     "seed": "tsx src/scripts/seed.ts",
     "sync:tvmaze": "tsx src/scripts/syncTvmaze.ts",
+    "sync:tmdb": "tsx src/scripts/syncTmdb.ts",
     "test": "tsx src/scripts/prepareTestDatabase.ts && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",

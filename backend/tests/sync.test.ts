@@ -48,4 +48,17 @@ describe("runSourceSync", () => {
     expect(await prisma.changeEvent.count()).toBe(firstCounts.events)
     expect(await prisma.sourceSyncRun.count()).toBe(2)
   })
+
+  it("redacts API keys from failed source sync error messages", async () => {
+    const result = await runSourceSync(prisma, {
+      source: "broken",
+      async fetchItems() {
+        throw new Error("HTTP 401 for https://api.example.test/movie?api_key=secret-key&language=zh-CN")
+      }
+    })
+
+    expect(result.status).toBe("failed")
+    expect(result.errorMessage).toContain("api_key=[REDACTED]")
+    expect(result.errorMessage).not.toContain("secret-key")
+  })
 })

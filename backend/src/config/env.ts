@@ -13,6 +13,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(19993),
   CORS_ORIGIN: z.string().default("http://localhost:19992"),
   TMDB_API_KEY: z.string().optional().default(""),
+  TMDB_BASE_URL: z.string().default("https://api.themoviedb.org/3"),
+  TMDB_IMAGE_BASE_URL: z.string().default("https://image.tmdb.org/t/p/w500"),
   TRAKT_CLIENT_ID: z.string().optional().default(""),
   SYNC_ON_START: z.coerce.boolean().default(false)
 })

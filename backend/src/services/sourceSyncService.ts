@@ -37,7 +37,10 @@ async function getCandidates(prisma: PrismaClient): Promise<ExistingMediaCandida
 function errorMessageFrom(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error)
 
-  return message.slice(0, 5000)
+  return message
+    .replace(/([?&]api_key=)[^&\s)]+/g, "$1[REDACTED]")
+    .replace(/(Authorization:\s*Bearer\s+)[^\s)]+/gi, "$1[REDACTED]")
+    .slice(0, 5000)
 }
 
 async function upsertItem(prisma: PrismaClient, item: AdapterItem) {

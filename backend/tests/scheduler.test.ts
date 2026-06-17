@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   db: { name: "test-db" },
   demoSeedAdapter: { source: "demo" },
   tvmazeAdapter: { source: "tvmaze" },
+  tmdbAdapter: { source: "tmdb" },
   env: { SYNC_ON_START: false },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   schedule: vi.fn()
@@ -31,6 +32,10 @@ vi.mock("../src/adapters/tvmazeAdapter.js", () => ({
   tvmazeAdapter: mocks.tvmazeAdapter
 }))
 
+vi.mock("../src/adapters/tmdbAdapter.js", () => ({
+  tmdbAdapter: mocks.tmdbAdapter
+}))
+
 vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
@@ -54,6 +59,7 @@ describe("scheduler", () => {
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
   })
 
   it("runs initial sync when configured", async () => {
@@ -64,6 +70,7 @@ describe("scheduler", () => {
     await vi.waitFor(() => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     })
   })
 })
