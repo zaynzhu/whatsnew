@@ -39,5 +39,5 @@ npm run build
 
 ```bash
 git remote add origin <github-empty-repo-url>
-git push -u origin main
+git push -u origin HEAD
 ```
