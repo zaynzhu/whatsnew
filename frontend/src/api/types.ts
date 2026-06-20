@@ -48,12 +48,20 @@ export type PopularitySignal = {
   region: string | null
   window: string
   rank: number | null
+  previousRank: number | null
   rankDelta: number | null
   value: number | null
   valueLabel: string | null
   capturedAt: string
+  isCurrent: boolean
   sourceUrl: string | null
   mediaItem: ApiMediaItem
+}
+
+export type PopularityMovement = "new" | "rising" | "falling" | "stable"
+
+export type PopularityHistoryResponse = {
+  items: Omit<PopularitySignal, "mediaItem">[]
 }
 
 export type SourceSyncRun = {

@@ -80,6 +80,120 @@ describe("api routes", () => {
     expect(sourcesResponse.body.items.map((run: any) => run.source)).toEqual(["tmdb"])
   })
 
+  it("filters current trending signals by movement and source", async () => {
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    const capturedAt = new Date()
+    const baseSignal = {
+      mediaItemId: media.id,
+      sourceCategory: "metadata_community",
+      platform: "TMDb",
+      region: "GLOBAL",
+      window: "week",
+      value: null,
+      valueLabel: null,
+      capturedAt,
+      sourceUrl: "https://example.test/trending",
+      isCurrent: true
+    }
+
+    await prisma.popularitySignal.createMany({
+      data: [
+        { ...baseSignal, source: "movement_new", rank: 8, previousRank: null, rankDelta: null },
+        { ...baseSignal, source: "movement_rising", rank: 7, previousRank: 12, rankDelta: 5 },
+        { ...baseSignal, source: "movement_falling", rank: 7, previousRank: 4, rankDelta: -3 },
+        { ...baseSignal, source: "movement_stable", rank: 7, previousRank: 7, rankDelta: 0 }
+      ]
+    })
+
+    const cases = [
+      ["new", "movement_new"],
+      ["rising", "movement_rising"],
+      ["falling", "movement_falling"],
+      ["stable", "movement_stable"]
+    ]
+    for (const [movement, source] of cases) {
+      const response = await request(createApp()).get(
+        `/api/trending?movement=${movement}&source=${source}&platform=TMDb&region=GLOBAL`
+      )
+      expect(response.status).toBe(200)
+      expect(response.body.items).toHaveLength(1)
+      expect(response.body.items[0]).toMatchObject({ source, isCurrent: true })
+    }
+  })
+
+  it("returns bounded popularity history while media detail stays current-only", async () => {
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    const currentCapturedAt = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const historicalCapturedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+
+    await prisma.popularitySignal.createMany({
+      data: [
+        {
+          mediaItemId: media.id,
+          source: "tmdb_trending",
+          sourceCategory: "metadata_community",
+          platform: "TMDb",
+          region: "GLOBAL",
+          window: "week",
+          rank: 12,
+          previousRank: null,
+          rankDelta: null,
+          capturedAt: historicalCapturedAt,
+          isCurrent: false
+        },
+        {
+          mediaItemId: media.id,
+          source: "tmdb_trending",
+          sourceCategory: "metadata_community",
+          platform: "TMDb",
+          region: "GLOBAL",
+          window: "week",
+          rank: 7,
+          previousRank: 12,
+          rankDelta: 5,
+          capturedAt: currentCapturedAt,
+          isCurrent: true
+        }
+      ]
+    })
+
+    const rising = await request(createApp()).get(
+      "/api/trending?movement=rising&source=tmdb_trending"
+    )
+    const history = await request(createApp()).get(
+      `/api/media/${media.id}/popularity-history?source=tmdb_trending&days=30&limit=10`
+    )
+    const detail = await request(createApp()).get(`/api/media/${media.id}`)
+
+    expect(rising.status).toBe(200)
+    expect(rising.body.items).toHaveLength(1)
+    expect(rising.body.items[0]).toMatchObject({
+      isCurrent: true,
+      previousRank: 12,
+      rank: 7,
+      rankDelta: 5
+    })
+    expect(history.status).toBe(200)
+    expect(history.body.items.map((item: { rank: number }) => item.rank)).toEqual([12, 7])
+    expect(detail.status).toBe(200)
+    expect(detail.body.popularitySignals.every((signal: { isCurrent: boolean }) => {
+      return signal.isCurrent
+    })).toBe(true)
+    expect(detail.body.popularitySignals.filter((signal: { source: string }) => {
+      return signal.source === "tmdb_trending"
+    })).toHaveLength(1)
+  })
+
+  it("rejects popularity history windows outside 1 to 90 days", async () => {
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    const response = await request(createApp()).get(
+      `/api/media/${media.id}/popularity-history?days=91`
+    )
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: "invalid_query" })
+  })
+
   it("rejects unknown source sync requests", async () => {
     const response = await request(createApp()).post("/api/sources/unknown/sync")
 
