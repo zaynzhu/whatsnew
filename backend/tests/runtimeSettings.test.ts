@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { access, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
@@ -35,6 +35,8 @@ it("preserves comments and swaps the runtime snapshot only after an atomic save"
   expect(await readFile(envPath, "utf8")).toContain("HTTPS_PROXY=http://new.test:7890")
   expect(settings.get("HTTPS_PROXY")).toBe("http://new.test:7890")
   expect(await readFile(`${envPath}.backup.local`, "utf8")).toContain("http://old.test:7890")
+  expect((await stat(envPath)).mode & 0o777).toBe(0o600)
+  expect((await stat(`${envPath}.backup.local`)).mode & 0o777).toBe(0o600)
 })
 
 it("never returns a sensitive value and keeps it when omitted", async () => {
@@ -113,15 +115,34 @@ it("round-trips spaces, quotes, and hash characters", async () => {
   expect(await readFile(envPath, "utf8")).toContain(`DOUBAN_COOKIE=${JSON.stringify(cookie)}`)
 })
 
+it("preserves export prefixes and inline comments", async () => {
+  const envPath = join(tempDir, ".env")
+  await writeFile(envPath, [
+    "export HTTPS_PROXY=http://old.test:7890 # network route",
+    "TMDB_BASE_URL=https://old.test/3#api-route"
+  ].join("\n"))
+  const store = new EnvFileStore(envPath)
+
+  await store.update({
+    HTTPS_PROXY: "http://new.test:7890",
+    TMDB_BASE_URL: "https://new.test/3"
+  })
+
+  const content = await readFile(envPath, "utf8")
+  expect(content).toContain("export HTTPS_PROXY=http://new.test:7890 # network route")
+  expect(content).toContain("TMDB_BASE_URL=https://new.test/3#api-route")
+})
+
 it("keeps the original file when the atomic temporary write fails", async () => {
   const envPath = join(tempDir, ".env")
   await writeFile(envPath, "HTTPS_PROXY=http://old.test:7890\n")
-  await mkdir(`${envPath}.tmp`)
+  await symlink(tempDir, `${envPath}.tmp`)
   const store = new EnvFileStore(envPath)
 
   await expect(store.update({ HTTPS_PROXY: "http://new.test:7890" })).rejects.toThrow()
   expect(await readFile(envPath, "utf8")).toContain("http://old.test:7890")
   expect(await readFile(`${envPath}.backup.local`, "utf8")).toContain("http://old.test:7890")
+  await expect(access(`${envPath}.tmp`)).rejects.toThrow()
 })
 
 it("serializes concurrent updates without losing an earlier change", async () => {
@@ -145,6 +166,8 @@ it("serializes concurrent updates without losing an earlier change", async () =>
   await vi.waitFor(() => expect(writeCount).toBe(1))
   const secondUpdate = settings.update({ SOURCE_TMDB_PROXY_MODE: "direct" }, [])
   await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(settings.get("HTTPS_PROXY")).toBe("")
+  expect(settings.sourceProxyMode("tmdb")).toBe("inherit")
   releaseFirstWrite()
   await Promise.all([firstUpdate, secondUpdate])
 

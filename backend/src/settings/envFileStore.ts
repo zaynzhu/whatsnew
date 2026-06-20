@@ -16,6 +16,51 @@ function assertSingleLine(value: string): void {
   }
 }
 
+function inlineCommentStart(value: string): number {
+  let quote: "'" | '"' | null = null
+  let escaped = false
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    if (quote === '"' && character === "\\") {
+      escaped = true
+      continue
+    }
+    if (quote) {
+      if (character === quote) quote = null
+      continue
+    }
+    if (character === "'" || character === '"') {
+      quote = character
+      continue
+    }
+    if (character === "#") {
+      let start = index
+      while (start > 0 && /\s/.test(value[start - 1])) start -= 1
+      return start
+    }
+  }
+
+  return -1
+}
+
+function replaceEnvLine(line: string, values: Record<string, string>): { line: string, key: string | null } {
+  const match = line.match(/^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.*)$/)
+  if (!match || !(match[2] in values)) return { line, key: null }
+
+  const [, prefix, key, separator, currentValue] = match
+  const commentStart = inlineCommentStart(currentValue)
+  const comment = commentStart >= 0 ? currentValue.slice(commentStart) : ""
+  return {
+    line: `${prefix}${key}${separator}${serializeValue(values[key])}${comment}`,
+    key
+  }
+}
+
 export class EnvFileStore {
   constructor(private readonly envPath: string) {}
 
@@ -52,11 +97,9 @@ export class EnvFileStore {
     if (lines.at(-1) === "") lines.pop()
     const updatedKeys = new Set<string>()
     const updatedLines = lines.map((line) => {
-      const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/)
-      const key = match?.[1]
-      if (!key || !(key in values)) return line
-      updatedKeys.add(key)
-      return `${key}=${serializeValue(values[key])}`
+      const replacement = replaceEnvLine(line, values)
+      if (replacement.key) updatedKeys.add(replacement.key)
+      return replacement.line
     })
 
     for (const [key, value] of Object.entries(values)) {
