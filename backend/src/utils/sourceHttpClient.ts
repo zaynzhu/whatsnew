@@ -48,11 +48,23 @@ function redactUrl(rawUrl: string): RedactedUrl {
 }
 
 function redactSecrets(value: string, secrets: string[]): string {
-  return secrets.reduce((redacted, secret) => {
+  const orderedSecrets = [...new Set(secrets)].sort((left, right) => right.length - left.length)
+  return orderedSecrets.reduce((redacted, secret) => {
     return redacted
       .replaceAll(secret, "[REDACTED]")
       .replaceAll(encodeURIComponent(secret), "[REDACTED]")
   }, value)
+}
+
+function proxySecrets(proxyUrl: string): string[] {
+  const secrets = [proxyUrl]
+  try {
+    const url = new URL(proxyUrl)
+    secrets.push(url.origin, url.host, url.hostname, url.username, url.password)
+  } catch {
+    // 无效代理仍将原始输入整体视为敏感值
+  }
+  return secrets.filter(Boolean)
 }
 
 function redactError(error: unknown, secrets: string[]): unknown {
@@ -102,14 +114,15 @@ export class SourceHttpClient {
     const { timeoutMs, settingsOverride, ...requestOptions } = options
     const settings = this.settings.view(settingsOverride)
     const proxyUrl = resolveProxy(settings, sourceId, url)
-    const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
     const controller = new AbortController()
     const timeout = setTimeout(() => {
       controller.abort(new DOMException(`请求超时（${timeoutMs}ms）`, "TimeoutError"))
     }, timeoutMs)
     const redactedUrl = redactUrl(url)
+    const secrets = [...redactedUrl.secrets, ...(proxyUrl ? proxySecrets(proxyUrl) : [])]
 
     try {
+      const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
       const response = await this.transport(url, {
         ...requestOptions as UndiciRequestInit,
         signal: controller.signal,
@@ -117,14 +130,14 @@ export class SourceHttpClient {
       })
       if (response.ok) return response
 
-      const body = redactSecrets(await response.text(), redactedUrl.secrets).slice(0, 500)
+      const body = redactSecrets(await response.text(), secrets).slice(0, 500)
       const message = redactSecrets(
         `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}: ${body}`,
-        redactedUrl.secrets
+        secrets
       )
       throw new SourceHttpError(message, sourceId, response.status, body)
     } catch (error) {
-      throw redactError(error, redactedUrl.secrets)
+      throw redactError(error, secrets)
     } finally {
       clearTimeout(timeout)
     }
