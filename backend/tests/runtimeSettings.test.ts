@@ -51,6 +51,14 @@ it("never returns a sensitive value and keeps it when omitted", async () => {
   expect(settings.get("TMDB_API_KEY")).toBe("abcd-secret-1234")
 })
 
+it("does not reveal a short sensitive value in its mask", async () => {
+  const settings = await fixtureSettings("TMDB_API_KEY=1234\n")
+  const field = settings.fieldView("TMDB_API_KEY")
+
+  expect(field.maskedValue).toBe("••••••••")
+  expect(JSON.stringify(field)).not.toContain("1234")
+})
+
 it("clears a sensitive value only when clearKeys explicitly includes it", async () => {
   const settings = await fixtureSettings("TMDB_API_KEY=abcd-secret-1234\n")
   await settings.update({}, ["TMDB_API_KEY"])

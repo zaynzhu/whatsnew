@@ -62,6 +62,11 @@ function createReader(values: Readonly<Record<string, string>>): SettingsReader 
   }
 }
 
+function maskSensitiveValue(value: string): string {
+  if (value.length <= 4) return "••••••••"
+  return `••••••••${value.slice(-4)}`
+}
+
 export class RuntimeSettingsService implements SettingsReader {
   private readonly initialValues: Record<string, string>
   private values: Readonly<Record<string, string>>
@@ -110,7 +115,7 @@ export class RuntimeSettingsService implements SettingsReader {
     return {
       ...definition,
       configured,
-      maskedValue: configured && definition.sensitive ? `••••••••${value.slice(-4)}` : null,
+      maskedValue: configured && definition.sensitive ? maskSensitiveValue(value) : null,
       value: definition.sensitive || !configured ? null : value
     }
   }
