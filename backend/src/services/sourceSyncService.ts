@@ -4,16 +4,10 @@ import { findBestMatch } from "../domain/matcher.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import type { AdapterItem, ExistingMediaCandidate, SourceAdapter } from "../domain/types.js"
 import { createMediaDetectedEvent } from "./eventService.js"
+import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
-function heatFromSignals(item: AdapterItem): number {
-  const ranked = item.popularitySignals
-    .map((signal) => signal.rank)
-    .filter((rank): rank is number => typeof rank === "number" && rank > 0)
-
-  if (ranked.length === 0) return 0
-
-  return Math.max(0, 100 - Math.min(...ranked))
-}
+const POPULARITY_HISTORY_DAYS = 90
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
@@ -51,9 +45,15 @@ function errorMessageFrom(error: unknown): string {
     .slice(0, 5000)
 }
 
-async function upsertItem(prisma: PrismaClient, item: AdapterItem, candidates: ExistingMediaCandidate[]) {
+async function upsertItem(
+  prisma: PrismaClient,
+  item: AdapterItem,
+  candidates: ExistingMediaCandidate[],
+  snapshotService: PopularitySnapshotService,
+  sourceSyncRunId: string,
+  startedAt: Date
+) {
   const match = findBestMatch(item.media, candidates)
-  const heatScore = heatFromSignals(item)
   const titleAliases = match
     ? uniqueValues([...match.titleAliases, ...item.media.titleAliases])
     : uniqueValues(item.media.titleAliases)
@@ -63,7 +63,6 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem, candidates: E
         where: { id: match.id },
         data: {
           titleAliases: toJsonArray(titleAliases),
-          heatScore,
           updatedAt: new Date()
         }
       })
@@ -82,7 +81,7 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem, candidates: E
           genres: toJsonArray(item.media.genres),
           firstReleaseDate: item.media.firstReleaseDate,
           status: item.media.status ?? "unknown",
-          heatScore,
+          heatScore: 0,
           tmdbId: item.media.tmdbId,
           tvmazeId: item.media.tvmazeId,
           imdbId: item.media.imdbId,
@@ -125,22 +124,13 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem, candidates: E
     })
   }
 
-  const signalSources = uniqueValues(item.popularitySignals.map((signal) => signal.source))
-  if (signalSources.length > 0) {
-    await prisma.popularitySignal.deleteMany({
-      where: {
-        mediaItemId: mediaItem.id,
-        source: { in: signalSources }
-      }
-    })
-
-    await prisma.popularitySignal.createMany({
-      data: item.popularitySignals.map((signal) => ({
-        mediaItemId: mediaItem.id,
-        ...signal
-      }))
-    })
-  }
+  await snapshotService.persistSignals(item.popularitySignals.map((signal) => ({
+    mediaItemId: mediaItem.id,
+    mediaTitle: mediaItem.titleDisplay,
+    signal,
+    sourceSyncRunId,
+    capturedAt: signal.capturedAt ?? startedAt
+  })))
 
   if (!match) {
     await createMediaDetectedEvent(prisma, mediaItem.id, mediaItem.titleDisplay, item.media.source, item.releases[0]?.sourceUrl ?? null)
@@ -158,19 +148,42 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
   try {
     const items = await adapter.fetchItems()
     const candidates = await getCandidates(prisma)
+    const snapshotService = new PopularitySnapshotService(prisma)
 
     for (const item of items) {
-      await upsertItem(prisma, item, candidates)
+      await upsertItem(
+        prisma,
+        item,
+        candidates,
+        snapshotService,
+        run.id,
+        startedAt
+      )
     }
 
     const finishedAt = new Date()
+    const signalSources = uniqueValues(items.flatMap((item) => {
+      return item.popularitySignals.map((signal) => signal.source)
+    }))
+    const cutoff = new Date(finishedAt.getTime() - POPULARITY_HISTORY_DAYS * DAY_MS)
+    let status = "success"
+    let errorMessage: string | null = null
+
+    try {
+      await snapshotService.pruneHistory(signalSources, cutoff)
+    } catch (error) {
+      status = "warning"
+      errorMessage = errorMessageFrom(error)
+    }
+
     return prisma.sourceSyncRun.update({
       where: { id: run.id },
       data: {
-        status: "success",
+        status,
         finishedAt,
         durationMs: finishedAt.getTime() - startedAt.getTime(),
-        itemCount: items.length
+        itemCount: items.length,
+        errorMessage
       }
     })
   } catch (error) {
