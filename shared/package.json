@@ -8,6 +8,10 @@
     "./media": {
       "types": "./src/media.ts",
       "default": "./dist/media.js"
+    },
+    "./settings": {
+      "types": "./src/settings.ts",
+      "default": "./dist/settings.js"
     }
   },
   "scripts": {
