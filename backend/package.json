@@ -21,6 +21,7 @@
     "@whatsnew/shared": "0.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^5.0.1",
     "node-cron": "^3.0.3",
     "undici": "^6.19.8",

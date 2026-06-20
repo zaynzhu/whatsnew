@@ -111,6 +111,11 @@ export class SourceHttpClient {
     return response.text()
   }
 
+  async fetchBuffer(sourceId: string, url: string, options: SourceRequestOptions): Promise<Buffer> {
+    const response = await this.request(sourceId, url, options)
+    return Buffer.from(await response.arrayBuffer())
+  }
+
   async request(sourceId: string, url: string, options: SourceRequestOptions): Promise<Response> {
     const { timeoutMs, settingsOverride, ...requestOptions } = options
     const settings = this.settings.view(settingsOverride)

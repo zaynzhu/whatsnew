@@ -67,6 +67,23 @@ describe("SourceHttpClient", () => {
     expect(transport.mock.calls[0][1]?.dispatcher).toBeUndefined()
   })
 
+  it("returns binary response data as a buffer", async () => {
+    const transport = vi.fn<SourceTransport>(async () => {
+      return new Response(Uint8Array.from([80, 75, 3, 4]), { status: 200 })
+    })
+    const client = new SourceHttpClient(
+      fakeSettings({ SOURCE_NETFLIX_PROXY_MODE: "direct" }),
+      transport
+    )
+
+    const buffer = await client.fetchBuffer("netflix", "https://example.test/data.xlsx", {
+      timeoutMs: 1000
+    })
+
+    expect(Buffer.isBuffer(buffer)).toBe(true)
+    expect([...buffer]).toEqual([80, 75, 3, 4])
+  })
+
   it("uses unsaved settings overrides without mutating live settings", async () => {
     const settings = fakeSettings({ HTTPS_PROXY: "http://old-proxy.test:7890" })
     const transport = vi.fn<SourceTransport>(async () => new Response("{}", { status: 200 }))
