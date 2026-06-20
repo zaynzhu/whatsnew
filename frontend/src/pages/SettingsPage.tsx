@@ -1,14 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, Eye, EyeOff, PlugZap, Save, Settings, XCircle } from "lucide-react"
+import {
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  PlugZap,
+  RefreshCw,
+  Save,
+  Settings,
+  SlidersHorizontal,
+  TestTube2,
+  XCircle
+} from "lucide-react"
 import { useState } from "react"
 import { apiGet, apiRequest } from "../api/client"
 import type {
   ConnectionTestResult,
+  ProxyMode,
   ProxyTestResponse,
   SettingsResponse,
   SettingsUpdateRequest,
-  SettingsUpdateResponse
+  SettingsUpdateResponse,
+  SourceSettingsView
 } from "../api/types"
+import { SourceConfigDialog } from "../components/SourceConfigDialog"
 
 const MODE_LABELS: Record<ConnectionTestResult["mode"], string> = {
   direct: "直连",
@@ -17,12 +31,44 @@ const MODE_LABELS: Record<ConnectionTestResult["mode"], string> = {
   source: "数据源"
 }
 
+const SOURCE_GROUPS: Array<{ id: SourceSettingsView["group"], label: string }> = [
+  { id: "global_metadata", label: "全球元数据" },
+  { id: "cross_platform", label: "跨平台热度" },
+  { id: "international_platform", label: "国际流媒体" },
+  { id: "china_platform", label: "中国平台" }
+]
+
+const SOURCE_STATUS_LABELS: Record<SourceSettingsView["implementationStatus"], string> = {
+  active: "已接入",
+  blocked: "接入受限",
+  planned: "规划中",
+  commercial: "商业接口"
+}
+
+const PROXY_MODE_LABELS: Record<ProxyMode, string> = {
+  inherit: "跟随全局",
+  direct: "直连",
+  custom: "自定义"
+}
+
+type SourceTestResponse = {
+  sourceId: string
+  implementationStatus: SourceSettingsView["implementationStatus"]
+  result: ConnectionTestResult
+}
+
+type SourcePolicyMutation = {
+  sourceId: string
+  request: SettingsUpdateRequest
+}
+
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const [changedValues, setChangedValues] = useState<Record<string, string>>({})
   const [clearKeys, setClearKeys] = useState<string[]>([])
   const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({})
   const [saveState, setSaveState] = useState<"idle" | "success" | "error">("idle")
+  const [selectedSource, setSelectedSource] = useState<SourceSettingsView | null>(null)
 
   const settingsQuery = useQuery({
     queryKey: ["settings"],
@@ -51,6 +97,38 @@ export function SettingsPage() {
       "POST",
       values
     )
+  })
+
+  const sourcePolicyMutation = useMutation({
+    mutationFn: ({ request }: SourcePolicyMutation) => apiRequest<SettingsUpdateResponse>(
+      "/api/settings",
+      "PUT",
+      request
+    ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["settings"] })
+  })
+
+  const sourceTestMutation = useMutation({
+    mutationFn: (sourceId: string) => apiRequest<SourceTestResponse>(
+      `/api/sources/${sourceId}/test`,
+      "POST",
+      {}
+    )
+  })
+
+  const sourceSyncMutation = useMutation({
+    mutationFn: (sourceId: string) => apiRequest<unknown>(
+      `/api/sources/${sourceId}/sync`,
+      "POST",
+      {}
+    ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["sources"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      ])
+    }
   })
 
   function updateValue(key: string, value: string) {
@@ -85,6 +163,22 @@ export function SettingsPage() {
       ...Object.fromEntries(clearKeys.map((key) => [key, ""])),
       ...changedValues
     })
+  }
+
+  function sourceSettingKey(sourceId: string, suffix: "ENABLED" | "PROXY_MODE"): string {
+    return `SOURCE_${sourceId.toUpperCase()}_${suffix}`
+  }
+
+  function updateSourcePolicy(sourceId: string, key: string, value: string) {
+    sourcePolicyMutation.mutate({
+      sourceId,
+      request: { values: { [key]: value }, clearKeys: [] }
+    })
+  }
+
+  async function saveSourceConfig(request: SettingsUpdateRequest) {
+    await apiRequest<SettingsUpdateResponse>("/api/settings", "PUT", request)
+    await queryClient.invalidateQueries({ queryKey: ["settings"] })
   }
 
   if (settingsQuery.isLoading) {
@@ -210,6 +304,177 @@ export function SettingsPage() {
           </div>
         )}
       </section>
+
+      <section className="sourceRegistry" aria-labelledby="source-registry-heading">
+        <div className="settingsSectionHeader sourceRegistryHeader">
+          <div>
+            <span className="settingsIndex">02 / SOURCES</span>
+            <h2 id="source-registry-heading">数据源注册表</h2>
+          </div>
+          <strong>{settingsQuery.data.sources.length} 个来源</strong>
+        </div>
+
+        {SOURCE_GROUPS.map((group) => {
+          const sources = settingsQuery.data.sources.filter((source) => source.group === group.id)
+          if (sources.length === 0) return null
+
+          return (
+            <section className="sourceGroup" key={group.id} aria-labelledby={`source-group-${group.id}`}>
+              <header className="sourceGroupHeader">
+                <h3 id={`source-group-${group.id}`}>{group.label}</h3>
+                <span>{sources.length}</span>
+              </header>
+              <div className="sourceTable">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>来源</th>
+                      <th>接入状态</th>
+                      <th>启用</th>
+                      <th>网络策略</th>
+                      <th>凭据</th>
+                      <th>最近状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sources.map((source) => {
+                      const canEnable = source.implementationStatus === "active" && source.supportsEnable
+                      const canSync = source.implementationStatus === "active" && source.supportsSync && source.enabled
+                      const testResult = sourceTestMutation.data?.sourceId === source.id
+                        ? sourceTestMutation.data.result
+                        : null
+                      const isTesting = sourceTestMutation.isPending && sourceTestMutation.variables === source.id
+                      const isSyncing = sourceSyncMutation.isPending && sourceSyncMutation.variables === source.id
+                      const isUpdating = sourcePolicyMutation.isPending
+                        && sourcePolicyMutation.variables?.sourceId === source.id
+
+                      return (
+                        <tr key={source.id}>
+                          <td className="sourceIdentity">
+                            <strong>{source.name}</strong>
+                            <span>{source.description}</span>
+                          </td>
+                          <td>
+                            <span className={`sourceStatus ${source.implementationStatus}`}>
+                              {SOURCE_STATUS_LABELS[source.implementationStatus]}
+                            </span>
+                          </td>
+                          <td>
+                            <label className="sourceEnable">
+                              <input
+                                type="checkbox"
+                                aria-label={`启用 ${source.name}`}
+                                checked={source.enabled}
+                                disabled={!canEnable || isUpdating}
+                                onChange={(event) => updateSourcePolicy(
+                                  source.id,
+                                  sourceSettingKey(source.id, "ENABLED"),
+                                  String(event.target.checked)
+                                )}
+                              />
+                              <span aria-hidden="true" />
+                            </label>
+                          </td>
+                          <td>
+                            <div className="proxyModeControl" aria-label={`${source.name} 网络策略`}>
+                              {(["inherit", "direct", "custom"] as ProxyMode[]).map((mode) => (
+                                <button
+                                  type="button"
+                                  key={mode}
+                                  className={source.proxyMode === mode ? "active" : ""}
+                                  aria-label={`${source.name} ${PROXY_MODE_LABELS[mode]}`}
+                                  aria-pressed={source.proxyMode === mode}
+                                  disabled={isUpdating}
+                                  onClick={() => updateSourcePolicy(
+                                    source.id,
+                                    sourceSettingKey(source.id, "PROXY_MODE"),
+                                    mode
+                                  )}
+                                >
+                                  {PROXY_MODE_LABELS[mode]}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={source.credentialsComplete ? "credentialReady" : "credentialMissing"}>
+                              {source.credentialsComplete ? "凭据就绪" : "缺少凭据"}
+                            </span>
+                          </td>
+                          <td className="sourceRuntimeState">
+                            {testResult ? (
+                              <>
+                                <strong className={testResult.success ? "successText" : "errorText"}>
+                                  {testResult.message}
+                                </strong>
+                                <span>{testResult.durationMs} ms</span>
+                              </>
+                            ) : source.latestRun ? (
+                              <>
+                                <strong>{source.latestRun.status}</strong>
+                                <span>{source.latestRun.itemCount} 条</span>
+                              </>
+                            ) : (
+                              <span>暂无记录</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="sourceActions">
+                              <button
+                                type="button"
+                                className="tableIconButton"
+                                aria-label={`测试 ${source.name}`}
+                                title={`测试 ${source.name}`}
+                                disabled={isTesting}
+                                onClick={() => sourceTestMutation.mutate(source.id)}
+                              >
+                                <TestTube2 aria-hidden="true" size={17} />
+                              </button>
+                              <button
+                                type="button"
+                                className="tableIconButton"
+                                aria-label={`同步 ${source.name}`}
+                                title={`同步 ${source.name}`}
+                                disabled={!canSync || isSyncing}
+                                onClick={() => sourceSyncMutation.mutate(source.id)}
+                              >
+                                <RefreshCw aria-hidden="true" size={17} />
+                              </button>
+                              <button
+                                type="button"
+                                className="tableIconButton"
+                                aria-label={`配置 ${source.name}`}
+                                title={`配置 ${source.name}`}
+                                onClick={() => setSelectedSource(source)}
+                              >
+                                <SlidersHorizontal aria-hidden="true" size={17} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )
+        })}
+
+        {(sourcePolicyMutation.isError || sourceSyncMutation.isError) && (
+          <p className="errorText sourceRegistryError">数据源操作失败</p>
+        )}
+      </section>
+
+      {selectedSource && (
+        <SourceConfigDialog
+          source={selectedSource}
+          open
+          onClose={() => setSelectedSource(null)}
+          onSave={saveSourceConfig}
+        />
+      )}
 
     </main>
   )
