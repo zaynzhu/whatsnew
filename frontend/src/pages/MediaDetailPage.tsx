@@ -1,8 +1,26 @@
 import { useQuery } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
 import { apiGet } from "../api/client"
-import type { MediaDetailResponse } from "../api/types"
+import type {
+  MediaDetailResponse,
+  PopularityHistoryResponse,
+  PopularitySignal
+} from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
+
+function timelineMovement(signal: Omit<PopularitySignal, "mediaItem">): string {
+  if (signal.previousRank == null && signal.rank != null) return "新进榜"
+  if ((signal.rankDelta ?? 0) > 0) return `上升 ${signal.rankDelta} 位`
+  if ((signal.rankDelta ?? 0) < 0) return `下降 ${Math.abs(signal.rankDelta ?? 0)} 位`
+  return "排名不变"
+}
+
+function timelineMovementClass(signal: Omit<PopularitySignal, "mediaItem">): string {
+  if (signal.previousRank == null && signal.rank != null) return "movementNew"
+  if ((signal.rankDelta ?? 0) > 0) return "movementUp"
+  if ((signal.rankDelta ?? 0) < 0) return "movementDown"
+  return "movementStable"
+}
 
 export function MediaDetailPage() {
   const { id } = useParams()
@@ -11,9 +29,23 @@ export function MediaDetailPage() {
     queryFn: () => apiGet<MediaDetailResponse>(`/api/media/${id}`),
     enabled: Boolean(id)
   })
+  const historyQuery = useQuery({
+    queryKey: ["popularity-history", id, 30],
+    queryFn: () => apiGet<PopularityHistoryResponse>(
+      `/api/media/${id}/popularity-history?days=30`
+    ),
+    enabled: Boolean(id)
+  })
 
   if (isLoading) return <main className="page">加载中...</main>
   if (isError || !data) return <main className="page">作品详情加载失败</main>
+
+  const historyGroups = (historyQuery.data?.items ?? []).reduce<
+    Record<string, PopularityHistoryResponse["items"]>
+  >((groups, signal) => {
+    groups[signal.source] = [...(groups[signal.source] ?? []), signal]
+    return groups
+  }, {})
 
   return (
     <main className="page">
@@ -71,6 +103,43 @@ export function MediaDetailPage() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="sectionBlock popularityTimeline">
+        <div className="sectionTitle">
+          <h2>热度时间线</h2>
+          <span>最近 30 天</span>
+        </div>
+        {historyQuery.isLoading ? (
+          <p className="emptyText">加载中...</p>
+        ) : historyQuery.isError ? (
+          <p className="emptyText">热度时间线加载失败</p>
+        ) : Object.keys(historyGroups).length > 0 ? (
+          Object.entries(historyGroups).map(([source, signals]) => (
+            <section className="timelineGroup" key={source} aria-labelledby={`timeline-${source}`}>
+              <h3 id={`timeline-${source}`}>{source}</h3>
+              <div className="timelineRows">
+                {signals.map((signal) => (
+                  <article className="timelineRow" key={signal.id}>
+                    <time dateTime={signal.capturedAt}>
+                      {new Intl.DateTimeFormat("zh-CN", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      }).format(new Date(signal.capturedAt))}
+                    </time>
+                    <strong>#{signal.rank ?? "-"}</strong>
+                    <span className={timelineMovementClass(signal)}>{timelineMovement(signal)}</span>
+                    <span>{signal.valueLabel ?? signal.window}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))
+        ) : (
+          <p className="emptyText">暂无热度历史</p>
+        )}
       </section>
 
       <section className="sectionBlock">

@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "../src/App"
@@ -50,12 +51,38 @@ const signal = {
   region: "US",
   window: "week",
   rank: 4,
-  rankDelta: -2,
+  previousRank: 1,
+  rankDelta: -3,
   value: 1200,
   valueLabel: "1.2k watches",
   capturedAt: "2026-06-17T02:00:00.000Z",
+  isCurrent: true,
   sourceUrl: "https://example.com/trending",
   mediaItem
+}
+
+const risingSignal = {
+  ...signal,
+  id: "signal-2",
+  source: "tmdb_trending",
+  platform: "TMDb",
+  region: "GLOBAL",
+  rank: 7,
+  previousRank: 12,
+  rankDelta: 5,
+  valueLabel: "本周趋势"
+}
+
+const newSignal = {
+  ...signal,
+  id: "signal-3",
+  source: "iqiyi_reserve",
+  platform: "iQIYI",
+  region: "CN",
+  rank: 8,
+  previousRank: null,
+  rankDelta: null,
+  valueLabel: "预约榜"
 }
 
 const sourceRun = {
@@ -95,7 +122,7 @@ const responses: Record<string, unknown> = {
     nextCursor: null
   },
   "/api/trending": {
-    items: [signal]
+    items: [signal, risingSignal, newSignal]
   },
   "/api/calendar": {
     items: [release]
@@ -108,14 +135,34 @@ const responses: Record<string, unknown> = {
     releases: [release],
     popularitySignals: [signal],
     changeEvents: [event]
+  },
+  "/api/media/media-1/popularity-history?days=30": {
+    items: [
+      {
+        ...risingSignal,
+        id: "signal-history-1",
+        rank: 12,
+        previousRank: null,
+        rankDelta: null,
+        capturedAt: "2026-06-16T02:00:00.000Z",
+        isCurrent: false,
+        mediaItem: undefined
+      },
+      {
+        ...risingSignal,
+        mediaItem: undefined
+      }
+    ]
   }
 }
 
 function mockFetch() {
-  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+  return vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const path = input instanceof Request ? input.url : String(input)
     const pathname = path.startsWith("http") ? new URL(path).pathname + new URL(path).search : path
-    const body = responses[pathname]
+    const body = responses[pathname] ?? (pathname.startsWith("/api/trending?")
+      ? responses["/api/trending"]
+      : undefined)
 
     if (!body) {
       return {
@@ -182,7 +229,8 @@ describe("frontend pages", () => {
     mockFetch()
     renderRoute("/trending")
 
-    expect(await screen.findByText("trakt #4")).toBeInTheDocument()
+    expect(await screen.findByText("trakt")).toBeInTheDocument()
+    expect(screen.getByText("#4")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
 
     renderRoute("/calendar")
@@ -195,13 +243,39 @@ describe("frontend pages", () => {
     expect(screen.getByText("8 条")).toBeInTheDocument()
   })
 
-  it("renders media detail from API data", async () => {
+  it("writes movement and source filters to the API request", async () => {
+    const fetchMock = mockFetch()
+    const user = userEvent.setup()
+    renderRoute("/trending")
+
+    await user.click(await screen.findByRole("tab", { name: "上升" }))
+    await user.selectOptions(screen.getByLabelText("热度来源"), "tmdb_trending")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trending?movement=rising&source=tmdb_trending"
+    )
+  })
+
+  it("renders positive negative and new rank movement", async () => {
     mockFetch()
+    renderRoute("/trending")
+
+    expect(await screen.findByText("上升 5 位")).toHaveClass("movementUp")
+    expect(screen.getByText("下降 3 位")).toHaveClass("movementDown")
+    expect(screen.getByText("新进榜")).toHaveClass("movementNew")
+  })
+
+  it("renders media detail from API data", async () => {
+    const fetchMock = mockFetch()
     renderRoute("/media/media-1")
 
     expect(await screen.findByRole("heading", { name: "星际回声" })).toBeInTheDocument()
     expect(screen.getByText("一支深空信号追踪小组发现新剧上线异动。")).toBeInTheDocument()
     expect(screen.getByText("Netflix")).toBeInTheDocument()
     expect(screen.getByText("release_added")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/media/media-1/popularity-history?days=30"
+    )
+    expect(screen.getByRole("heading", { name: "热度时间线" })).toBeInTheDocument()
   })
 })

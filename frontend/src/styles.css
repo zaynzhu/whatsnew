@@ -422,7 +422,7 @@ h1 {
 }
 
 .rankRow {
-  grid-template-columns: minmax(180px, 1fr) minmax(110px, auto) minmax(130px, auto);
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.65fr) 64px minmax(96px, auto) minmax(110px, auto);
 }
 
 .eventRow {
@@ -476,6 +476,166 @@ h1 {
 .detailPoster {
   width: 164px;
   justify-self: end;
+}
+
+.trendingToolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  margin: 22px 0 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+
+.movementTabs {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #131715;
+}
+
+.movementTabs button {
+  min-width: 64px;
+  min-height: 38px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.movementTabs button:last-child {
+  border-right: 0;
+}
+
+.movementTabs button[aria-selected="true"] {
+  background: #26312e;
+  color: var(--teal);
+}
+
+.trendingSelects {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.trendingSelects label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.trendingSelects select {
+  min-width: 132px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 30px 7px 10px;
+  background: #131715;
+  color: var(--mist);
+  font: inherit;
+}
+
+.rankTitle {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rankTitle span,
+.rankSource > span,
+.rankRow time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rankSource {
+  display: grid;
+  gap: 4px;
+}
+
+.rankSource small {
+  color: #718078;
+  font-size: 11px;
+}
+
+.rankTitle:focus-visible {
+  outline: 3px solid rgba(61, 214, 179, 0.45);
+  outline-offset: 3px;
+}
+
+.rankPosition {
+  color: var(--mist);
+  font-size: 18px;
+  text-align: right;
+}
+
+.movementUp,
+.movementDown,
+.movementNew,
+.movementStable {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.movementUp {
+  color: var(--teal) !important;
+}
+
+.movementDown {
+  color: var(--red) !important;
+}
+
+.movementNew {
+  color: var(--amber) !important;
+}
+
+.movementStable {
+  color: var(--muted) !important;
+}
+
+.popularityTimeline > .sectionTitle > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timelineGroup {
+  border-top: 2px solid var(--line);
+}
+
+.timelineGroup + .timelineGroup {
+  margin-top: 18px;
+}
+
+.timelineGroup h3 {
+  margin: 0;
+  padding: 12px 0 8px;
+  color: var(--amber);
+  font-size: 13px;
+}
+
+.timelineRows {
+  display: grid;
+}
+
+.timelineRow {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.55fr) 64px minmax(100px, 0.5fr) minmax(160px, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 46px;
+  border-top: 1px solid var(--line);
+  padding: 9px 0;
+}
+
+.timelineRow time,
+.timelineRow > span:last-child {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .settingsLayout {
@@ -1140,7 +1300,8 @@ h1 {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 3px solid rgba(61, 214, 179, 0.45);
   outline-offset: 2px;
 }
@@ -1248,6 +1409,36 @@ input:focus-visible {
   .rankRow,
   .eventRow {
     grid-template-columns: 1fr;
+  }
+
+  .trendingToolbar,
+  .trendingSelects {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .movementTabs {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .movementTabs button {
+    flex: 0 0 auto;
+  }
+
+  .trendingSelects select {
+    width: 100%;
+  }
+
+  .rankPosition {
+    text-align: left;
+  }
+
+  .timelineRow {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 12px 0;
   }
 }
 
