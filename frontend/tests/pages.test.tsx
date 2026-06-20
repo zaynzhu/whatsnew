@@ -96,7 +96,7 @@ const responses: Record<string, unknown> = {
   "/api/trending": {
     items: [signal]
   },
-  "/api/calendar?from=2026-06-17&to=2026-06-30": {
+  "/api/calendar": {
     items: [release]
   },
   "/api/sources": {
