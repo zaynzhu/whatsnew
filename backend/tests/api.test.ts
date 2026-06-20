@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@prisma/client"
 import request from "supertest"
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
+import { runtimeSettings } from "../src/settings/runtimeSettingsService.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
@@ -16,6 +17,10 @@ beforeAll(async () => {
 beforeEach(async () => {
   await resetTestDatabase()
   await runSourceSync(prisma, demoSeedAdapter)
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe("api routes", () => {
@@ -79,12 +84,29 @@ describe("api routes", () => {
     const response = await request(createApp()).post("/api/sources/unknown/sync")
 
     expect(response.status).toBe(404)
-    expect(response.body).toEqual({ error: "source_not_available_in_mvp" })
+    expect(response.body).toEqual({ error: "source_not_implemented" })
   })
 
   it("rejects demo source sync requests", async () => {
     const response = await request(createApp()).post("/api/sources/demo/sync")
 
     expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: "source_not_implemented" })
+  })
+
+  it("rejects planned source sync requests", async () => {
+    const response = await request(createApp()).post("/api/sources/imdb/sync")
+
+    expect(response.status).toBe(404)
+    expect(response.body).toEqual({ error: "source_not_implemented" })
+  })
+
+  it("rejects disabled implemented source sync requests", async () => {
+    vi.spyOn(runtimeSettings, "sourceEnabled").mockImplementation((sourceId) => sourceId !== "tmdb")
+
+    const response = await request(createApp()).post("/api/sources/tmdb/sync")
+
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({ error: "source_disabled" })
   })
 })

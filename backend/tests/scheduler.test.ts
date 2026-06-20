@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   db: { name: "test-db" },
-  demoSeedAdapter: { source: "demo" },
   tvmazeAdapter: { source: "tvmaze" },
   tmdbAdapter: { source: "tmdb" },
   youkuAdapter: { source: "youku" },
   iqiyiAdapter: { source: "iqiyi" },
   env: { SYNC_ON_START: false },
+  settings: { sourceEnabled: vi.fn((_sourceId: string) => true) },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   schedule: vi.fn()
 }))
@@ -26,8 +26,8 @@ vi.mock("../src/config/env.js", () => ({
   env: mocks.env
 }))
 
-vi.mock("../src/adapters/demoSeedAdapter.js", () => ({
-  demoSeedAdapter: mocks.demoSeedAdapter
+vi.mock("../src/settings/runtimeSettingsService.js", () => ({
+  runtimeSettings: mocks.settings
 }))
 
 vi.mock("../src/adapters/tvmazeAdapter.js", () => ({
@@ -54,39 +54,44 @@ beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   mocks.env.SYNC_ON_START = false
+  mocks.settings.sourceEnabled.mockImplementation((_sourceId: string) => true)
 })
 
 describe("scheduler", () => {
-  it("registers an hourly sync job for enabled sources", async () => {
+  it("resolves enabled adapters at execution time", async () => {
+    mocks.settings.sourceEnabled.mockImplementation((sourceId: string) => sourceId !== "tmdb")
     const { registerScheduler } = await import("../src/scheduler.js")
 
     registerScheduler()
-
     expect(mocks.schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function))
-
     const scheduledJob = mocks.schedule.mock.calls[0][1] as () => Promise<void>
     await scheduledJob()
 
-    expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+    expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
+
+    mocks.runSourceSync.mockClear()
+    mocks.settings.sourceEnabled.mockReturnValue(true)
+    await scheduledJob()
+
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
   })
 
-  it("runs initial sync when configured", async () => {
+  it("resolves enabled adapters for initial sync", async () => {
     mocks.env.SYNC_ON_START = true
+    mocks.settings.sourceEnabled.mockImplementation((sourceId: string) => sourceId !== "iqiyi")
     const { registerScheduler } = await import("../src/scheduler.js")
 
     registerScheduler()
+
     await vi.waitFor(() => {
-      expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+      expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
     })
   })
 })

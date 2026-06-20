@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createTmdbAdapter } from "../src/adapters/tmdbAdapter.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 const nowPlayingMovie = {
   id: 1001,
@@ -55,22 +56,28 @@ const onTheAirShow = {
   origin_country: ["KR"]
 }
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    throw new Error("适配器不得使用全局 fetch")
+  }))
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("tmdbAdapter", () => {
   it("returns no items and skips network requests when no API key is configured", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchJson = vi.fn()
 
     const adapter = createTmdbAdapter({
       apiKey: "",
+      httpClient: { fetchJson } as unknown as SourceHttpClient,
       minIntervalMs: 0
     })
 
     await expect(adapter.fetchItems()).resolves.toEqual([])
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchJson).not.toHaveBeenCalled()
   })
 
   it("fetches TMDb movie releases and trending signals", async () => {
@@ -131,10 +138,14 @@ describe("tmdbAdapter", () => {
 
       return new Response("{}", { status: 404, statusText: "Not Found" })
     })
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchJson = vi.fn(async (sourceId: string, url: string, _options?: unknown) => {
+      expect(sourceId).toBe("tmdb")
+      return fetchMock(url).then((response) => response.json())
+    })
 
     const adapter = createTmdbAdapter({
       apiKey: "test-key",
+      httpClient: { fetchJson } as unknown as SourceHttpClient,
       minIntervalMs: 0,
       today: () => "2026-06-17"
     })
@@ -151,6 +162,7 @@ describe("tmdbAdapter", () => {
     expect(fetchMock.mock.calls[6][0]).toContain("/tv/on_the_air")
     expect(fetchMock.mock.calls[7][0]).toContain("/trending/tv/week")
     expect(fetchMock.mock.calls[2][0]).toContain("api_key=test-key")
+    expect(fetchJson).toHaveBeenCalledTimes(8)
     expect(items).toHaveLength(4)
     expect(items[0].media).toMatchObject({
       source: "tmdb",
@@ -247,25 +259,24 @@ describe("tmdbAdapter", () => {
   })
 
   it("uses Bearer authentication when configured with a TMDb read access token", async () => {
-    const fetchMock = vi.fn(async (url: string, _options?: RequestInit) => {
-      const body = url.includes("/genre/movie/list") || url.includes("/genre/tv/list")
+    const fetchJson = vi.fn(async (sourceId: string, url: string, _options?: unknown) => {
+      expect(sourceId).toBe("tmdb")
+      return url.includes("/genre/movie/list") || url.includes("/genre/tv/list")
         ? { genres: [] }
         : { results: [] }
-
-      return new Response(JSON.stringify(body))
     })
-    vi.stubGlobal("fetch", fetchMock)
 
     const adapter = createTmdbAdapter({
       apiKey: "eyJ.test.token",
+      httpClient: { fetchJson } as unknown as SourceHttpClient,
       minIntervalMs: 0
     })
 
     await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledTimes(8)
-    expect(fetchMock.mock.calls[0][0]).not.toContain("api_key=")
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+    expect(fetchJson).toHaveBeenCalledTimes(8)
+    expect(fetchJson.mock.calls[0][1]).not.toContain("api_key=")
+    expect(fetchJson.mock.calls[0][2]).toMatchObject({
       headers: {
         Authorization: "Bearer eyJ.test.token"
       }

@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createTvmazeAdapter } from "../src/adapters/tvmazeAdapter.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 const scheduleEpisode = {
   id: 101,
@@ -63,34 +64,36 @@ const webEpisode = {
   }
 }
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    throw new Error("适配器不得使用全局 fetch")
+  }))
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("tvmazeAdapter", () => {
   it("fetches TVmaze schedule and maps episodes into grouped media items", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      const body = url.includes("/schedule/web") ? [webEpisode] : [scheduleEpisode]
-
-      return new Response(JSON.stringify(body), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      })
+    const fetchJson = vi.fn(async (sourceId: string, url: string) => {
+      expect(sourceId).toBe("tvmaze")
+      return url.includes("/schedule/web") ? [webEpisode] : [scheduleEpisode]
     })
-    vi.stubGlobal("fetch", fetchMock)
 
     const adapter = createTvmazeAdapter({
       country: "US",
       days: 1,
+      httpClient: { fetchJson } as unknown as SourceHttpClient,
       minIntervalMs: 0,
       startDate: () => "2026-06-17"
     })
 
     const items = await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock.mock.calls[0][0]).toContain("/schedule?country=US&date=2026-06-17")
-    expect(fetchMock.mock.calls[1][0]).toContain("/schedule/web?date=2026-06-17&country=")
+    expect(fetchJson).toHaveBeenCalledTimes(2)
+    expect(fetchJson.mock.calls[0][1]).toContain("/schedule?country=US&date=2026-06-17")
+    expect(fetchJson.mock.calls[1][1]).toContain("/schedule/web?date=2026-06-17&country=")
     expect(items).toHaveLength(2)
     expect(items[0].media).toMatchObject({
       source: "tvmaze",

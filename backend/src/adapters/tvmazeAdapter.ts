@@ -1,7 +1,9 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, ReleaseInput, SourceAdapter } from "../domain/types.js"
-import { fetchJson } from "../utils/http.js"
+import { captureSourceProxySettings } from "../settings/proxyResolver.js"
+import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
+import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type TvmazeCountry = {
   code: string
@@ -50,9 +52,12 @@ type TvmazeAdapterOptions = {
   days?: number
   minIntervalMs?: number
   startDate?: () => string
+  baseUrl?: string
+  httpClient?: SourceHttpClient
+  settings?: RuntimeSettingsService
 }
 
-const TVMAZE_BASE_URL = "https://api.tvmaze.com"
+const DEFAULT_TVMAZE_BASE_URL = "https://api.tvmaze.com"
 const DEFAULT_SYNC_DAYS = 7
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const TVMAZE_TIMEOUT_MS = 30000
@@ -192,14 +197,24 @@ export function createTvmazeAdapter(options: TvmazeAdapterOptions = {}): SourceA
   const country = options.country ?? "US"
   const days = options.days ?? DEFAULT_SYNC_DAYS
   const startDate = options.startDate ?? todayLocalDate
-
-  async function fetchSchedule(path: string): Promise<TvmazeEpisode[]> {
-    return limiter.run(() => fetchJson<TvmazeEpisode[]>(`${TVMAZE_BASE_URL}${path}`, { timeoutMs: TVMAZE_TIMEOUT_MS }))
-  }
+  const httpClient = options.httpClient ?? sourceHttpClient
+  const settings = options.settings ?? runtimeSettings
 
   return {
     source: "tvmaze",
     async fetchItems() {
+      const currentSettings = settings.view()
+      const baseUrl = ((options.baseUrl ?? currentSettings.get("TVMAZE_BASE_URL")) || DEFAULT_TVMAZE_BASE_URL)
+        .replace(/\/$/, "")
+      const settingsOverride = captureSourceProxySettings(currentSettings, "tvmaze")
+
+      async function fetchSchedule(path: string): Promise<TvmazeEpisode[]> {
+        return limiter.run(() => httpClient.fetchJson<TvmazeEpisode[]>("tvmaze", `${baseUrl}${path}`, {
+          timeoutMs: TVMAZE_TIMEOUT_MS,
+          settingsOverride
+        }))
+      }
+
       const start = startDate()
       const episodes: TvmazeEpisode[] = []
 

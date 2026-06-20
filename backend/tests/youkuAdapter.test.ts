@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createYoukuAdapter } from "../src/adapters/youkuAdapter.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 function htmlWithInitialData(data: unknown): string {
   return `<!doctype html><script>window.__INITIAL_DATA__ =${JSON.stringify(data).replace(/"__undefined__"/g, "undefined")};</script>`
@@ -93,34 +94,36 @@ const movieInitialData = {
   ]
 }
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    throw new Error("适配器不得使用全局 fetch")
+  }))
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("youkuAdapter", () => {
   it("fetches Youku TV and movie pages and maps SSR items into media items", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      const body = url.includes("movie.youku.com")
+    const fetchText = vi.fn(async (sourceId: string, url: string) => {
+      expect(sourceId).toBe("youku")
+      return url.includes("movie.youku.com")
         ? htmlWithInitialData(movieInitialData)
         : htmlWithInitialData(tvInitialData)
-
-      return new Response(body, {
-        status: 200,
-        headers: { "content-type": "text/html" }
-      })
     })
-    vi.stubGlobal("fetch", fetchMock)
 
     const adapter = createYoukuAdapter({
+      httpClient: { fetchText } as unknown as SourceHttpClient,
       minIntervalMs: 0,
       today: () => "2026-06-17"
     })
 
     const items = await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock.mock.calls[0][0]).toBe("https://tv.youku.com/")
-    expect(fetchMock.mock.calls[1][0]).toBe("https://movie.youku.com/")
+    expect(fetchText).toHaveBeenCalledTimes(2)
+    expect(fetchText.mock.calls[0][1]).toBe("https://tv.youku.com/")
+    expect(fetchText.mock.calls[1][1]).toBe("https://movie.youku.com/")
     expect(items).toHaveLength(3)
     expect(items[0].media).toMatchObject({
       source: "youku",
@@ -183,10 +186,10 @@ describe("youkuAdapter", () => {
   })
 
   it("returns no items when the Youku page does not include SSR initial data", async () => {
-    const fetchMock = vi.fn(async () => new Response("<!doctype html><div></div>"))
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchText = vi.fn(async () => "<!doctype html><div></div>")
 
     const adapter = createYoukuAdapter({
+      httpClient: { fetchText } as unknown as SourceHttpClient,
       minIntervalMs: 0
     })
 

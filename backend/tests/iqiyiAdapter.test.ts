@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createIqiyiAdapter } from "../src/adapters/iqiyiAdapter.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 function htmlWithNuxt(data: unknown): string {
   return `<!doctype html><script>window.__NUXT__=${JSON.stringify(data)};</script>`
@@ -66,26 +67,32 @@ const nuxtData = {
   ]
 }
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    throw new Error("适配器不得使用全局 fetch")
+  }))
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("iqiyiAdapter", () => {
   it("fetches iQIYI new releases and maps reservation signals", async () => {
-    const fetchMock = vi.fn(async () => new Response(htmlWithNuxt(nuxtData), {
-      status: 200,
-      headers: { "content-type": "text/html" }
-    }))
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchText = vi.fn(async (sourceId: string) => {
+      expect(sourceId).toBe("iqiyi")
+      return htmlWithNuxt(nuxtData)
+    })
 
     const adapter = createIqiyiAdapter({
+      httpClient: { fetchText } as unknown as SourceHttpClient,
       minIntervalMs: 0,
       today: () => "2026-06-17"
     })
 
     const items = await adapter.fetchItems()
 
-    expect(fetchMock).toHaveBeenCalledWith("https://www.iqiyi.com/newOnlinePCW", expect.any(Object))
+    expect(fetchText).toHaveBeenCalledWith("iqiyi", "https://www.iqiyi.com/newOnlinePCW", expect.any(Object))
     expect(items).toHaveLength(3)
     expect(items[0].media).toMatchObject({
       source: "iqiyi",
@@ -137,10 +144,10 @@ describe("iqiyiAdapter", () => {
   })
 
   it("returns no items when the page has no Nuxt release data", async () => {
-    const fetchMock = vi.fn(async () => new Response("<!doctype html><div></div>"))
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchText = vi.fn(async () => "<!doctype html><div></div>")
 
     const adapter = createIqiyiAdapter({
+      httpClient: { fetchText } as unknown as SourceHttpClient,
       minIntervalMs: 0
     })
 

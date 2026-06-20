@@ -14,3 +14,13 @@ export function resolveProxy(settings: SettingsReader, sourceId: string, targetU
 
   return settings.get(protocolKey) || null
 }
+
+export function captureSourceProxySettings(settings: SettingsReader, sourceId: string): Record<string, string> {
+  return {
+    HTTP_PROXY: settings.get("HTTP_PROXY"),
+    HTTPS_PROXY: settings.get("HTTPS_PROXY"),
+    [sourceEnvKey(sourceId, "PROXY_MODE")]: settings.sourceProxyMode(sourceId),
+    [sourceEnvKey(sourceId, "HTTP_PROXY")]: settings.get(sourceEnvKey(sourceId, "HTTP_PROXY")),
+    [sourceEnvKey(sourceId, "HTTPS_PROXY")]: settings.get(sourceEnvKey(sourceId, "HTTPS_PROXY"))
+  }
+}

@@ -1,7 +1,10 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
 import type { ReleaseForm } from "@whatsnew/shared/media"
+import { captureSourceProxySettings } from "../settings/proxyResolver.js"
+import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
+import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type YoukuTextMark = {
   text?: string | {
@@ -56,6 +59,9 @@ type YoukuAdapterOptions = {
   pages?: YoukuPageConfig[]
   minIntervalMs?: number
   today?: () => string
+  baseUrl?: string
+  httpClient?: SourceHttpClient
+  settings?: RuntimeSettingsService
 }
 
 const DEFAULT_PAGES: YoukuPageConfig[] = [
@@ -64,6 +70,7 @@ const DEFAULT_PAGES: YoukuPageConfig[] = [
 ]
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const YOUKU_TIMEOUT_MS = 30000
+const USER_AGENT_HEADERS = { "user-agent": "Mozilla/5.0 WhatsNewBot/0.1" }
 
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear()
@@ -283,40 +290,30 @@ function mergeItem(items: Map<string, AdapterItem>, next: AdapterItem) {
   }
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 WhatsNewBot/0.1"
-      }
-    })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} ${response.statusText} for ${url}`)
-    }
-
-    return response.text()
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
 export function createYoukuAdapter(options: YoukuAdapterOptions = {}): SourceAdapter {
-  const pages = options.pages ?? DEFAULT_PAGES
   const today = options.today ?? todayLocalDate
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
+  const httpClient = options.httpClient ?? sourceHttpClient
+  const settings = options.settings ?? runtimeSettings
 
   return {
     source: "youku",
     async fetchItems() {
+      const currentSettings = settings.view()
+      const configuredBaseUrl = options.baseUrl ?? currentSettings.get("SOURCE_YOUKU_BASE_URL")
+      const pages = options.pages ?? (configuredBaseUrl
+        ? [{ ...DEFAULT_PAGES[0], url: configuredBaseUrl }, DEFAULT_PAGES[1]]
+        : DEFAULT_PAGES)
+      const settingsOverride = captureSourceProxySettings(currentSettings, "youku")
       const currentDate = today()
       const items = new Map<string, AdapterItem>()
 
       for (const page of pages) {
-        const html = await limiter.run(() => fetchText(page.url, YOUKU_TIMEOUT_MS))
+        const html = await limiter.run(() => httpClient.fetchText("youku", page.url, {
+          headers: USER_AGENT_HEADERS,
+          timeoutMs: YOUKU_TIMEOUT_MS,
+          settingsOverride
+        }))
         const data = extractInitialData(html)
 
         for (const row of allItems(data, page.fallbackCategory)) {

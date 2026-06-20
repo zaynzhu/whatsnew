@@ -1,8 +1,9 @@
-import { env } from "../config/env.js"
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
-import { fetchJson } from "../utils/http.js"
+import { captureSourceProxySettings } from "../settings/proxyResolver.js"
+import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
+import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type TmdbMovie = {
   id: number
@@ -53,10 +54,14 @@ type TmdbAdapterOptions = {
   page?: number
   minIntervalMs?: number
   today?: () => string
+  httpClient?: SourceHttpClient
+  settings?: RuntimeSettingsService
 }
 
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const TMDB_TIMEOUT_MS = 30000
+const DEFAULT_TMDB_BASE_URL = "https://api.themoviedb.org/3"
+const DEFAULT_TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear()
@@ -321,38 +326,49 @@ function addShowTrendingSignals(items: Map<string, AdapterItem>, shows: TmdbShow
 }
 
 export function createTmdbAdapter(options: TmdbAdapterOptions = {}): SourceAdapter {
-  const apiKey = options.apiKey ?? env.TMDB_API_KEY
-  const baseUrl = (options.baseUrl ?? env.TMDB_BASE_URL).replace(/\/$/, "")
-  const imageBaseUrl = options.imageBaseUrl ?? env.TMDB_IMAGE_BASE_URL
   const language = options.language ?? "zh-CN"
   const region = options.region ?? "US"
   const page = options.page ?? 1
   const today = options.today ?? todayLocalDate
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
-
-  async function fetchTmdb<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
-    const url = new URL(`${baseUrl}${path}`)
-    const headers: Record<string, string> = {}
-
-    if (isBearerToken(apiKey)) {
-      headers.Authorization = `Bearer ${apiKey}`
-    } else {
-      url.searchParams.set("api_key", apiKey)
-    }
-
-    url.searchParams.set("language", language)
-
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, String(value))
-    }
-
-    return limiter.run(() => fetchJson<T>(url.toString(), { headers, timeoutMs: TMDB_TIMEOUT_MS }))
-  }
+  const httpClient = options.httpClient ?? sourceHttpClient
+  const settings = options.settings ?? runtimeSettings
 
   return {
     source: "tmdb",
     async fetchItems() {
+      const currentSettings = settings.view()
+      const apiKey = options.apiKey ?? currentSettings.get("TMDB_API_KEY")
       if (!apiKey) return []
+
+      const baseUrl = ((options.baseUrl ?? currentSettings.get("TMDB_BASE_URL")) || DEFAULT_TMDB_BASE_URL)
+        .replace(/\/$/, "")
+      const imageBaseUrl = (options.imageBaseUrl ?? currentSettings.get("TMDB_IMAGE_BASE_URL"))
+        || DEFAULT_TMDB_IMAGE_BASE_URL
+      const settingsOverride = captureSourceProxySettings(currentSettings, "tmdb")
+
+      async function fetchTmdb<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
+        const url = new URL(`${baseUrl}${path}`)
+        const headers: Record<string, string> = {}
+
+        if (isBearerToken(apiKey)) {
+          headers.Authorization = `Bearer ${apiKey}`
+        } else {
+          url.searchParams.set("api_key", apiKey)
+        }
+
+        url.searchParams.set("language", language)
+
+        for (const [key, value] of Object.entries(params)) {
+          url.searchParams.set(key, String(value))
+        }
+
+        return limiter.run(() => httpClient.fetchJson<T>("tmdb", url.toString(), {
+          headers,
+          timeoutMs: TMDB_TIMEOUT_MS,
+          settingsOverride
+        }))
+      }
 
       const currentDate = today()
       const [movieGenreResponse, tvGenreResponse, nowPlaying, upcoming, movieTrending, airingToday, onTheAir, tvTrending] = await Promise.all([

@@ -1,7 +1,10 @@
 import type { ReleaseForm } from "@whatsnew/shared/media"
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
+import { captureSourceProxySettings } from "../settings/proxyResolver.js"
+import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
+import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type IqiyiVideo = {
   name?: string
@@ -31,11 +34,14 @@ type IqiyiAdapterOptions = {
   url?: string
   minIntervalMs?: number
   today?: () => string
+  httpClient?: SourceHttpClient
+  settings?: RuntimeSettingsService
 }
 
 const IQIYI_NEW_ONLINE_URL = "https://www.iqiyi.com/newOnlinePCW"
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const IQIYI_TIMEOUT_MS = 30000
+const USER_AGENT_HEADERS = { "user-agent": "Mozilla/5.0 WhatsNewBot/0.1" }
 const CID_TO_CATEGORY: Record<string, string> = {
   "1": "电影",
   "2": "电视剧",
@@ -207,37 +213,24 @@ function videoToAdapterItem(video: IqiyiVideo, index: number, today: string): Ad
   }
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 WhatsNewBot/0.1"
-      }
-    })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} ${response.statusText} for ${url}`)
-    }
-
-    return response.text()
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
 export function createIqiyiAdapter(options: IqiyiAdapterOptions = {}): SourceAdapter {
-  const url = options.url ?? IQIYI_NEW_ONLINE_URL
   const today = options.today ?? todayLocalDate
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
+  const httpClient = options.httpClient ?? sourceHttpClient
+  const settings = options.settings ?? runtimeSettings
 
   return {
     source: "iqiyi",
     async fetchItems() {
+      const currentSettings = settings.view()
+      const url = (options.url ?? currentSettings.get("SOURCE_IQIYI_BASE_URL")) || IQIYI_NEW_ONLINE_URL
+      const settingsOverride = captureSourceProxySettings(currentSettings, "iqiyi")
       const currentDate = today()
-      const html = await limiter.run(() => fetchText(url, IQIYI_TIMEOUT_MS))
+      const html = await limiter.run(() => httpClient.fetchText("iqiyi", url, {
+        headers: USER_AGENT_HEADERS,
+        timeoutMs: IQIYI_TIMEOUT_MS,
+        settingsOverride
+      }))
       const videos = videosFromNuxt(extractNuxtData(html))
 
       return videos.map((video, index) => videoToAdapterItem(video, index + 1, currentDate))

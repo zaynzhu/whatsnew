@@ -1,19 +1,9 @@
 import { Router } from "express"
-import { iqiyiAdapter } from "../adapters/iqiyiAdapter.js"
-import { tmdbAdapter } from "../adapters/tmdbAdapter.js"
-import { tvmazeAdapter } from "../adapters/tvmazeAdapter.js"
-import { youkuAdapter } from "../adapters/youkuAdapter.js"
+import { getEnabledAdapter, getImplementedAdapter } from "../adapters/adapterRegistry.js"
 import { db } from "../config/db.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
 
 export const sourcesRouter = Router()
-
-const availableAdapters = {
-  tvmaze: tvmazeAdapter,
-  tmdb: tmdbAdapter,
-  youku: youkuAdapter,
-  iqiyi: iqiyiAdapter
-}
 
 sourcesRouter.get("/", async (_req, res) => {
   const runs = await db.sourceSyncRun.findMany({
@@ -26,10 +16,16 @@ sourcesRouter.get("/", async (_req, res) => {
 })
 
 sourcesRouter.post("/:source/sync", async (req, res) => {
-  const adapter = availableAdapters[req.params.source as keyof typeof availableAdapters]
+  const implementedAdapter = getImplementedAdapter(req.params.source)
 
+  if (!implementedAdapter) {
+    res.status(404).json({ error: "source_not_implemented" })
+    return
+  }
+
+  const adapter = getEnabledAdapter(req.params.source)
   if (!adapter) {
-    res.status(404).json({ error: "source_not_available_in_mvp" })
+    res.status(409).json({ error: "source_disabled" })
     return
   }
 
