@@ -84,7 +84,8 @@ export class SourceHttpError extends Error {
     message: string,
     readonly sourceId: string,
     readonly statusCode: number,
-    readonly bodySnippet: string
+    readonly bodySnippet: string,
+    readonly serverHeader: string | null = null
   ) {
     super(message)
     this.name = "SourceHttpError"
@@ -135,7 +136,7 @@ export class SourceHttpClient {
         `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}: ${body}`,
         secrets
       )
-      throw new SourceHttpError(message, sourceId, response.status, body)
+      throw new SourceHttpError(message, sourceId, response.status, body, response.headers.get("server"))
     } catch (error) {
       throw redactError(error, secrets)
     } finally {

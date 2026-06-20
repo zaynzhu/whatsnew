@@ -1,35 +1,68 @@
 import { Router } from "express"
 import { getEnabledAdapter, getImplementedAdapter } from "../adapters/adapterRegistry.js"
 import { db } from "../config/db.js"
+import {
+  ConnectionTestService,
+  connectionTestService
+} from "../services/connectionTestService.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
+import { getSourceDefinition } from "../settings/sourceCatalog.js"
 
-export const sourcesRouter = Router()
+type SourcesRouterDependencies = {
+  connectionTester?: ConnectionTestService
+}
 
-sourcesRouter.get("/", async (_req, res) => {
-  const runs = await db.sourceSyncRun.findMany({
-    where: { source: { not: "demo" } },
-    orderBy: { startedAt: "desc" },
-    take: 50
+export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}): Router {
+  const router = Router()
+  const connectionTester = dependencies.connectionTester ?? connectionTestService
+
+  router.get("/", async (_req, res) => {
+    const runs = await db.sourceSyncRun.findMany({
+      where: { source: { not: "demo" } },
+      orderBy: { startedAt: "desc" },
+      take: 50
+    })
+
+    res.json({ items: runs })
   })
 
-  res.json({ items: runs })
-})
+  router.post("/:source/test", async (req, res) => {
+    let source
+    try {
+      source = getSourceDefinition(req.params.source)
+    } catch {
+      res.status(404).json({ error: "source_not_found" })
+      return
+    }
 
-sourcesRouter.post("/:source/sync", async (req, res) => {
-  const implementedAdapter = getImplementedAdapter(req.params.source)
+    const result = await connectionTester.testSource(source)
+    res.json({
+      sourceId: source.id,
+      implementationStatus: source.implementationStatus,
+      result
+    })
+  })
 
-  if (!implementedAdapter) {
-    res.status(404).json({ error: "source_not_implemented" })
-    return
-  }
+  router.post("/:source/sync", async (req, res) => {
+    const implementedAdapter = getImplementedAdapter(req.params.source)
 
-  const adapter = getEnabledAdapter(req.params.source)
-  if (!adapter) {
-    res.status(409).json({ error: "source_disabled" })
-    return
-  }
+    if (!implementedAdapter) {
+      res.status(404).json({ error: "source_not_implemented" })
+      return
+    }
 
-  const run = await runSourceSync(db, adapter)
+    const adapter = getEnabledAdapter(req.params.source)
+    if (!adapter) {
+      res.status(409).json({ error: "source_disabled" })
+      return
+    }
 
-  res.json(run)
-})
+    const run = await runSourceSync(db, adapter)
+
+    res.json(run)
+  })
+
+  return router
+}
+
+export const sourcesRouter = createSourcesRouter()
