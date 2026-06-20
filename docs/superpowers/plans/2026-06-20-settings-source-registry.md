@@ -179,10 +179,12 @@ Add the following export to `shared/package.json` under `exports`:
 
 ```json
 "./settings": {
-  "types": "./dist/settings.d.ts",
+  "types": "./src/settings.ts",
   "default": "./dist/settings.js"
 }
 ```
+
+Keep the type entry pointed at source, matching the existing `./media` export, so a fresh workspace can typecheck before running the shared build.
 
 - [ ] **Step 4: Implement the source catalog**
 
