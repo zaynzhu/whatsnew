@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { db } from "../config/db.js"
+import { withDataSources } from "../domain/mediaPresenter.js"
 
 export const mediaRouter = Router()
 
@@ -19,11 +20,15 @@ mediaRouter.get("/", async (req, res) => {
       releaseForm: typeof releaseForm === "string" ? releaseForm : undefined,
       status: typeof status === "string" ? status : undefined
     },
+    include: {
+      releases: { select: { source: true } },
+      popularitySignals: { select: { source: true } }
+    },
     orderBy,
     take
   })
 
-  res.json({ items, nextCursor: null })
+  res.json({ items: items.map(withDataSources), nextCursor: null })
 })
 
 mediaRouter.get("/:id", async (req, res) => {

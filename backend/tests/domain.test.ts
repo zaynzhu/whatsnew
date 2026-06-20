@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { classifyMedia } from "../src/domain/mediaClassifier.js"
-import { normalizeTitle } from "../src/domain/normalizer.js"
+import { normalizePlatform, normalizeTitle } from "../src/domain/normalizer.js"
 import { findBestMatch } from "../src/domain/matcher.js"
 import type { ExistingMediaCandidate, NormalizedMediaInput } from "../src/domain/types.js"
 
@@ -28,6 +28,15 @@ describe("classifyMedia", () => {
 describe("normalizeTitle", () => {
   it("normalizes whitespace and punctuation", () => {
     expect(normalizeTitle("  The  Last of Us： Season 2 ")).toBe("the last of us season 2")
+  })
+})
+
+describe("normalizePlatform", () => {
+  it("maps source-specific signal names to their platform", () => {
+    expect(normalizePlatform("iqiyi_reserve")).toBe("iQIYI")
+    expect(normalizePlatform("tmdb_tv_trending")).toBe("TMDb")
+    expect(normalizePlatform("youku_hot")).toBe("Youku")
+    expect(normalizePlatform("youku_reserve")).toBe("Youku")
   })
 })
 

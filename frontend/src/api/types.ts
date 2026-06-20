@@ -1,6 +1,7 @@
 import type { MediaSummary } from "@whatsnew/shared/media"
 
 export type ApiMediaItem = MediaSummary & {
+  dataSources?: string[]
   overview?: string | null
   productionCountries?: string
   originalLanguage?: string | null

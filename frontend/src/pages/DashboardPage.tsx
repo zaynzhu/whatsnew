@@ -6,6 +6,7 @@ import { apiGet } from "../api/client"
 import type { DashboardResponse } from "../api/types"
 import { MediaCard } from "../components/MediaCard"
 import { StatusBadge } from "../components/StatusBadge"
+import { sourceLabel } from "../utils/sourceLabel"
 
 type MetricPanelProps = {
   icon: LucideIcon
@@ -95,6 +96,7 @@ export function DashboardPage() {
               <article className="row" key={release.id}>
                 <strong>{release.mediaItem.titleDisplay}</strong>
                 <span>{release.platform} · {release.region}</span>
+                <span>来源 {sourceLabel(release.source)}</span>
                 <StatusBadge>{release.releaseStatus}</StatusBadge>
               </article>
             ))

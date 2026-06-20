@@ -6,7 +6,6 @@
 
 - 电影、剧集、动漫、综艺、短剧、纪录片分类型展示
 - 展示今日上线、本周新片新剧、热度上升、数据源状态
-- 支持 demo seed，无 API key 也能启动和验证
 - 后端使用 Express + TypeScript + Prisma + MySQL
 - 前端使用 React + Vite + TypeScript
 

@@ -67,11 +67,12 @@ describe("scheduler", () => {
     const scheduledJob = mocks.schedule.mock.calls[0][1] as () => Promise<void>
     await scheduledJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+    expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
   })
 
   it("runs initial sync when configured", async () => {
@@ -80,11 +81,12 @@ describe("scheduler", () => {
 
     registerScheduler()
     await vi.waitFor(() => {
-      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
+      expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.demoSeedAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
     })
   })
 })

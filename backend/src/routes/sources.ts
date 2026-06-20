@@ -1,5 +1,4 @@
 import { Router } from "express"
-import { demoSeedAdapter } from "../adapters/demoSeedAdapter.js"
 import { iqiyiAdapter } from "../adapters/iqiyiAdapter.js"
 import { tmdbAdapter } from "../adapters/tmdbAdapter.js"
 import { tvmazeAdapter } from "../adapters/tvmazeAdapter.js"
@@ -10,7 +9,6 @@ import { runSourceSync } from "../services/sourceSyncService.js"
 export const sourcesRouter = Router()
 
 const availableAdapters = {
-  demo: demoSeedAdapter,
   tvmaze: tvmazeAdapter,
   tmdb: tmdbAdapter,
   youku: youkuAdapter,
@@ -19,6 +17,7 @@ const availableAdapters = {
 
 sourcesRouter.get("/", async (_req, res) => {
   const runs = await db.sourceSyncRun.findMany({
+    where: { source: { not: "demo" } },
     orderBy: { startedAt: "desc" },
     take: 50
   })

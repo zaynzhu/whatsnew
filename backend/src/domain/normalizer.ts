@@ -9,6 +9,7 @@ export function normalizeTitle(title: string): string {
 
 export function normalizePlatform(platform: string): string {
   const trimmed = platform.trim()
+  const normalized = trimmed.toLowerCase()
   const known: Record<string, string> = {
     youku: "Youku",
     优酷: "Youku",
@@ -21,7 +22,9 @@ export function normalizePlatform(platform: string): string {
     trakt: "Trakt"
   }
 
-  return known[trimmed] ?? known[trimmed.toLowerCase()] ?? trimmed
+  const sourceFamily = Object.keys(known).find((source) => normalized.startsWith(`${source}_`))
+
+  return known[trimmed] ?? known[normalized] ?? (sourceFamily ? known[sourceFamily] : trimmed)
 }
 
 export function toJsonArray(values: string[]): string {

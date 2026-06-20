@@ -15,6 +15,7 @@ const mediaItem = {
   firstReleaseDate: "2026-06-18",
   status: "upcoming",
   heatScore: 91.4,
+  dataSources: ["TMDb", "TVmaze"],
   overview: "一支深空信号追踪小组发现新剧上线异动。",
   productionCountries: "[\"US\"]",
   originalLanguage: "en",
@@ -34,7 +35,7 @@ const release = {
   releaseStatus: "upcoming",
   seasonNumber: 1,
   episodeNumber: 1,
-  source: "demo",
+  source: "tvmaze",
   sourceUrl: "https://example.com",
   fetchedAt: "2026-06-17T00:00:00.000Z",
   mediaItem
@@ -59,7 +60,7 @@ const signal = {
 
 const sourceRun = {
   id: "source-1",
-  source: "demo",
+  source: "tvmaze",
   status: "success",
   startedAt: "2026-06-17T00:00:00.000Z",
   finishedAt: "2026-06-17T00:00:02.000Z",
@@ -75,7 +76,7 @@ const event = {
   eventType: "release_added",
   title: "新增上线日期",
   description: "Netflix US 档期进入监控",
-  source: "demo",
+  source: "tvmaze",
   sourceUrl: "https://example.com",
   eventAt: "2026-06-17T03:00:00.000Z",
   payload: "{}"
@@ -174,6 +175,7 @@ describe("frontend pages", () => {
     expect(await screen.findByRole("heading", { name: "发现列表" })).toBeInTheDocument()
     expect(screen.getAllByText("web_series").length).toBeGreaterThan(0)
     expect(screen.getByText("Heat 91")).toBeInTheDocument()
+    expect(screen.getByText("来源 TMDb · TVmaze")).toBeInTheDocument()
   })
 
   it("renders trending, calendar, and sources rows from API data", async () => {
@@ -186,9 +188,10 @@ describe("frontend pages", () => {
     renderRoute("/calendar")
     expect(await screen.findByText("2026-06-18")).toBeInTheDocument()
     expect(screen.getByText("Netflix · US")).toBeInTheDocument()
+    expect(screen.getByText("来源 TVmaze")).toBeInTheDocument()
 
     renderRoute("/sources")
-    expect(await screen.findByText("demo")).toBeInTheDocument()
+    expect(await screen.findByText("tvmaze")).toBeInTheDocument()
     expect(screen.getByText("8 条")).toBeInTheDocument()
   })
 

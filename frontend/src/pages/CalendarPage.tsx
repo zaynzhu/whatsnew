@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { apiGet } from "../api/client"
 import type { CalendarResponse } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
+import { sourceLabel } from "../utils/sourceLabel"
 
 const CALENDAR_PATH = "/api/calendar"
 
@@ -33,6 +34,7 @@ export function CalendarPage() {
               <strong>{release.releaseDate ?? "日期待定"}</strong>
               <span>{release.mediaItem.titleDisplay}</span>
               <span>{release.platform} · {release.region}</span>
+              <span>来源 {sourceLabel(release.source)}</span>
               <StatusBadge>{release.releaseStatus}</StatusBadge>
             </article>
           ))
