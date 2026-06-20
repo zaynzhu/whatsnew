@@ -3,7 +3,7 @@ import { apiGet } from "../api/client"
 import type { CalendarResponse } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
 
-const CALENDAR_PATH = "/api/calendar?from=2026-06-17&to=2026-06-30"
+const CALENDAR_PATH = "/api/calendar"
 
 export function CalendarPage() {
   const { data, isError, isLoading } = useQuery({
@@ -22,7 +22,7 @@ export function CalendarPage() {
         <div>
           <p className="eyebrow">排期视图</p>
           <h1 id="page-title">播出日历</h1>
-          <p className="summary">默认展示 2026-06-17 至 2026-06-30 的上线窗口。</p>
+          <p className="summary">默认展示从今天起未来 14 天的上线窗口。</p>
         </div>
       </section>
 

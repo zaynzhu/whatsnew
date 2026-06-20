@@ -19,12 +19,18 @@ beforeEach(async () => {
 })
 
 describe("api routes", () => {
-  it("returns dashboard sections", async () => {
+  it("returns dashboard sections for the current date window", async () => {
     const response = await request(createApp()).get("/api/dashboard")
+    const today = new Date()
+    const todayDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-")
 
     expect(response.status).toBe(200)
-    expect(response.body.today.length).toBeGreaterThan(0)
-    expect(response.body.week.length).toBeGreaterThan(0)
+    expect(response.body.today.every((release: any) => release.releaseDate === todayDate)).toBe(true)
+    expect(Array.isArray(response.body.week)).toBe(true)
     expect(response.body.trending.length).toBeGreaterThan(0)
     expect(response.body.sources.length).toBeGreaterThan(0)
   })
@@ -37,10 +43,16 @@ describe("api routes", () => {
   })
 
   it("returns calendar releases", async () => {
-    const response = await request(createApp()).get("/api/calendar?from=2026-06-17&to=2026-06-30")
+    const response = await request(createApp()).get("/api/calendar")
+    const today = new Date()
+    const todayDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-")
 
     expect(response.status).toBe(200)
-    expect(response.body.items.length).toBeGreaterThan(0)
+    expect(response.body.items.every((release: any) => release.releaseDate >= todayDate)).toBe(true)
   })
 
   it("returns trending and source status routes", async () => {

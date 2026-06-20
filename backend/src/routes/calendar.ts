@@ -1,11 +1,13 @@
 import { Router } from "express"
 import { db } from "../config/db.js"
+import { getUpcomingDateWindow } from "../utils/date.js"
 
 export const calendarRouter = Router()
 
 calendarRouter.get("/", async (req, res) => {
-  const from = typeof req.query.from === "string" ? req.query.from : "2026-06-17"
-  const to = typeof req.query.to === "string" ? req.query.to : "2026-06-30"
+  const defaultWindow = getUpcomingDateWindow()
+  const from = typeof req.query.from === "string" ? req.query.from : defaultWindow.from
+  const to = typeof req.query.to === "string" ? req.query.to : defaultWindow.to
   const { platform, region, mediaType, releaseForm } = req.query
 
   const items = await db.release.findMany({

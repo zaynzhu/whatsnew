@@ -44,7 +44,7 @@ export function DashboardPage() {
 
       <section className="dashboardGrid" aria-label="情报概览">
         <MetricPanel icon={CalendarClock} label="今日上线" value={`${today.length} 条`} />
-        <MetricPanel icon={RadioTower} label="本周新片新剧" value={`${week.length} 条`} />
+        <MetricPanel icon={RadioTower} label="未来 14 天" value={`${week.length} 条`} />
         <MetricPanel icon={Flame} label="热度上升" value={`${trending.length} 条`} />
         <MetricPanel icon={Database} label="数据源状态" value={`${sources.length} 条`} />
       </section>

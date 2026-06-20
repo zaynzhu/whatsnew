@@ -1,11 +1,11 @@
 import { Router } from "express"
 import { db } from "../config/db.js"
+import { getUpcomingDateWindow } from "../utils/date.js"
 
 export const dashboardRouter = Router()
 
 dashboardRouter.get("/", async (_req, res) => {
-  const today = "2026-06-17"
-  const weekEnd = "2026-06-30"
+  const { from: today, to: weekEnd } = getUpcomingDateWindow()
 
   const [todayReleases, weekReleases, trending, events, sources] = await Promise.all([
     db.release.findMany({
