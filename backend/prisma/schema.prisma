@@ -68,26 +68,34 @@ model Release {
 }
 
 model PopularitySignal {
-  id             String   @id @default(cuid())
-  mediaItemId    String
-  source         String
-  sourceCategory String
-  platform       String?
-  region         String?
-  window         String
-  rank           Int?
-  rankDelta      Int?
-  value          Float?
-  valueLabel     String?
-  capturedAt     DateTime @default(now())
-  sourceUrl      String?  @db.Text
+  id              String   @id @default(cuid())
+  mediaItemId     String
+  sourceSyncRunId String?
+  source          String
+  sourceCategory  String
+  platform        String?
+  region          String?
+  window          String
+  rank            Int?
+  previousRank    Int?
+  rankDelta       Int?
+  value           Float?
+  valueLabel      String?
+  capturedAt      DateTime @default(now())
+  isCurrent       Boolean  @default(true)
+  sourceUrl       String?  @db.Text
 
-  mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  mediaItem     MediaItem      @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  sourceSyncRun SourceSyncRun? @relation(fields: [sourceSyncRunId], references: [id], onDelete: SetNull)
 
   @@index([source])
   @@index([window])
   @@index([rank])
   @@index([capturedAt])
+  @@index([mediaItemId, source, isCurrent])
+  @@index([source, window, isCurrent, rank])
+  @@index([capturedAt, isCurrent])
+  @@index([sourceSyncRunId])
 }
 
 model SourceSyncRun {
@@ -100,6 +108,8 @@ model SourceSyncRun {
   itemCount    Int       @default(0)
   errorMessage String?   @db.Text
   nextRunAt    DateTime?
+
+  popularitySignals PopularitySignal[]
 
   @@index([source])
   @@index([status])

@@ -53,6 +53,7 @@ export interface PopularitySignalInput {
   value: number | null
   valueLabel: string | null
   sourceUrl: string | null
+  capturedAt?: Date
 }
 
 export interface AdapterItem {
