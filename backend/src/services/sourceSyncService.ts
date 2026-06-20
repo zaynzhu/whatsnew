@@ -51,16 +51,18 @@ function errorMessageFrom(error: unknown): string {
     .slice(0, 5000)
 }
 
-async function upsertItem(prisma: PrismaClient, item: AdapterItem) {
-  const candidates = await getCandidates(prisma)
+async function upsertItem(prisma: PrismaClient, item: AdapterItem, candidates: ExistingMediaCandidate[]) {
   const match = findBestMatch(item.media, candidates)
   const heatScore = heatFromSignals(item)
+  const titleAliases = match
+    ? uniqueValues([...match.titleAliases, ...item.media.titleAliases])
+    : uniqueValues(item.media.titleAliases)
 
   const mediaItem = match
     ? await prisma.mediaItem.update({
         where: { id: match.id },
         data: {
-          titleAliases: toJsonArray([...match.titleAliases, ...item.media.titleAliases]),
+          titleAliases: toJsonArray(titleAliases),
           heatScore,
           updatedAt: new Date()
         }
@@ -72,7 +74,7 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem) {
           sourceContentType: item.media.sourceContentType,
           titleDisplay: item.media.titleDisplay,
           titleOriginal: item.media.titleOriginal,
-          titleAliases: toJsonArray(item.media.titleAliases),
+          titleAliases: toJsonArray(titleAliases),
           overview: item.media.overview,
           posterUrl: item.media.posterUrl,
           productionCountries: toJsonArray(item.media.productionCountries),
@@ -88,6 +90,23 @@ async function upsertItem(prisma: PrismaClient, item: AdapterItem) {
           tvdbId: item.media.tvdbId
         }
       })
+
+  if (match) {
+    match.titleAliases = titleAliases
+  } else {
+    candidates.push({
+      id: mediaItem.id,
+      mediaType: mediaTypeFromRow(mediaItem.mediaType),
+      titleDisplay: mediaItem.titleDisplay,
+      titleAliases,
+      firstReleaseDate: mediaItem.firstReleaseDate,
+      originalLanguage: mediaItem.originalLanguage,
+      tmdbId: mediaItem.tmdbId,
+      tvmazeId: mediaItem.tvmazeId,
+      imdbId: mediaItem.imdbId,
+      traktId: mediaItem.traktId
+    })
+  }
 
   const releaseSources = uniqueValues(item.releases.map((release) => release.source))
   if (releaseSources.length > 0) {
@@ -138,9 +157,10 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
 
   try {
     const items = await adapter.fetchItems()
+    const candidates = await getCandidates(prisma)
 
     for (const item of items) {
-      await upsertItem(prisma, item)
+      await upsertItem(prisma, item, candidates)
     }
 
     const finishedAt = new Date()

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
@@ -48,6 +48,24 @@ describe("runSourceSync", () => {
     expect(await prisma.changeEvent.count()).toBe(firstCounts.events)
     expect(await prisma.sourceSyncRun.count()).toBe(2)
   }, 15000)
+
+  it("loads matching candidates only once per source sync", async () => {
+    const queryPrisma = new PrismaClient({
+      log: [{ emit: "event", level: "query" }]
+    })
+    let candidateQueryCount = 0
+
+    queryPrisma.$on("query", (event) => {
+      if (event.query.startsWith("SELECT") && event.query.includes("MediaItem") && event.query.includes("WHERE 1=1")) {
+        candidateQueryCount += 1
+      }
+    })
+
+    await runSourceSync(queryPrisma, demoSeedAdapter)
+    await queryPrisma.$disconnect()
+
+    expect(candidateQueryCount).toBe(1)
+  })
 
   it("redacts API keys from failed source sync error messages", async () => {
     const result = await runSourceSync(prisma, {
