@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   tmdbAdapter: { source: "tmdb" },
   youkuAdapter: { source: "youku" },
   iqiyiAdapter: { source: "iqiyi" },
+  netflixAdapter: { source: "netflix" },
   env: { SYNC_ON_START: false },
   settings: { sourceEnabled: vi.fn((_sourceId: string) => true) },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
@@ -46,6 +47,10 @@ vi.mock("../src/adapters/iqiyiAdapter.js", () => ({
   iqiyiAdapter: mocks.iqiyiAdapter
 }))
 
+vi.mock("../src/adapters/netflixTop10Adapter.js", () => ({
+  netflixTop10Adapter: mocks.netflixAdapter
+}))
+
 vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
@@ -64,10 +69,13 @@ describe("scheduler", () => {
 
     registerScheduler()
     expect(mocks.schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function))
-    const scheduledJob = mocks.schedule.mock.calls[0][1] as () => Promise<void>
+    const scheduledJob = mocks.schedule.mock.calls.find((call) => {
+      return call[0] === "0 * * * *"
+    })?.[1] as () => Promise<void>
     await scheduledJob()
 
     expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
+    expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
 
@@ -77,6 +85,29 @@ describe("scheduler", () => {
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+  })
+
+  it("runs only enabled daily adapters on the daily schedule", async () => {
+    const { registerScheduler } = await import("../src/scheduler.js")
+
+    registerScheduler()
+    expect(mocks.schedule).toHaveBeenCalledWith(
+      "15 9 * * *",
+      expect.any(Function),
+      { timezone: "Asia/Shanghai" }
+    )
+    const dailyJob = mocks.schedule.mock.calls.find((call) => {
+      return call[0] === "15 9 * * *"
+    })?.[1] as () => Promise<void>
+    await dailyJob()
+
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(1)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
+
+    mocks.runSourceSync.mockClear()
+    mocks.settings.sourceEnabled.mockImplementation((sourceId: string) => sourceId !== "netflix")
+    await dailyJob()
+    expect(mocks.runSourceSync).not.toHaveBeenCalled()
   })
 
   it("resolves enabled adapters for initial sync", async () => {
@@ -91,7 +122,8 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
     })
   })
 })

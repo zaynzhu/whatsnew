@@ -12,10 +12,16 @@ export async function runInitialSync() {
 
 export function registerScheduler() {
   cron.schedule("0 * * * *", async () => {
-    for (const adapter of getEnabledAdapters()) {
+    for (const adapter of getEnabledAdapters("hourly")) {
       await runSourceSync(db, adapter)
     }
   })
+
+  cron.schedule("15 9 * * *", async () => {
+    for (const adapter of getEnabledAdapters("daily")) {
+      await runSourceSync(db, adapter)
+    }
+  }, { timezone: "Asia/Shanghai" })
 
   if (env.SYNC_ON_START) {
     runInitialSync().catch((error) => {

@@ -62,7 +62,7 @@ function valueLabel(row: NetflixTop10Row): string {
   return `${numberLabel(row.weeklyViews)} 次观看 · ${numberLabel(row.weeklyHoursViewed)} 小时 · 累计 ${numberLabel(row.cumulativeWeeksInTop10)} 周`
 }
 
-function rowToAdapterItem(row: NetflixTop10Row): AdapterItem | null {
+function rowToAdapterItem(row: NetflixTop10Row, sourceUrl: string): AdapterItem | null {
   const classification = CATEGORY_TYPES[row.category]
   if (!classification) return null
 
@@ -100,7 +100,7 @@ function rowToAdapterItem(row: NetflixTop10Row): AdapterItem | null {
       rankDelta: null,
       value: row.weeklyViews,
       valueLabel: valueLabel(row),
-      sourceUrl: NETFLIX_TOP10_URL,
+      sourceUrl,
       capturedAt: new Date(`${row.week}T00:00:00.000Z`)
     }]
   }
@@ -109,7 +109,6 @@ function rowToAdapterItem(row: NetflixTop10Row): AdapterItem | null {
 export function createNetflixTop10Adapter(
   options: NetflixTop10AdapterOptions = {}
 ): SourceAdapter {
-  const url = options.url ?? NETFLIX_TOP10_URL
   const httpClient = options.httpClient ?? sourceHttpClient
   const settings = options.settings ?? runtimeSettings
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
@@ -118,6 +117,8 @@ export function createNetflixTop10Adapter(
     source: "netflix",
     async fetchItems() {
       const currentSettings = settings.view()
+      const url = (options.url ?? currentSettings.get("SOURCE_NETFLIX_BASE_URL"))
+        || NETFLIX_TOP10_URL
       const settingsOverride = captureSourceProxySettings(currentSettings, "netflix")
       const buffer = await limiter.run(() => httpClient.fetchBuffer("netflix", url, {
         timeoutMs: NETFLIX_TIMEOUT_MS,
@@ -126,7 +127,7 @@ export function createNetflixTop10Adapter(
       const rows = await parseNetflixTop10Workbook(buffer)
 
       return rows
-        .map(rowToAdapterItem)
+        .map((row) => rowToAdapterItem(row, url))
         .filter((item): item is AdapterItem => item != null)
     }
   }

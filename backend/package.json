@@ -11,6 +11,7 @@
     "sync:tmdb": "tsx src/scripts/syncTmdb.ts",
     "sync:youku": "tsx src/scripts/syncYouku.ts",
     "sync:iqiyi": "tsx src/scripts/syncIqiyi.ts",
+    "sync:netflix": "tsx src/scripts/syncNetflix.ts",
     "test": "tsx src/scripts/prepareTestDatabase.ts && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
