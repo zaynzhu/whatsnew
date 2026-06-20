@@ -112,6 +112,36 @@ export class PopularitySnapshotService {
     return result.count
   }
 
+  async deactivateMissingCurrentSignals(
+    signalSources: string[],
+    currentSignalIds: string[]
+  ): Promise<number> {
+    if (signalSources.length === 0) return 0
+
+    return this.prisma.$transaction(async (tx) => {
+      const staleSignals = await tx.popularitySignal.findMany({
+        where: {
+          source: { in: signalSources },
+          isCurrent: true,
+          ...(currentSignalIds.length > 0 ? { id: { notIn: currentSignalIds } } : {})
+        },
+        select: { id: true, mediaItemId: true }
+      })
+      if (staleSignals.length === 0) return 0
+
+      await tx.popularitySignal.updateMany({
+        where: { id: { in: staleSignals.map((signal) => signal.id) } },
+        data: { isCurrent: false }
+      })
+
+      const mediaItemIds = [...new Set(staleSignals.map((signal) => signal.mediaItemId))]
+      for (const mediaItemId of mediaItemIds) {
+        await this.updateHeatScore(tx, mediaItemId)
+      }
+      return staleSignals.length
+    })
+  }
+
   private currentIdentity(input: PersistSignalInput) {
     return {
       mediaItemId: input.mediaItemId,

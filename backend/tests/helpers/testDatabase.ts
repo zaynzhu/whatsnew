@@ -19,6 +19,7 @@ export async function resetTestDatabase(): Promise<void> {
   await testPrisma.changeEvent.deleteMany()
   await testPrisma.popularitySignal.deleteMany()
   await testPrisma.release.deleteMany()
+  await testPrisma.mediaSourceRef.deleteMany()
   await testPrisma.mediaItem.deleteMany()
   await testPrisma.sourceSyncRun.deleteMany()
 }

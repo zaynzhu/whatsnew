@@ -53,7 +53,18 @@ async function upsertItem(
   sourceSyncRunId: string,
   startedAt: Date
 ) {
-  const match = findBestMatch(item.media, candidates)
+  const sourceRef = await prisma.mediaSourceRef.findUnique({
+    where: {
+      source_sourceId: {
+        source: item.media.source,
+        sourceId: item.media.sourceId
+      }
+    },
+    select: { mediaItemId: true }
+  })
+  const match = sourceRef
+    ? candidates.find((candidate) => candidate.id === sourceRef.mediaItemId) ?? null
+    : findBestMatch(item.media, candidates)
   const titleAliases = match
     ? uniqueValues([...match.titleAliases, ...item.media.titleAliases])
     : uniqueValues(item.media.titleAliases)
@@ -107,6 +118,21 @@ async function upsertItem(
     })
   }
 
+  await prisma.mediaSourceRef.upsert({
+    where: {
+      source_sourceId: {
+        source: item.media.source,
+        sourceId: item.media.sourceId
+      }
+    },
+    update: { mediaItemId: mediaItem.id },
+    create: {
+      mediaItemId: mediaItem.id,
+      source: item.media.source,
+      sourceId: item.media.sourceId
+    }
+  })
+
   const releaseSources = uniqueValues(item.releases.map((release) => release.source))
   if (releaseSources.length > 0) {
     await prisma.release.deleteMany({
@@ -124,7 +150,7 @@ async function upsertItem(
     })
   }
 
-  await snapshotService.persistSignals(item.popularitySignals.map((signal) => ({
+  const persistedSignals = await snapshotService.persistSignals(item.popularitySignals.map((signal) => ({
     mediaItemId: mediaItem.id,
     mediaTitle: mediaItem.titleDisplay,
     signal,
@@ -136,7 +162,7 @@ async function upsertItem(
     await createMediaDetectedEvent(prisma, mediaItem.id, mediaItem.titleDisplay, item.media.source, item.releases[0]?.sourceUrl ?? null)
   }
 
-  return mediaItem
+  return { mediaItem, persistedSignals }
 }
 
 export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter) {
@@ -149,9 +175,10 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
     const items = await adapter.fetchItems()
     const candidates = await getCandidates(prisma)
     const snapshotService = new PopularitySnapshotService(prisma)
+    const currentSignalIds: string[] = []
 
     for (const item of items) {
-      await upsertItem(
+      const result = await upsertItem(
         prisma,
         item,
         candidates,
@@ -159,12 +186,14 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
         run.id,
         startedAt
       )
+      currentSignalIds.push(...result.persistedSignals.map((signal) => signal.id))
     }
 
     const finishedAt = new Date()
     const signalSources = uniqueValues(items.flatMap((item) => {
       return item.popularitySignals.map((signal) => signal.source)
     }))
+    await snapshotService.deactivateMissingCurrentSignals(signalSources, currentSignalIds)
     const cutoff = new Date(finishedAt.getTime() - POPULARITY_HISTORY_DAYS * DAY_MS)
     let status = "success"
     let errorMessage: string | null = null

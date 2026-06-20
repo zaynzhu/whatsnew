@@ -32,6 +32,7 @@ model MediaItem {
   updatedAt           DateTime @updatedAt
 
   releases          Release[]
+  sourceRefs        MediaSourceRef[]
   popularitySignals PopularitySignal[]
   changeEvents      ChangeEvent[]
 
@@ -42,6 +43,21 @@ model MediaItem {
   @@index([tmdbId])
   @@index([tvmazeId])
   @@index([imdbId])
+}
+
+model MediaSourceRef {
+  id          String   @id @default(cuid())
+  mediaItemId String
+  source      String
+  sourceId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([source, sourceId])
+  @@index([mediaItemId])
+  @@index([source])
 }
 
 model Release {

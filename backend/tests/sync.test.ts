@@ -60,6 +60,38 @@ function adapterWithoutSignals(): SourceAdapter {
   }
 }
 
+function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
+  return {
+    source: "source_identity_test",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+      return titles.map((title, index) => ({
+        ...base,
+        media: {
+          ...base.media,
+          source: "source_identity_test",
+          sourceId: `stable-${title}`,
+          titleDisplay: title,
+          titleOriginal: null,
+          titleAliases: [],
+          firstReleaseDate: null,
+          originalLanguage: null,
+          tmdbId: null,
+          tvmazeId: null,
+          imdbId: null
+        },
+        releases: [],
+        popularitySignals: [{
+          ...base.popularitySignals[0],
+          source: "source_identity_rank",
+          rank: index + 1,
+          capturedAt: new Date("2026-06-21T00:00:00Z")
+        }]
+      }))
+    }
+  }
+}
+
 describe("runSourceSync", () => {
   it("persists demo media, releases, popularity signals, source run, and events", async () => {
     const result = await runSourceSync(prisma, demoSeedAdapter)
@@ -124,6 +156,30 @@ describe("runSourceSync", () => {
     expect(result.errorMessage).not.toContain("secret-key")
     expect(await prisma.mediaItem.count()).toBe(1)
     expect(await prisma.popularitySignal.count()).toBe(1)
+  })
+
+  it("uses stable source IDs when title matching is insufficient", async () => {
+    await runSourceSync(prisma, adapterWithUnmatchableLanguage(["非英语作品"]))
+    await runSourceSync(prisma, adapterWithUnmatchableLanguage(["非英语作品"]))
+
+    expect(await prisma.mediaItem.count()).toBe(1)
+    expect(await prisma.popularitySignal.count()).toBe(1)
+    expect(await prisma.popularitySignal.count({
+      where: { isCurrent: true }
+    })).toBe(1)
+  })
+
+  it("marks source signals missing from the next complete snapshot as historical", async () => {
+    await runSourceSync(prisma, adapterWithUnmatchableLanguage(["作品甲", "作品乙"]))
+    await runSourceSync(prisma, adapterWithUnmatchableLanguage(["作品甲"]))
+
+    const missingMedia = await prisma.mediaItem.findFirstOrThrow({
+      where: { titleDisplay: "作品乙" },
+      include: { popularitySignals: true }
+    })
+    expect(missingMedia.popularitySignals).toHaveLength(1)
+    expect(missingMedia.popularitySignals[0].isCurrent).toBe(false)
+    expect(missingMedia.heatScore).toBe(0)
   })
 
   it("loads matching candidates only once per source sync", async () => {
