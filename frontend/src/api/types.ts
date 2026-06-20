@@ -1,5 +1,16 @@
 import type { MediaSummary } from "@whatsnew/shared/media"
 
+export type {
+  ConnectionTestResult,
+  SettingsFieldView,
+  SettingsResponse,
+  SettingsUpdateRequest,
+  SettingsUpdateResponse,
+  SourceSettingsView
+} from "@whatsnew/shared/settings"
+
+import type { ConnectionTestResult } from "@whatsnew/shared/settings"
+
 export type ApiMediaItem = MediaSummary & {
   dataSources?: string[]
   overview?: string | null
@@ -91,6 +102,10 @@ export type CalendarResponse = {
 
 export type SourcesResponse = {
   items: SourceSyncRun[]
+}
+
+export type ProxyTestResponse = {
+  items: ConnectionTestResult[]
 }
 
 export type MediaDetailResponse = ApiMediaItem & {
