@@ -11,3 +11,4 @@ dist/
 coverage/
 frontend/.vite/
 .superpowers/
+.worktrees/
