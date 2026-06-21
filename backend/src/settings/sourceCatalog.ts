@@ -69,7 +69,7 @@ function source(
 export const SOURCE_CATALOG = [
   source("tvmaze", "TVmaze", "剧集与集数排期", "global_metadata", "active", "inherit", true, true, "https://api.tvmaze.com/shows/1", [], ["hourly"], true),
   source("tmdb", "TMDb", "电影、剧集、趋势和基础元数据", "global_metadata", "active", "inherit", true, true, "https://api.themoviedb.org/3/configuration", ["TMDB_API_KEY"], ["hourly"], true),
-  source("trakt", "Trakt", "电影与剧集趋势", "global_metadata", "blocked", "inherit", false, false, "https://api.trakt.tv/shows/trending?limit=1", ["TRAKT_CLIENT_ID"]),
+  source("trakt", "Trakt", "电影与剧集趋势", "global_metadata", "active", "inherit", true, true, "https://api.trakt.tv/shows/trending?limit=1", ["TRAKT_CLIENT_ID"], ["hourly", "daily"], true),
   source("imdb", "IMDb", "日更数据集与榜单", "global_metadata", "planned", "inherit", false, false, "https://datasets.imdbws.com/title.basics.tsv.gz"),
   source("thetvdb", "TheTVDB", "影视元数据与外部 ID", "global_metadata", "planned", "inherit", false, false, "https://api4.thetvdb.com/v4/login", ["THETVDB_API_KEY"]),
   source("justwatch", "JustWatch", "可看性与 Streaming Charts", "cross_platform", "commercial", "inherit", false, false, "https://www.justwatch.com/us/streaming-charts"),

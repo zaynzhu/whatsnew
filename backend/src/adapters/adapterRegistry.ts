@@ -4,6 +4,7 @@ import type { ScheduleGroup } from "../settings/sourceCatalog.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
 import { tmdbAdapter } from "./tmdbAdapter.js"
+import { traktCalendarAdapter, traktPopularityAdapter } from "./traktAdapter.js"
 import { tvmazeAdapter } from "./tvmazeAdapter.js"
 import { youkuAdapter } from "./youkuAdapter.js"
 
@@ -16,6 +17,8 @@ export type RegisteredAdapter = {
 export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "tvmaze", scheduleGroup: "hourly", adapter: tvmazeAdapter },
   { sourceId: "tmdb", scheduleGroup: "hourly", adapter: tmdbAdapter },
+  { sourceId: "trakt", scheduleGroup: "hourly", adapter: traktPopularityAdapter },
+  { sourceId: "trakt", scheduleGroup: "daily", adapter: traktCalendarAdapter },
   { sourceId: "netflix", scheduleGroup: "daily", adapter: netflixTop10Adapter },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter }

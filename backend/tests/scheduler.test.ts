@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   db: { name: "test-db" },
   tvmazeAdapter: { source: "tvmaze" },
   tmdbAdapter: { source: "tmdb" },
+  traktPopularityAdapter: { source: "trakt", scope: "popularity" },
+  traktCalendarAdapter: { source: "trakt", scope: "calendar" },
   youkuAdapter: { source: "youku" },
   iqiyiAdapter: { source: "iqiyi" },
   netflixAdapter: { source: "netflix" },
@@ -37,6 +39,11 @@ vi.mock("../src/adapters/tvmazeAdapter.js", () => ({
 
 vi.mock("../src/adapters/tmdbAdapter.js", () => ({
   tmdbAdapter: mocks.tmdbAdapter
+}))
+
+vi.mock("../src/adapters/traktAdapter.js", () => ({
+  traktPopularityAdapter: mocks.traktPopularityAdapter,
+  traktCalendarAdapter: mocks.traktCalendarAdapter
 }))
 
 vi.mock("../src/adapters/youkuAdapter.js", () => ({
@@ -77,14 +84,15 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
     await scheduledJob()
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
   })
 
   it("runs only enabled daily adapters on the daily schedule", async () => {
@@ -101,13 +109,15 @@ describe("scheduler", () => {
     })?.[1] as () => Promise<void>
     await dailyJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(1)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(2)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => sourceId !== "netflix")
     await dailyJob()
-    expect(mocks.runSourceSync).not.toHaveBeenCalled()
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(1)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
   })
 
   it("resolves enabled adapters for initial sync", async () => {
@@ -121,9 +131,11 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.iqiyiAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(6)
     })
   })
 
@@ -137,11 +149,14 @@ describe("scheduler", () => {
     expect(registeredAdapters.map(({ sourceId, scheduleGroup }) => ({ sourceId, scheduleGroup }))).toEqual([
       { sourceId: "tvmaze", scheduleGroup: "hourly" },
       { sourceId: "tmdb", scheduleGroup: "hourly" },
+      { sourceId: "trakt", scheduleGroup: "hourly" },
+      { sourceId: "trakt", scheduleGroup: "daily" },
       { sourceId: "netflix", scheduleGroup: "daily" },
       { sourceId: "youku", scheduleGroup: "hourly" },
       { sourceId: "iqiyi", scheduleGroup: "hourly" }
     ])
     expect(getImplementedAdaptersForSource("tmdb")).toHaveLength(1)
+    expect(getImplementedAdaptersForSource("trakt")).toHaveLength(2)
 
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => sourceId !== "tmdb")
     expect(getEnabledAdaptersForSource("tmdb")).toEqual([])

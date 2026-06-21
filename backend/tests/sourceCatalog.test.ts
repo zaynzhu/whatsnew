@@ -7,11 +7,19 @@ describe("source catalog", () => {
     expect(SOURCE_CATALOG.filter((source) => source.implementationStatus === "active").map((source) => source.id)).toEqual([
       "tvmaze",
       "tmdb",
+      "trakt",
       "netflix",
       "youku",
       "iqiyi"
     ])
-    expect(getSourceDefinition("trakt").implementationStatus).toBe("blocked")
+    expect(getSourceDefinition("trakt")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: true,
+      credentialKeys: ["TRAKT_CLIENT_ID"],
+      scheduleGroups: ["hourly", "daily"]
+    })
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
   })
@@ -22,8 +30,8 @@ describe("source catalog", () => {
       return getSourceDefinition(sourceId).scheduleGroups
     })).toEqual([["hourly"], ["hourly"], ["hourly"], ["hourly"]])
     expect(getSourceDefinition("tmdb").defaultEnabled).toBe(true)
-    expect(getSourceDefinition("trakt").defaultEnabled).toBe(false)
-    expect(getSourceDefinition("trakt").scheduleGroups).toEqual(["daily"])
+    expect(getSourceDefinition("trakt").defaultEnabled).toBe(true)
+    expect(getSourceDefinition("trakt").scheduleGroups).toEqual(["hourly", "daily"])
   })
 
   it("defaults domestic sources to direct and international sources to inherited proxy", () => {
