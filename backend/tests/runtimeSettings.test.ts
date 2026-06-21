@@ -100,6 +100,14 @@ it("keeps non-active sources disabled regardless of environment values", async (
   expect(settings.sourceProxyMode("youku")).toBe("direct")
 })
 
+it("keeps the user switch separate from credential readiness", async () => {
+  const settings = await fixtureSettings("SOURCE_TMDB_ENABLED=true\nTMDB_API_KEY=\n")
+
+  expect(settings.sourceEnabled("tmdb")).toBe(true)
+  expect(settings.sourceRunnable("tmdb")).toBe(false)
+  expect(settings.missingCredentials("tmdb")).toEqual(["TMDB_API_KEY"])
+})
+
 it("masks proxy URLs without treating proxy mode as a secret", async () => {
   const settings = await fixtureSettings([
     "SOURCE_TMDB_PROXY_MODE=custom",

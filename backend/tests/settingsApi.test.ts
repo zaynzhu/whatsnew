@@ -87,6 +87,20 @@ describe("settings API", () => {
     expect(JSON.stringify(response.body)).not.toContain("secret-tmdb-key")
   })
 
+  it("reports the user switch separately from credential readiness", async () => {
+    await testSettings.update({}, ["TMDB_API_KEY"])
+
+    const response = await request(testApp()).get("/api/settings")
+    const tmdb = response.body.sources.find((source: any) => source.id === "tmdb")
+
+    expect(tmdb).toMatchObject({
+      enabled: true,
+      runnable: false,
+      credentialsComplete: false,
+      missingCredentials: ["TMDB_API_KEY"]
+    })
+  })
+
   it("uses the newest sync run for each source", async () => {
     database.sourceSyncRun.findMany.mockResolvedValue([
       {

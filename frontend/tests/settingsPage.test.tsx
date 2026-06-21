@@ -11,9 +11,11 @@ type SourceFixtureOptions = {
   group: "global_metadata" | "cross_platform" | "international_platform" | "china_platform"
   implementationStatus?: "active" | "blocked" | "planned" | "commercial"
   enabled?: boolean
+  runnable?: boolean
   supportsSync?: boolean
   supportsEnable?: boolean
   credentialsComplete?: boolean
+  missingCredentials?: string[]
   fields?: SettingsFieldView[]
 }
 
@@ -25,8 +27,10 @@ function sourceFixture(id: string, name: string, options: SourceFixtureOptions):
     group: options.group,
     implementationStatus: options.implementationStatus ?? "planned",
     enabled: options.enabled ?? false,
+    runnable: options.runnable ?? options.enabled ?? false,
     proxyMode: "inherit" as const,
     credentialsComplete: options.credentialsComplete ?? true,
+    missingCredentials: options.missingCredentials ?? [],
     supportsSync: options.supportsSync ?? false,
     supportsEnable: options.supportsEnable ?? false,
     fields: options.fields ?? [],

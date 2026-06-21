@@ -1,5 +1,8 @@
 import { Router } from "express"
-import { getEnabledAdapter, getImplementedAdapter } from "../adapters/adapterRegistry.js"
+import {
+  getEnabledAdaptersForSource,
+  getImplementedAdaptersForSource
+} from "../adapters/adapterRegistry.js"
 import { db } from "../config/db.js"
 import {
   ConnectionTestService,
@@ -44,20 +47,20 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
   })
 
   router.post("/:source/sync", async (req, res) => {
-    const implementedAdapter = getImplementedAdapter(req.params.source)
+    const implementedAdapters = getImplementedAdaptersForSource(req.params.source)
 
-    if (!implementedAdapter) {
+    if (implementedAdapters.length === 0) {
       res.status(404).json({ error: "source_not_implemented" })
       return
     }
 
-    const adapter = getEnabledAdapter(req.params.source)
-    if (!adapter) {
+    const [entry] = getEnabledAdaptersForSource(req.params.source)
+    if (!entry) {
       res.status(409).json({ error: "source_disabled" })
       return
     }
 
-    const run = await runSourceSync(db, adapter)
+    const run = await runSourceSync(db, entry.adapter)
 
     res.json(run)
   })

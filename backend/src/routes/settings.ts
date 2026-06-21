@@ -98,6 +98,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
       proxyFields: GLOBAL_PROXY_FIELDS.map((field) => settings.fieldView(field.key, field.label)),
       sources: SOURCE_CATALOG.map((source) => {
         const latestRun = latestRuns.get(source.id)
+        const missingCredentials = settings.missingCredentials(source.id)
         const fields = [
           settings.fieldView(source.baseUrlKey, `${source.name} Base URL`),
           ...source.credentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
@@ -112,8 +113,10 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
           group: source.group,
           implementationStatus: source.implementationStatus,
           enabled: settings.sourceEnabled(source.id),
+          runnable: settings.sourceRunnable(source.id),
           proxyMode: settings.sourceProxyMode(source.id),
-          credentialsComplete: source.credentialKeys.every((key) => Boolean(settings.get(key))),
+          credentialsComplete: missingCredentials.length === 0,
+          missingCredentials,
           supportsSync: source.supportsSync,
           supportsEnable: source.supportsEnable,
           fields,

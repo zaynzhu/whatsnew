@@ -16,11 +16,14 @@ describe("source catalog", () => {
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
   })
 
-  it("assigns active sources to hourly and daily schedules", () => {
-    expect(getSourceDefinition("netflix").scheduleGroup).toBe("daily")
+  it("assigns sources to schedule groups with safe defaults", () => {
+    expect(getSourceDefinition("netflix").scheduleGroups).toEqual(["daily"])
     expect(["tvmaze", "tmdb", "youku", "iqiyi"].map((sourceId) => {
-      return getSourceDefinition(sourceId).scheduleGroup
-    })).toEqual(["hourly", "hourly", "hourly", "hourly"])
+      return getSourceDefinition(sourceId).scheduleGroups
+    })).toEqual([["hourly"], ["hourly"], ["hourly"], ["hourly"]])
+    expect(getSourceDefinition("tmdb").defaultEnabled).toBe(true)
+    expect(getSourceDefinition("trakt").defaultEnabled).toBe(false)
+    expect(getSourceDefinition("trakt").scheduleGroups).toEqual(["daily"])
   })
 
   it("defaults domestic sources to direct and international sources to inherited proxy", () => {

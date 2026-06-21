@@ -5,21 +5,21 @@ import { env } from "./config/env.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 
 export async function runInitialSync() {
-  for (const adapter of getEnabledAdapters()) {
-    await runSourceSync(db, adapter)
+  for (const entry of getEnabledAdapters()) {
+    await runSourceSync(db, entry.adapter)
   }
 }
 
 export function registerScheduler() {
   cron.schedule("0 * * * *", async () => {
-    for (const adapter of getEnabledAdapters("hourly")) {
-      await runSourceSync(db, adapter)
+    for (const entry of getEnabledAdapters("hourly")) {
+      await runSourceSync(db, entry.adapter)
     }
   })
 
   cron.schedule("15 9 * * *", async () => {
-    for (const adapter of getEnabledAdapters("daily")) {
-      await runSourceSync(db, adapter)
+    for (const entry of getEnabledAdapters("daily")) {
+      await runSourceSync(db, entry.adapter)
     }
   }, { timezone: "Asia/Shanghai" })
 

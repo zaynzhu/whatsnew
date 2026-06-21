@@ -32,8 +32,10 @@ export type SourceSettingsView = {
   group: SourceGroup
   implementationStatus: SourceImplementationStatus
   enabled: boolean
+  runnable: boolean
   proxyMode: ProxyMode
   credentialsComplete: boolean
+  missingCredentials: string[]
   supportsSync: boolean
   supportsEnable: boolean
   fields: SettingsFieldView[]

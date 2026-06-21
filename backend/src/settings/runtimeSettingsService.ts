@@ -105,7 +105,18 @@ export class RuntimeSettingsService implements SettingsReader {
   sourceEnabled(sourceId: string): boolean {
     const definition = getSourceDefinition(sourceId)
     if (definition.implementationStatus !== "active" || !definition.supportsEnable) return false
-    return this.getBoolean(sourceEnvKey(sourceId, "ENABLED"), true)
+    return this.getBoolean(sourceEnvKey(sourceId, "ENABLED"), definition.defaultEnabled)
+  }
+
+  missingCredentials(sourceId: string): string[] {
+    return getSourceDefinition(sourceId).credentialKeys.filter((key) => !this.get(key).trim())
+  }
+
+  sourceRunnable(sourceId: string): boolean {
+    const definition = getSourceDefinition(sourceId)
+    return this.sourceEnabled(sourceId)
+      && definition.supportsSync
+      && this.missingCredentials(sourceId).length === 0
   }
 
   fieldView(key: string, label?: string): SettingsFieldView {
