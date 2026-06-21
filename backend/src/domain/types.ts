@@ -38,6 +38,7 @@ export interface ReleaseInput {
   releaseStatus: string
   seasonNumber: number | null
   episodeNumber: number | null
+  episodeTitle?: string | null
   source: string
   sourceUrl: string | null
 }
@@ -60,11 +61,26 @@ export interface AdapterItem {
   media: NormalizedMediaInput
   releases: ReleaseInput[]
   popularitySignals: PopularitySignalInput[]
+  createIfMissing?: boolean
 }
 
-export interface SourceAdapter {
+export interface SourceRefRetirement {
   source: string
-  fetchItems(): Promise<AdapterItem[]>
+  sourceId: string
+}
+
+export interface SourceFetchBatch {
+  items: AdapterItem[]
+  retiredSourceRefs?: SourceRefRetirement[]
+  completePopularitySources?: string[]
+}
+
+export type SourceFetchResult = AdapterItem[] | SourceFetchBatch
+
+export interface SourceAdapter<Result extends SourceFetchResult = AdapterItem[]> {
+  source: string
+  scope?: string
+  fetchItems(): Promise<Result>
 }
 
 export interface ExistingMediaCandidate {
@@ -72,10 +88,16 @@ export interface ExistingMediaCandidate {
   mediaType: MediaType
   titleDisplay: string
   titleAliases: string[]
+  overview: string | null
+  posterUrl: string | null
+  productionCountries: string
+  genres: string
   firstReleaseDate: string | null
   originalLanguage: string | null
+  status: string
   tmdbId: number | null
   tvmazeId: number | null
   imdbId: string | null
   traktId: number | null
+  tvdbId: number | null
 }

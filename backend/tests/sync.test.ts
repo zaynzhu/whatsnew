@@ -144,6 +144,72 @@ describe("runSourceSync", () => {
     expect(after.heatScore).toBe(98)
   })
 
+  it("persists episode titles and sync scope", async () => {
+    const adapter: SourceAdapter = {
+      source: "trakt",
+      scope: "calendar",
+      async fetchItems() {
+        const [base] = await demoSeedAdapter.fetchItems()
+        return [{
+          ...base,
+          releases: [{
+            ...base.releases[0],
+            source: "trakt",
+            episodeTitle: "新的开始"
+          }]
+        }]
+      }
+    }
+
+    const run = await runSourceSync(prisma, adapter)
+    expect(run.scope).toBe("calendar")
+    expect((await prisma.release.findFirstOrThrow()).episodeTitle).toBe("新的开始")
+  })
+
+  it("deactivates an explicitly complete empty popularity snapshot", async () => {
+    await runSourceSync(prisma, adapterWithRank(2))
+    await runSourceSync(prisma, {
+      source: "history_test",
+      scope: "popularity",
+      async fetchItems() {
+        return { items: [], completePopularitySources: ["history_test_rank"] }
+      }
+    })
+
+    expect(await prisma.popularitySignal.count({ where: { isCurrent: true } })).toBe(0)
+    expect((await prisma.mediaItem.findFirstOrThrow()).heatScore).toBe(0)
+  })
+
+  it("retires a deleted source ref without deleting the media item", async () => {
+    await runSourceSync(prisma, adapterWithoutSignals())
+    await runSourceSync(prisma, {
+      source: "metadata_only",
+      scope: "updates",
+      async fetchItems() {
+        return {
+          items: [],
+          retiredSourceRefs: [{ source: "metadata_only", sourceId: "demo-movie-1" }]
+        }
+      }
+    })
+
+    expect((await prisma.mediaSourceRef.findFirstOrThrow()).isActive).toBe(false)
+    expect(await prisma.mediaItem.count()).toBe(1)
+  })
+
+  it("does not create an unmatched enrichment-only item", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    await runSourceSync(prisma, {
+      source: "metadata_only",
+      scope: "updates",
+      async fetchItems() {
+        return [{ ...base, media: { ...base.media, sourceId: "old-record" }, createIfMissing: false }]
+      }
+    })
+
+    expect(await prisma.mediaItem.count()).toBe(0)
+  })
+
   it("returns warning without rolling back data when retention fails", async () => {
     vi.spyOn(PopularitySnapshotService.prototype, "pruneHistory").mockRejectedValueOnce(
       new Error("cleanup failed for https://example.test?api_key=secret-key")

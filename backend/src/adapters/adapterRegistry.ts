@@ -1,4 +1,4 @@
-import type { SourceAdapter } from "../domain/types.js"
+import type { SourceAdapter, SourceFetchResult } from "../domain/types.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { getSourceDefinition } from "../settings/sourceCatalog.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
@@ -15,13 +15,13 @@ export const implementedAdapters = {
   iqiyi: iqiyiAdapter
 } as const
 
-export function getImplementedAdapter(sourceId: string): SourceAdapter | null {
+export function getImplementedAdapter(sourceId: string): SourceAdapter<SourceFetchResult> | null {
   return implementedAdapters[sourceId as keyof typeof implementedAdapters] ?? null
 }
 
 export function getEnabledAdapters(
   scheduleGroup?: "hourly" | "daily"
-): SourceAdapter[] {
+): SourceAdapter<SourceFetchResult>[] {
   return Object.entries(implementedAdapters)
     .filter(([sourceId]) => {
       return runtimeSettings.sourceEnabled(sourceId)
@@ -30,7 +30,7 @@ export function getEnabledAdapters(
     .map(([, adapter]) => adapter)
 }
 
-export function getEnabledAdapter(sourceId: string): SourceAdapter | null {
+export function getEnabledAdapter(sourceId: string): SourceAdapter<SourceFetchResult> | null {
   const adapter = getImplementedAdapter(sourceId)
   if (!adapter || !runtimeSettings.sourceEnabled(sourceId)) return null
   return adapter

@@ -2,7 +2,13 @@ import type { PrismaClient } from "@prisma/client"
 import { MEDIA_TYPES, type MediaType } from "@whatsnew/shared/media"
 import { findBestMatch } from "../domain/matcher.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
-import type { AdapterItem, ExistingMediaCandidate, SourceAdapter } from "../domain/types.js"
+import type {
+  AdapterItem,
+  ExistingMediaCandidate,
+  SourceAdapter,
+  SourceFetchBatch,
+  SourceFetchResult
+} from "../domain/types.js"
 import { createMediaDetectedEvent } from "./eventService.js"
 import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
@@ -11,6 +17,18 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
+}
+
+function normalizeFetchResult(result: SourceFetchResult): Required<SourceFetchBatch> {
+  if (Array.isArray(result)) {
+    return { items: result, retiredSourceRefs: [], completePopularitySources: [] }
+  }
+
+  return {
+    items: result.items,
+    retiredSourceRefs: result.retiredSourceRefs ?? [],
+    completePopularitySources: result.completePopularitySources ?? []
+  }
 }
 
 function mediaTypeFromRow(value: string): MediaType {
@@ -27,12 +45,18 @@ async function getCandidates(prisma: PrismaClient): Promise<ExistingMediaCandida
     mediaType: mediaTypeFromRow(row.mediaType),
     titleDisplay: row.titleDisplay,
     titleAliases: parseJsonArray(row.titleAliases),
+    overview: row.overview,
+    posterUrl: row.posterUrl,
+    productionCountries: row.productionCountries,
+    genres: row.genres,
     firstReleaseDate: row.firstReleaseDate,
     originalLanguage: row.originalLanguage,
+    status: row.status,
     tmdbId: row.tmdbId,
     tvmazeId: row.tvmazeId,
     imdbId: row.imdbId,
-    traktId: row.traktId
+    traktId: row.traktId,
+    tvdbId: row.tvdbId
   }))
 }
 
@@ -65,6 +89,8 @@ async function upsertItem(
   const match = sourceRef
     ? candidates.find((candidate) => candidate.id === sourceRef.mediaItemId) ?? null
     : findBestMatch(item.media, candidates)
+  if (!match && item.createIfMissing === false) return null
+
   const titleAliases = match
     ? uniqueValues([...match.titleAliases, ...item.media.titleAliases])
     : uniqueValues(item.media.titleAliases)
@@ -74,7 +100,23 @@ async function upsertItem(
         where: { id: match.id },
         data: {
           titleAliases: toJsonArray(titleAliases),
-          updatedAt: new Date()
+          overview: match.overview ?? item.media.overview,
+          posterUrl: match.posterUrl ?? item.media.posterUrl,
+          productionCountries: toJsonArray(uniqueValues([
+            ...parseJsonArray(match.productionCountries),
+            ...item.media.productionCountries
+          ])),
+          genres: toJsonArray(uniqueValues([
+            ...parseJsonArray(match.genres),
+            ...item.media.genres
+          ])),
+          firstReleaseDate: match.firstReleaseDate ?? item.media.firstReleaseDate,
+          originalLanguage: match.originalLanguage ?? item.media.originalLanguage,
+          tmdbId: match.tmdbId ?? item.media.tmdbId,
+          tvmazeId: match.tvmazeId ?? item.media.tvmazeId,
+          imdbId: match.imdbId ?? item.media.imdbId,
+          traktId: match.traktId ?? item.media.traktId,
+          tvdbId: match.tvdbId ?? item.media.tvdbId
         }
       })
     : await prisma.mediaItem.create({
@@ -103,18 +145,35 @@ async function upsertItem(
 
   if (match) {
     match.titleAliases = titleAliases
+    match.overview = mediaItem.overview
+    match.posterUrl = mediaItem.posterUrl
+    match.productionCountries = mediaItem.productionCountries
+    match.genres = mediaItem.genres
+    match.firstReleaseDate = mediaItem.firstReleaseDate
+    match.originalLanguage = mediaItem.originalLanguage
+    match.tmdbId = mediaItem.tmdbId
+    match.tvmazeId = mediaItem.tvmazeId
+    match.imdbId = mediaItem.imdbId
+    match.traktId = mediaItem.traktId
+    match.tvdbId = mediaItem.tvdbId
   } else {
     candidates.push({
       id: mediaItem.id,
       mediaType: mediaTypeFromRow(mediaItem.mediaType),
       titleDisplay: mediaItem.titleDisplay,
       titleAliases,
+      overview: mediaItem.overview,
+      posterUrl: mediaItem.posterUrl,
+      productionCountries: mediaItem.productionCountries,
+      genres: mediaItem.genres,
       firstReleaseDate: mediaItem.firstReleaseDate,
       originalLanguage: mediaItem.originalLanguage,
+      status: mediaItem.status,
       tmdbId: mediaItem.tmdbId,
       tvmazeId: mediaItem.tvmazeId,
       imdbId: mediaItem.imdbId,
-      traktId: mediaItem.traktId
+      traktId: mediaItem.traktId,
+      tvdbId: mediaItem.tvdbId
     })
   }
 
@@ -125,11 +184,12 @@ async function upsertItem(
         sourceId: item.media.sourceId
       }
     },
-    update: { mediaItemId: mediaItem.id },
+    update: { mediaItemId: mediaItem.id, isActive: true },
     create: {
       mediaItemId: mediaItem.id,
       source: item.media.source,
-      sourceId: item.media.sourceId
+      sourceId: item.media.sourceId,
+      isActive: true
     }
   })
 
@@ -145,7 +205,8 @@ async function upsertItem(
     await prisma.release.createMany({
       data: item.releases.map((release) => ({
         mediaItemId: mediaItem.id,
-        ...release
+        ...release,
+        episodeTitle: release.episodeTitle ?? null
       }))
     })
   }
@@ -165,17 +226,32 @@ async function upsertItem(
   return { mediaItem, persistedSignals }
 }
 
-export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter) {
+export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
   const startedAt = new Date()
   const run = await prisma.sourceSyncRun.create({
-    data: { source: adapter.source, status: "running", startedAt }
+    data: { source: adapter.source, scope: adapter.scope ?? "all", status: "running", startedAt }
   })
 
   try {
-    const items = await adapter.fetchItems()
+    const batch = normalizeFetchResult(await adapter.fetchItems())
+    const { items, retiredSourceRefs, completePopularitySources } = batch
+
+    if (retiredSourceRefs.length > 0) {
+      await prisma.mediaSourceRef.updateMany({
+        where: {
+          OR: retiredSourceRefs.map(({ source, sourceId }) => ({ source, sourceId }))
+        },
+        data: { isActive: false }
+      })
+    }
+
     const candidates = await getCandidates(prisma)
     const snapshotService = new PopularitySnapshotService(prisma)
     const currentSignalIds: string[] = []
+    const signalSources = uniqueValues([
+      ...completePopularitySources,
+      ...items.flatMap((item) => item.popularitySignals.map((signal) => signal.source))
+    ])
 
     for (const item of items) {
       const result = await upsertItem(
@@ -186,13 +262,11 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
         run.id,
         startedAt
       )
+      if (!result) continue
       currentSignalIds.push(...result.persistedSignals.map((signal) => signal.id))
     }
 
     const finishedAt = new Date()
-    const signalSources = uniqueValues(items.flatMap((item) => {
-      return item.popularitySignals.map((signal) => signal.source)
-    }))
     await snapshotService.deactivateMissingCurrentSignals(signalSources, currentSignalIds)
     const cutoff = new Date(finishedAt.getTime() - POPULARITY_HISTORY_DAYS * DAY_MS)
     let status = "success"

@@ -41,6 +41,15 @@ describe("normalizePlatform", () => {
 })
 
 describe("findBestMatch", () => {
+  const candidateMetadata = {
+    overview: null,
+    posterUrl: null,
+    productionCountries: "[]",
+    genres: "[]",
+    status: "unknown",
+    tvdbId: null
+  }
+
   const input: NormalizedMediaInput = {
     source: "tmdb",
     sourceId: "123",
@@ -65,7 +74,7 @@ describe("findBestMatch", () => {
 
   it("matches by external id first", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { id: "a", mediaType: "series", titleDisplay: "Different", titleAliases: [], firstReleaseDate: null, originalLanguage: null, tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "a", mediaType: "series", titleDisplay: "Different", titleAliases: [], firstReleaseDate: null, originalLanguage: null, tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)?.id).toBe("a")
@@ -73,15 +82,23 @@ describe("findBestMatch", () => {
 
   it("does not match TMDb ids across different media types", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { id: "movie", mediaType: "movie", titleDisplay: "Different Movie", titleAliases: [], firstReleaseDate: "2026-04-01", originalLanguage: "en", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "movie", mediaType: "movie", titleDisplay: "Different Movie", titleAliases: [], firstReleaseDate: "2026-04-01", originalLanguage: "en", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)).toBeNull()
   })
 
+  it("matches TVDB ids for the same media type", () => {
+    const candidates: ExistingMediaCandidate[] = [
+      { ...candidateMetadata, id: "tvdb", mediaType: "series", titleDisplay: "Different", titleAliases: [], firstReleaseDate: null, originalLanguage: null, tmdbId: null, tvmazeId: null, imdbId: null, traktId: null, tvdbId: 200 }
+    ]
+
+    expect(findBestMatch({ ...input, tmdbId: null, tvdbId: 200 }, candidates)?.id).toBe("tvdb")
+  })
+
   it("does not force low-confidence title matches", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { id: "b", mediaType: "series", titleDisplay: "The Last Ship", titleAliases: [], firstReleaseDate: "2014-06-22", originalLanguage: "en", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "b", mediaType: "series", titleDisplay: "The Last Ship", titleAliases: [], firstReleaseDate: "2014-06-22", originalLanguage: "en", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)).toBeNull()
@@ -106,8 +123,8 @@ describe("findBestMatch", () => {
     }
 
     const candidates: ExistingMediaCandidate[] = [
-      { id: "movie", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
-      { id: "short", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "short_drama", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "movie", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
+      { ...candidateMetadata, id: "short", titleDisplay: "红了樱桃绿了芭蕉", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "short_drama", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(undatedInput, candidates)?.id).toBe("short")
@@ -132,8 +149,8 @@ describe("findBestMatch", () => {
     }
 
     const candidates: ExistingMediaCandidate[] = [
-      { id: "same", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
-      { id: "wrong-type", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "series", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "same", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "movie", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null },
+      { ...candidateMetadata, id: "wrong-type", titleDisplay: "镖人：风起大漠", titleAliases: [], firstReleaseDate: null, originalLanguage: "zh", mediaType: "series", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(datedInput, candidates)?.id).toBe("same")

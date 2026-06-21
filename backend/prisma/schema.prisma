@@ -50,6 +50,7 @@ model MediaSourceRef {
   mediaItemId String
   source      String
   sourceId    String
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -58,6 +59,7 @@ model MediaSourceRef {
   @@unique([source, sourceId])
   @@index([mediaItemId])
   @@index([source])
+  @@index([source, isActive])
 }
 
 model Release {
@@ -71,6 +73,7 @@ model Release {
   releaseStatus  String   @default("unknown")
   seasonNumber   Int?
   episodeNumber  Int?
+  episodeTitle   String?
   source         String
   sourceUrl      String?  @db.Text
   fetchedAt      DateTime @default(now())
@@ -117,6 +120,7 @@ model PopularitySignal {
 model SourceSyncRun {
   id           String    @id @default(cuid())
   source       String
+  scope        String    @default("all")
   status       String
   startedAt    DateTime  @default(now())
   finishedAt   DateTime?
@@ -128,6 +132,7 @@ model SourceSyncRun {
   popularitySignals PopularitySignal[]
 
   @@index([source])
+  @@index([source, scope])
   @@index([status])
   @@index([startedAt])
 }

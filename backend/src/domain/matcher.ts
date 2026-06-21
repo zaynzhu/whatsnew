@@ -20,7 +20,8 @@ export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingM
       (input.tmdbId != null && candidate.tmdbId === input.tmdbId && sameMediaType) ||
       (input.tvmazeId != null && candidate.tvmazeId === input.tvmazeId) ||
       (input.imdbId != null && candidate.imdbId === input.imdbId) ||
-      (input.traktId != null && candidate.traktId === input.traktId && sameMediaType)
+      (input.traktId != null && candidate.traktId === input.traktId && sameMediaType) ||
+      (input.tvdbId != null && candidate.tvdbId === input.tvdbId && sameMediaType)
     )
   })
   if (byExternalId) return byExternalId
