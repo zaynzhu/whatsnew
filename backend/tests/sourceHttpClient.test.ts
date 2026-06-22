@@ -16,6 +16,16 @@ function fakeSettings(values: Record<string, string>): RuntimeSettingsService {
 
 const fakeDispatcher = {} as Dispatcher
 
+async function captureError<T extends Error>(promise: Promise<unknown>): Promise<T> {
+  try {
+    await promise
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error)
+    return error as T
+  }
+  throw new Error("期望请求失败")
+}
+
 describe("resolveProxy", () => {
   it("uses protocol-specific global proxy in inherit mode", () => {
     const settings = fakeSettings({
@@ -155,6 +165,62 @@ describe("SourceHttpClient", () => {
       expect(error.message).not.toContain(secret)
       expect(error.bodySnippet).not.toContain(secret)
     }
+  })
+
+  it("redacts a string cause thrown by the transport", async () => {
+    const secret = "string-cause-secret"
+    const transport = vi.fn<SourceTransport>(async () => {
+      throw new Error("transport failed", { cause: `nested ${secret}` })
+    })
+    const client = new SourceHttpClient(fakeSettings({ SOURCE_THETVDB_PROXY_MODE: "direct" }), transport)
+
+    const error = await captureError<Error & { cause?: unknown }>(client.fetchText(
+      "thetvdb",
+      "https://api.example.test/data",
+      {
+        timeoutMs: 1000,
+        sensitiveValues: [secret]
+      }
+    ))
+
+    expect(error.cause).toBeTypeOf("string")
+    expect(error.cause).not.toContain(secret)
+  })
+
+  it("preserves SourceHttpError type and metadata while redacting all recursive fields", async () => {
+    const secret = "source-http-error-secret"
+    const sourceError = new SourceHttpError(
+      `HTTP 401 ${secret}`,
+      "thetvdb",
+      401,
+      `body ${secret}`,
+      "edge-server"
+    ) as SourceHttpError & { cause?: unknown }
+    sourceError.cause = new Error(`nested ${secret}`)
+    const transport = vi.fn<SourceTransport>(async () => {
+      throw sourceError
+    })
+    const client = new SourceHttpClient(fakeSettings({ SOURCE_THETVDB_PROXY_MODE: "direct" }), transport)
+
+    const error = await captureError<SourceHttpError>(client.fetchText(
+      "thetvdb",
+      "https://api.example.test/data",
+      {
+        timeoutMs: 1000,
+        sensitiveValues: [secret]
+      }
+    ))
+
+    expect(error).toBeInstanceOf(SourceHttpError)
+    expect(error).toMatchObject({
+      sourceId: "thetvdb",
+      statusCode: 401,
+      serverHeader: "edge-server"
+    })
+    expect(error.message).not.toContain(secret)
+    expect(error.bodySnippet).not.toContain(secret)
+    expect(error.cause).toBeInstanceOf(Error)
+    expect((error.cause as Error).message).not.toContain(secret)
   })
 
   it("redacts the complete proxy URL when dispatcher creation fails", async () => {

@@ -69,12 +69,28 @@ function proxySecrets(proxyUrl: string): string[] {
 }
 
 function redactError(error: unknown, secrets: string[]): unknown {
+  if (typeof error === "string") return redactSecrets(error, secrets)
   if (!(error instanceof Error)) return error
   const message = redactSecrets(error.message, secrets)
-  const cause = "cause" in error ? redactError(error.cause, secrets) : undefined
-  if (message === error.message && cause === error.cause) return error
+  const hasCause = "cause" in error
+  const cause = hasCause ? redactError(error.cause, secrets) : undefined
+  const bodySnippet = error instanceof SourceHttpError
+    ? redactSecrets(error.bodySnippet, secrets)
+    : null
+  const bodyUnchanged = !(error instanceof SourceHttpError) || bodySnippet === error.bodySnippet
+  if (message === error.message && bodyUnchanged && (!hasCause || cause === error.cause)) return error
 
-  const redacted = new Error(message, cause ? { cause } : undefined) as Error & { code?: unknown }
+  const errorOptions = hasCause ? { cause } : undefined
+  const redacted: Error & { code?: unknown } = error instanceof SourceHttpError
+    ? new SourceHttpError(
+        message,
+        error.sourceId,
+        error.statusCode,
+        bodySnippet ?? "",
+        error.serverHeader,
+        errorOptions
+      )
+    : new Error(message, errorOptions) as Error & { code?: unknown }
   redacted.name = error.name
   if ("code" in error) redacted.code = error.code
   return redacted
@@ -86,9 +102,10 @@ export class SourceHttpError extends Error {
     readonly sourceId: string,
     readonly statusCode: number,
     readonly bodySnippet: string,
-    readonly serverHeader: string | null = null
+    readonly serverHeader: string | null = null,
+    options?: ErrorOptions
   ) {
-    super(message)
+    super(message, options)
     this.name = "SourceHttpError"
   }
 }
