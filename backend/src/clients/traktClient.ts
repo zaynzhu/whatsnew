@@ -36,6 +36,7 @@ export function createTraktClient(options: TraktClientOptions = {}): TraktClient
 
       return limiter.run(() => httpClient.fetchJson<T>("trakt", `${baseUrl}${path}`, {
         headers: {
+          "User-Agent": "WhatsNew/0.1",
           "trakt-api-key": clientId,
           "trakt-api-version": "2"
         },

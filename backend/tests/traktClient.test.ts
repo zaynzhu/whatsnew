@@ -12,6 +12,7 @@ describe("traktClient", () => {
     const fetchJson = vi.fn(async (_sourceId, _url, options) => {
       starts.push(Date.now())
       expect(options.headers).toEqual({
+        "User-Agent": "WhatsNew/0.1",
         "trakt-api-key": "client-id",
         "trakt-api-version": "2"
       })
