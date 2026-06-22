@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   tmdbAdapter: { source: "tmdb" },
   traktPopularityAdapter: { source: "trakt", scope: "popularity" },
   traktCalendarAdapter: { source: "trakt", scope: "calendar" },
+  theTvdbAdapter: { source: "thetvdb", scope: "updates" },
   youkuAdapter: { source: "youku" },
   iqiyiAdapter: { source: "iqiyi" },
   netflixAdapter: { source: "netflix" },
@@ -44,6 +45,10 @@ vi.mock("../src/adapters/tmdbAdapter.js", () => ({
 vi.mock("../src/adapters/traktAdapter.js", () => ({
   traktPopularityAdapter: mocks.traktPopularityAdapter,
   traktCalendarAdapter: mocks.traktCalendarAdapter
+}))
+
+vi.mock("../src/adapters/theTvdbAdapter.js", () => ({
+  theTvdbAdapter: mocks.theTvdbAdapter
 }))
 
 vi.mock("../src/adapters/youkuAdapter.js", () => ({
@@ -109,12 +114,15 @@ describe("scheduler", () => {
     })?.[1] as () => Promise<void>
     await dailyJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(2)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
 
     mocks.runSourceSync.mockClear()
-    mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => sourceId !== "netflix")
+    mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
+      return !["netflix", "thetvdb"].includes(sourceId)
+    })
     await dailyJob()
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(1)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
@@ -133,9 +141,10 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(6)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(7)
     })
   })
 
@@ -151,6 +160,7 @@ describe("scheduler", () => {
       { sourceId: "tmdb", scheduleGroup: "hourly" },
       { sourceId: "trakt", scheduleGroup: "hourly" },
       { sourceId: "trakt", scheduleGroup: "daily" },
+      { sourceId: "thetvdb", scheduleGroup: "daily" },
       { sourceId: "netflix", scheduleGroup: "daily" },
       { sourceId: "youku", scheduleGroup: "hourly" },
       { sourceId: "iqiyi", scheduleGroup: "hourly" }

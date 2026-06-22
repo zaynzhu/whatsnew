@@ -108,6 +108,11 @@ describe("settings API", () => {
     const theTvdb = response.body.sources.find((source: any) => source.id === "thetvdb")
     const pin = theTvdb.fields.find((field: any) => field.key === "THETVDB_PIN")
 
+    expect(theTvdb.implementationStatus).toBe("active")
+    expect(theTvdb.enabled).toBe(false)
+    expect(theTvdb.runnable).toBe(false)
+    expect(theTvdb.supportsEnable).toBe(true)
+    expect(theTvdb.supportsSync).toBe(true)
     expect(theTvdb.credentialsComplete).toBe(true)
     expect(theTvdb.missingCredentials).toEqual([])
     expect(pin.value).toBeNull()

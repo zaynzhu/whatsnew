@@ -8,6 +8,7 @@ describe("source catalog", () => {
       "tvmaze",
       "tmdb",
       "trakt",
+      "thetvdb",
       "netflix",
       "youku",
       "iqiyi"
@@ -19,6 +20,15 @@ describe("source catalog", () => {
       defaultEnabled: true,
       credentialKeys: ["TRAKT_CLIENT_ID"],
       scheduleGroups: ["hourly", "daily"]
+    })
+    expect(getSourceDefinition("thetvdb")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["daily"],
+      credentialKeys: ["THETVDB_API_KEY"],
+      optionalCredentialKeys: ["THETVDB_PIN"]
     })
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)

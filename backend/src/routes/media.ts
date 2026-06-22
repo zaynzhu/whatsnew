@@ -70,6 +70,12 @@ mediaRouter.get("/:id", async (req, res) => {
     where: { id: req.params.id },
     include: {
       releases: { orderBy: { releaseDate: "asc" } },
+      sourceRefs: {
+        orderBy: [
+          { source: "asc" },
+          { sourceId: "asc" }
+        ]
+      },
       popularitySignals: {
         where: { isCurrent: true },
         orderBy: { capturedAt: "desc" }

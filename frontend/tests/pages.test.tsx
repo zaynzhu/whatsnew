@@ -121,6 +121,24 @@ const event = {
   payload: "{}"
 }
 
+const sourceRef = {
+  id: "source-ref-1",
+  source: "thetvdb",
+  sourceId: "thetvdb:series:101",
+  isActive: true,
+  createdAt: "2026-06-17T00:00:00.000Z",
+  updatedAt: "2026-06-17T01:00:00.000Z"
+}
+
+const inactiveSourceRef = {
+  id: "source-ref-2",
+  source: "tmdb",
+  sourceId: "tmdb:tv:99",
+  isActive: false,
+  createdAt: "2026-06-16T00:00:00.000Z",
+  updatedAt: "2026-06-17T01:00:00.000Z"
+}
+
 const responses: Record<string, unknown> = {
   "/api/dashboard": {
     today: [release],
@@ -146,7 +164,8 @@ const responses: Record<string, unknown> = {
     ...mediaItem,
     releases: [traktRelease],
     popularitySignals: [signal],
-    changeEvents: [event]
+    changeEvents: [event],
+    sourceRefs: [sourceRef, inactiveSourceRef]
   },
   "/api/media/media-1/popularity-history?days=30": {
     items: [
@@ -289,6 +308,8 @@ describe("frontend pages", () => {
 
     expect(await screen.findByRole("heading", { name: "星际回声" })).toBeInTheDocument()
     expect(screen.getByText("一支深空信号追踪小组发现新剧上线异动。")).toBeInTheDocument()
+    expect(screen.getByText("数据来源 TheTVDB")).toBeInTheDocument()
+    expect(screen.getByText("历史来源 TMDb")).toBeInTheDocument()
     expect(screen.getByText("平台未提供")).toBeInTheDocument()
     expect(screen.getByText("S2 E3 · 新的开始")).toBeInTheDocument()
     expect(screen.getByText("来源 Trakt")).toBeInTheDocument()

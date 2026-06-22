@@ -9,6 +9,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "sync:tvmaze": "tsx src/scripts/syncTvmaze.ts",
     "sync:tmdb": "tsx src/scripts/syncTmdb.ts",
+    "sync:thetvdb": "tsx src/scripts/syncTheTvdb.ts",
     "sync:trakt": "tsx src/scripts/syncTrakt.ts",
     "sync:youku": "tsx src/scripts/syncYouku.ts",
     "sync:iqiyi": "tsx src/scripts/syncIqiyi.ts",

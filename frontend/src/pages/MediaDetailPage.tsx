@@ -47,6 +47,8 @@ export function MediaDetailPage() {
     groups[signal.source] = [...(groups[signal.source] ?? []), signal]
     return groups
   }, {})
+  const activeSourceRefs = data.sourceRefs.filter((sourceRef) => sourceRef.isActive)
+  const inactiveSourceRefs = data.sourceRefs.filter((sourceRef) => !sourceRef.isActive)
 
   return (
     <main className="page">
@@ -59,6 +61,12 @@ export function MediaDetailPage() {
             <StatusBadge>{data.status}</StatusBadge>
             <strong>Heat {Math.round(data.heatScore)}</strong>
             <span>{data.firstReleaseDate ?? "日期待定"}</span>
+            {activeSourceRefs.length > 0 && (
+              <span>数据来源 {activeSourceRefs.map((sourceRef) => sourceLabel(sourceRef.source)).join(" · ")}</span>
+            )}
+            {inactiveSourceRefs.length > 0 && (
+              <span>历史来源 {inactiveSourceRefs.map((sourceRef) => sourceLabel(sourceRef.source)).join(" · ")}</span>
+            )}
           </div>
         </div>
         <div className="poster detailPoster">

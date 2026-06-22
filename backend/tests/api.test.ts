@@ -157,6 +157,22 @@ describe("api routes", () => {
         }
       ]
     })
+    await prisma.mediaSourceRef.createMany({
+      data: [
+        {
+          mediaItemId: media.id,
+          source: "thetvdb",
+          sourceId: "thetvdb:series:100",
+          isActive: true
+        },
+        {
+          mediaItemId: media.id,
+          source: "tmdb",
+          sourceId: "tmdb:tv:100",
+          isActive: false
+        }
+      ]
+    })
 
     const rising = await request(createApp()).get(
       "/api/trending?movement=rising&source=tmdb_trending"
@@ -183,6 +199,10 @@ describe("api routes", () => {
     expect(detail.body.popularitySignals.filter((signal: { source: string }) => {
       return signal.source === "tmdb_trending"
     })).toHaveLength(1)
+    expect(detail.body.sourceRefs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: "thetvdb", isActive: true }),
+      expect.objectContaining({ source: "tmdb", isActive: false })
+    ]))
   })
 
   it("rejects popularity history windows outside 1 to 90 days", async () => {

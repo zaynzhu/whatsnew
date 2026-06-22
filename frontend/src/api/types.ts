@@ -78,6 +78,15 @@ export type SourceSyncRun = {
   nextRunAt: string | null
 }
 
+export type MediaSourceRef = {
+  id: string
+  source: string
+  sourceId: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type ChangeEvent = {
   id: string
   mediaItemId: string | null
@@ -121,6 +130,7 @@ export type ProxyTestResponse = {
 
 export type MediaDetailResponse = ApiMediaItem & {
   releases: Omit<ReleaseRow, "mediaItem">[]
+  sourceRefs: MediaSourceRef[]
   popularitySignals: Omit<PopularitySignal, "mediaItem">[]
   changeEvents: ChangeEvent[]
 }

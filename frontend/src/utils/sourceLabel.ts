@@ -1,5 +1,6 @@
 const SOURCE_LABELS: Record<string, string> = {
   iqiyi: "iQIYI",
+  thetvdb: "TheTVDB",
   tmdb: "TMDb",
   tvmaze: "TVmaze",
   youku: "Youku",

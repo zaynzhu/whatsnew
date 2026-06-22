@@ -71,6 +71,18 @@ Trakt 公共数据同步只需要配置 `TRAKT_CLIENT_ID`，不需要用户授�
 - Trakt 日历只表示电影发行或剧集播出排期，不能证明内容已在某个流媒体平台可用
 - 手动同步：`npm run sync:trakt --workspace backend`
 
+## TheTVDB
+
+TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付费访问方式。
+
+- 仅支持 free-only project API Key；`THETVDB_PIN` 为可选项，不需要时留空即可
+- 数据源默认关闭，只有用户显式设置 `SOURCE_THETVDB_ENABLED=true` 后才会参与 daily 同步
+- daily updates 读取最近 48 小时重叠窗口，详情补拉最多 40 条记录
+- 旧元数据更新不会被当作新的上新标题强行创建
+- popularity 不读取 `score`，不会把它算进热度排序
+- 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
+- 手动同步：`npm run sync:thetvdb --workspace backend`
+
 ## 验证
 
 ```bash

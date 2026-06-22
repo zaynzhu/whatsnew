@@ -86,7 +86,16 @@ const sourceFixtures = [
     missingCredentials: ["TRAKT_CLIENT_ID"]
   }),
   sourceFixture("imdb", "IMDb", { group: "global_metadata" }),
-  sourceFixture("thetvdb", "TheTVDB", { group: "global_metadata" }),
+  sourceFixture("thetvdb", "TheTVDB", {
+    group: "global_metadata",
+    implementationStatus: "active",
+    enabled: false,
+    runnable: false,
+    supportsSync: true,
+    supportsEnable: true,
+    credentialsComplete: false,
+    missingCredentials: ["THETVDB_API_KEY"]
+  }),
   sourceFixture("justwatch", "JustWatch", { group: "cross_platform", implementationStatus: "commercial" }),
   sourceFixture("flixpatrol", "FlixPatrol", { group: "cross_platform", implementationStatus: "commercial" }),
   sourceFixture("netflix", "Netflix", { group: "international_platform" }),
@@ -249,6 +258,17 @@ describe("SettingsPage", () => {
     expect(await screen.findByText("缺少 TRAKT_CLIENT_ID")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "启用 Trakt" })).toBeChecked()
     expect(screen.getByRole("button", { name: "同步 Trakt" })).toBeDisabled()
+  })
+
+  it("TheTVDB 显示已接入但默认关闭且缺少 Key 时不可同步", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
+
+    renderSettings()
+
+    expect(await screen.findByText("TheTVDB")).toBeInTheDocument()
+    expect(screen.getByText("缺少 THETVDB_API_KEY")).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: "启用 TheTVDB" })).not.toBeChecked()
+    expect(screen.getByRole("button", { name: "同步 TheTVDB" })).toBeDisabled()
   })
 
   it("切换活跃数据源代理模式并测试连接", async () => {
