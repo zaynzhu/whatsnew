@@ -38,7 +38,7 @@ npm run dev:frontend
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Netflix、优酷和爱奇艺
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、Netflix、优酷和爱奇艺
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 
 设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。
@@ -61,6 +61,15 @@ Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜�
 - 同一周重复同步按来源身份和周次保持幂等
 - 下载沿用统一代理设置、10 秒超时和来源级 2 秒限频
 - 手动同步：`npm run sync:netflix --workspace backend`
+
+## Trakt
+
+Trakt 公共数据同步只需要配置 `TRAKT_CLIENT_ID`，不需要用户授权凭据。
+
+- 小时级同步趋势榜与期待榜；`watchers` 和 `list_count` 保留为两个来源特定的独立信号
+- 日级同步未来 14 天的电影和剧集播出日历
+- Trakt 日历只表示电影发行或剧集播出排期，不能证明内容已在某个流媒体平台可用
+- 手动同步：`npm run sync:trakt --workspace backend`
 
 ## 验证
 

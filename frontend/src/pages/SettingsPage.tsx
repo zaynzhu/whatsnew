@@ -340,7 +340,7 @@ export function SettingsPage() {
                   <tbody>
                     {sources.map((source) => {
                       const canEnable = source.implementationStatus === "active" && source.supportsEnable
-                      const canSync = source.implementationStatus === "active" && source.supportsSync && source.enabled
+                      const canSync = source.runnable
                       const testResult = sourceTestMutation.data?.sourceId === source.id
                         ? sourceTestMutation.data.result
                         : null
@@ -399,7 +399,9 @@ export function SettingsPage() {
                           </td>
                           <td>
                             <span className={source.credentialsComplete ? "credentialReady" : "credentialMissing"}>
-                              {source.credentialsComplete ? "凭据就绪" : "缺少凭据"}
+                              {source.credentialsComplete
+                                ? "凭据就绪"
+                                : `缺少 ${source.missingCredentials.join("、")}`}
                             </span>
                           </td>
                           <td className="sourceRuntimeState">

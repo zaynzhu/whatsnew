@@ -6,6 +6,7 @@ import type {
   PopularitySignal,
   TrendingResponse
 } from "../api/types"
+import { sourceLabel } from "../utils/sourceLabel"
 
 const MOVEMENT_TABS: Array<{
   value: "" | PopularityMovement
@@ -20,13 +21,15 @@ const MOVEMENT_TABS: Array<{
 const SOURCE_OPTIONS = [
   ["tmdb_trending", "TMDb 电影趋势"],
   ["tmdb_tv_trending", "TMDb 剧集趋势"],
+  ["trakt_trending", "Trakt 趋势榜"],
+  ["trakt_anticipated", "Trakt 期待榜"],
   ["youku_hot", "优酷热度"],
   ["youku_reserve", "优酷预约"],
   ["iqiyi_reserve", "爱奇艺预约"],
   ["netflix_top10", "Netflix Top 10"]
 ]
 
-const PLATFORM_OPTIONS = ["TMDb", "Youku", "iQIYI", "Netflix"]
+const PLATFORM_OPTIONS = ["TMDb", "Trakt", "Youku", "iQIYI", "Netflix"]
 
 export function movementLabel(signal: PopularitySignal): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
@@ -152,7 +155,7 @@ export function TrendingPage() {
                 <span>{signal.mediaItem.mediaType} · {signal.platform ?? signal.region ?? "全局"}</span>
               </Link>
               <span className="rankSource">
-                <span>{signal.source}</span>
+                <span>{sourceLabel(signal.source)}</span>
                 <small>{signal.valueLabel ?? signal.window}</small>
               </span>
               <strong className="rankPosition">#{signal.rank ?? "-"}</strong>

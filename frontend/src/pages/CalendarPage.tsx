@@ -29,15 +29,25 @@ export function CalendarPage() {
 
       <div className="list">
         {items.length > 0 ? (
-          items.map((release) => (
-            <article className="row calendarRow" key={release.id}>
-              <strong>{release.releaseDate ?? "日期待定"}</strong>
-              <span>{release.mediaItem.titleDisplay}</span>
-              <span>{release.platform} · {release.region}</span>
-              <span>来源 {sourceLabel(release.source)}</span>
-              <StatusBadge>{release.releaseStatus}</StatusBadge>
-            </article>
-          ))
+          items.map((release) => {
+            const platformLabel = release.platform === "Unspecified"
+              ? "平台未提供"
+              : release.platform
+            const episodeLabel = release.seasonNumber != null && release.episodeNumber != null
+              ? `S${release.seasonNumber} E${release.episodeNumber}${release.episodeTitle ? ` · ${release.episodeTitle}` : ""}`
+              : null
+
+            return (
+              <article className="row calendarRow" key={release.id}>
+                <strong>{release.releaseDate ?? "日期待定"}</strong>
+                <span>{release.mediaItem.titleDisplay}</span>
+                <span>{platformLabel} · {release.region}</span>
+                {episodeLabel && <span>{episodeLabel}</span>}
+                <span>来源 {sourceLabel(release.source)}</span>
+                <StatusBadge>{release.releaseStatus}</StatusBadge>
+              </article>
+            )
+          })
         ) : (
           <p className="emptyText">暂无日历记录</p>
         )}

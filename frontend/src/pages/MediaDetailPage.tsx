@@ -7,6 +7,7 @@ import type {
   PopularitySignal
 } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
+import { sourceLabel } from "../utils/sourceLabel"
 
 function timelineMovement(signal: Omit<PopularitySignal, "mediaItem">): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
@@ -72,13 +73,24 @@ export function MediaDetailPage() {
           </div>
           <div className="list">
             {data.releases.length > 0 ? (
-              data.releases.map((release) => (
-                <article className="row" key={release.id}>
-                  <strong>{release.platform}</strong>
-                  <span>{release.releaseDate ?? "日期待定"}</span>
-                  <StatusBadge>{release.releaseStatus}</StatusBadge>
-                </article>
-              ))
+              data.releases.map((release) => {
+                const platformLabel = release.platform === "Unspecified"
+                  ? "平台未提供"
+                  : release.platform
+                const episodeLabel = release.seasonNumber != null && release.episodeNumber != null
+                  ? `S${release.seasonNumber} E${release.episodeNumber}${release.episodeTitle ? ` · ${release.episodeTitle}` : ""}`
+                  : null
+
+                return (
+                  <article className="row" key={release.id}>
+                    <strong>{platformLabel}</strong>
+                    <span>{release.releaseDate ?? "日期待定"}</span>
+                    {episodeLabel && <span>{episodeLabel}</span>}
+                    <span>来源 {sourceLabel(release.source)}</span>
+                    <StatusBadge>{release.releaseStatus}</StatusBadge>
+                  </article>
+                )
+              })
             ) : (
               <p className="emptyText">暂无发行记录</p>
             )}
@@ -93,7 +105,7 @@ export function MediaDetailPage() {
             {data.popularitySignals.length > 0 ? (
               data.popularitySignals.map((signal) => (
                 <article className="row" key={signal.id}>
-                  <strong>{signal.source} #{signal.rank ?? "-"}</strong>
+                  <strong>{sourceLabel(signal.source)} #{signal.rank ?? "-"}</strong>
                   <span>{signal.valueLabel ?? signal.window}</span>
                   <span>{signal.platform ?? "未知平台"}</span>
                 </article>
@@ -117,7 +129,7 @@ export function MediaDetailPage() {
         ) : Object.keys(historyGroups).length > 0 ? (
           Object.entries(historyGroups).map(([source, signals]) => (
             <section className="timelineGroup" key={source} aria-labelledby={`timeline-${source}`}>
-              <h3 id={`timeline-${source}`}>{source}</h3>
+              <h3 id={`timeline-${source}`}>{sourceLabel(source)}</h3>
               <div className="timelineRows">
                 {signals.map((signal) => (
                   <article className="timelineRow" key={signal.id}>

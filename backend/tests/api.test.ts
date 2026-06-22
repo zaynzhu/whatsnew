@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client"
 import request from "supertest"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
+import { traktCalendarAdapter, traktPopularityAdapter } from "../src/adapters/traktAdapter.js"
 import { runtimeSettings } from "../src/settings/runtimeSettingsService.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
@@ -222,5 +223,50 @@ describe("api routes", () => {
 
     expect(response.status).toBe(409)
     expect(response.body).toEqual({ error: "source_disabled" })
+  })
+
+  it("rejects source sync requests with missing credentials", async () => {
+    vi.spyOn(runtimeSettings, "sourceEnabled").mockReturnValue(true)
+    vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue(["TRAKT_CLIENT_ID"])
+
+    const response = await request(createApp()).post("/api/sources/trakt/sync")
+
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({
+      error: "credential_missing",
+      missingCredentials: ["TRAKT_CLIENT_ID"]
+    })
+  })
+
+  it("runs every Trakt adapter in order even when one scope fails", async () => {
+    const executionOrder: string[] = []
+    let popularityFinished = false
+    vi.spyOn(runtimeSettings, "sourceEnabled").mockReturnValue(true)
+    vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue([])
+    vi.spyOn(traktPopularityAdapter, "fetchItems").mockImplementation(async () => {
+      executionOrder.push("popularity:start")
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      popularityFinished = true
+      executionOrder.push("popularity:end")
+      throw new Error("popularity failed")
+    })
+    vi.spyOn(traktCalendarAdapter, "fetchItems").mockImplementation(async () => {
+      expect(popularityFinished).toBe(true)
+      executionOrder.push("calendar")
+      return []
+    })
+
+    const response = await request(createApp()).post("/api/sources/trakt/sync")
+
+    expect(response.status).toBe(200)
+    expect(response.body.items.map((run: { scope: string }) => run.scope)).toEqual([
+      "popularity",
+      "calendar"
+    ])
+    expect(response.body.items.map((run: { status: string }) => run.status)).toEqual([
+      "failed",
+      "success"
+    ])
+    expect(executionOrder).toEqual(["popularity:start", "popularity:end", "calendar"])
   })
 })

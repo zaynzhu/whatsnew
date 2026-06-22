@@ -36,16 +36,28 @@ const release = {
   releaseStatus: "upcoming",
   seasonNumber: 1,
   episodeNumber: 1,
+  episodeTitle: null,
   source: "tvmaze",
   sourceUrl: "https://example.com",
   fetchedAt: "2026-06-17T00:00:00.000Z",
   mediaItem
 }
 
+const traktRelease = {
+  ...release,
+  id: "release-trakt-1",
+  platform: "Unspecified",
+  region: "GLOBAL",
+  seasonNumber: 2,
+  episodeNumber: 3,
+  episodeTitle: "新的开始",
+  source: "trakt"
+}
+
 const signal = {
   id: "signal-1",
   mediaItemId: "media-1",
-  source: "trakt",
+  source: "trakt_trending",
   sourceCategory: "trending",
   platform: "Trakt",
   region: "US",
@@ -76,13 +88,13 @@ const risingSignal = {
 const newSignal = {
   ...signal,
   id: "signal-3",
-  source: "iqiyi_reserve",
-  platform: "iQIYI",
-  region: "CN",
+  source: "trakt_anticipated",
+  platform: "Trakt",
+  region: "GLOBAL",
   rank: 8,
   previousRank: null,
   rankDelta: null,
-  valueLabel: "预约榜"
+  valueLabel: "88 list_count"
 }
 
 const sourceRun = {
@@ -125,14 +137,14 @@ const responses: Record<string, unknown> = {
     items: [signal, risingSignal, newSignal]
   },
   "/api/calendar": {
-    items: [release]
+    items: [traktRelease]
   },
   "/api/sources": {
     items: [sourceRun]
   },
   "/api/media/media-1": {
     ...mediaItem,
-    releases: [release],
+    releases: [traktRelease],
     popularitySignals: [signal],
     changeEvents: [event]
   },
@@ -229,14 +241,20 @@ describe("frontend pages", () => {
     mockFetch()
     renderRoute("/trending")
 
-    expect(await screen.findByText("trakt")).toBeInTheDocument()
+    expect(await screen.findByText("Trakt 趋势榜", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByText("#4")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
+    expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()
+    expect(screen.getByText("88 list_count")).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Trakt 趋势榜" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Trakt 期待榜" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Trakt" })).toBeInTheDocument()
 
     renderRoute("/calendar")
     expect(await screen.findByText("2026-06-18")).toBeInTheDocument()
-    expect(screen.getByText("Netflix · US")).toBeInTheDocument()
-    expect(screen.getByText("来源 TVmaze")).toBeInTheDocument()
+    expect(screen.getByText("平台未提供 · GLOBAL")).toBeInTheDocument()
+    expect(screen.getByText("S2 E3 · 新的开始")).toBeInTheDocument()
+    expect(screen.getByText("来源 Trakt")).toBeInTheDocument()
 
     renderRoute("/sources")
     expect(await screen.findByText("tvmaze")).toBeInTheDocument()
@@ -271,7 +289,9 @@ describe("frontend pages", () => {
 
     expect(await screen.findByRole("heading", { name: "星际回声" })).toBeInTheDocument()
     expect(screen.getByText("一支深空信号追踪小组发现新剧上线异动。")).toBeInTheDocument()
-    expect(screen.getByText("Netflix")).toBeInTheDocument()
+    expect(screen.getByText("平台未提供")).toBeInTheDocument()
+    expect(screen.getByText("S2 E3 · 新的开始")).toBeInTheDocument()
+    expect(screen.getByText("来源 Trakt")).toBeInTheDocument()
     expect(screen.getByText("release_added")).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/media/media-1/popularity-history?days=30"

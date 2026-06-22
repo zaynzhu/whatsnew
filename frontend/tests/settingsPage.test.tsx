@@ -75,7 +75,16 @@ const sourceFixtures = [
       { key: "SOURCE_TMDB_HTTPS_PROXY", label: "TMDb HTTPS 代理", type: "password", sensitive: true, configured: false, maskedValue: null, value: null }
     ]
   }),
-  sourceFixture("trakt", "Trakt", { group: "global_metadata", implementationStatus: "blocked" }),
+  sourceFixture("trakt", "Trakt", {
+    group: "global_metadata",
+    implementationStatus: "active",
+    enabled: true,
+    runnable: false,
+    supportsSync: true,
+    supportsEnable: true,
+    credentialsComplete: false,
+    missingCredentials: ["TRAKT_CLIENT_ID"]
+  }),
   sourceFixture("imdb", "IMDb", { group: "global_metadata" }),
   sourceFixture("thetvdb", "TheTVDB", { group: "global_metadata" }),
   sourceFixture("justwatch", "JustWatch", { group: "cross_platform", implementationStatus: "commercial" }),
@@ -230,6 +239,16 @@ describe("SettingsPage", () => {
     expect(screen.getByText("JustWatch")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "启用 IMDb" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "同步 JustWatch" })).toBeDisabled()
+  })
+
+  it("缺少 Trakt 凭据时保留启用开关并禁止同步", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
+
+    renderSettings()
+
+    expect(await screen.findByText("缺少 TRAKT_CLIENT_ID")).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: "启用 Trakt" })).toBeChecked()
+    expect(screen.getByRole("button", { name: "同步 Trakt" })).toBeDisabled()
   })
 
   it("切换活跃数据源代理模式并测试连接", async () => {

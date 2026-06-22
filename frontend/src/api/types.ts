@@ -33,6 +33,7 @@ export type ReleaseRow = {
   releaseStatus: string
   seasonNumber: number | null
   episodeNumber: number | null
+  episodeTitle: string | null
   source: string
   sourceUrl: string | null
   fetchedAt: string
@@ -67,6 +68,7 @@ export type PopularityHistoryResponse = {
 export type SourceSyncRun = {
   id: string
   source: string
+  scope: string
   status: string
   startedAt: string
   finishedAt: string | null

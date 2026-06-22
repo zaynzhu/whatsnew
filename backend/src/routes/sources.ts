@@ -9,6 +9,7 @@ import {
   connectionTestService
 } from "../services/connectionTestService.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
+import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { getSourceDefinition } from "../settings/sourceCatalog.js"
 
 type SourcesRouterDependencies = {
@@ -54,15 +55,24 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
       return
     }
 
-    const [entry] = getEnabledAdaptersForSource(req.params.source)
-    if (!entry) {
+    if (!runtimeSettings.sourceEnabled(req.params.source)) {
       res.status(409).json({ error: "source_disabled" })
       return
     }
 
-    const run = await runSourceSync(db, entry.adapter)
+    const missingCredentials = runtimeSettings.missingCredentials(req.params.source)
+    if (missingCredentials.length > 0) {
+      res.status(409).json({ error: "credential_missing", missingCredentials })
+      return
+    }
 
-    res.json(run)
+    const entries = getEnabledAdaptersForSource(req.params.source)
+    const runs = []
+    for (const entry of entries) {
+      runs.push(await runSourceSync(db, entry.adapter))
+    }
+
+    res.json({ items: runs })
   })
 
   return router
