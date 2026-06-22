@@ -42,6 +42,8 @@ beforeEach(async () => {
   await writeFile(envPath, [
     "HTTPS_PROXY=http://proxy-user:secret-proxy-password@proxy.test:7890",
     "TMDB_API_KEY=secret-tmdb-key",
+    "THETVDB_API_KEY=free-thetvdb-key",
+    "THETVDB_PIN=1234",
     "SOURCE_TMDB_ENABLED=true",
     "SOURCE_TMDB_PROXY_MODE=inherit"
   ].join("\n"))
@@ -99,6 +101,18 @@ describe("settings API", () => {
       credentialsComplete: false,
       missingCredentials: ["TMDB_API_KEY"]
     })
+  })
+
+  it("returns TheTVDB PIN as an optional masked field", async () => {
+    const response = await request(testApp()).get("/api/settings")
+    const theTvdb = response.body.sources.find((source: any) => source.id === "thetvdb")
+    const pin = theTvdb.fields.find((field: any) => field.key === "THETVDB_PIN")
+
+    expect(theTvdb.credentialsComplete).toBe(true)
+    expect(theTvdb.missingCredentials).toEqual([])
+    expect(pin.value).toBeNull()
+    expect(pin.maskedValue).toBe("••••••••")
+    expect(JSON.stringify(response.body)).not.toContain("1234")
   })
 
   it("uses the newest sync run for each source", async () => {

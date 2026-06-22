@@ -59,6 +59,17 @@ it("does not reveal a short sensitive value in its mask", async () => {
   expect(JSON.stringify(field)).not.toContain("1234")
 })
 
+it("accepts and masks an optional TheTVDB PIN", async () => {
+  const settings = await fixtureSettings("THETVDB_API_KEY=free-key\nTHETVDB_PIN=1234\n")
+
+  expect(settings.fieldView("THETVDB_PIN").value).toBeNull()
+  expect(settings.fieldView("THETVDB_PIN").maskedValue).toBe("••••••••")
+  expect(settings.missingCredentials("thetvdb")).toEqual([])
+
+  await settings.update({ THETVDB_PIN: "5678" }, [])
+  expect(settings.get("THETVDB_PIN")).toBe("5678")
+})
+
 it("clears a sensitive value only when clearKeys explicitly includes it", async () => {
   const settings = await fixtureSettings("TMDB_API_KEY=abcd-secret-1234\n")
   await settings.update({}, ["TMDB_API_KEY"])

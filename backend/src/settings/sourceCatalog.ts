@@ -19,6 +19,7 @@ export type SourceDefinition = {
   testUrl: string
   baseUrlKey: string
   credentialKeys: readonly string[]
+  optionalCredentialKeys: readonly string[]
   defaultEnabled: boolean
   scheduleGroups: readonly ScheduleGroup[]
 }
@@ -47,7 +48,8 @@ function source(
   testUrl: string,
   credentialKeys: string[] = [],
   scheduleGroups: readonly ScheduleGroup[] = ["daily"],
-  defaultEnabled = false
+  defaultEnabled = false,
+  optionalCredentialKeys: string[] = []
 ): SourceDefinition {
   return {
     id,
@@ -61,6 +63,7 @@ function source(
     testUrl,
     baseUrlKey: sourceBaseUrlKey(id),
     credentialKeys,
+    optionalCredentialKeys,
     defaultEnabled,
     scheduleGroups
   }
@@ -71,7 +74,7 @@ export const SOURCE_CATALOG = [
   source("tmdb", "TMDb", "电影、剧集、趋势和基础元数据", "global_metadata", "active", "inherit", true, true, "https://api.themoviedb.org/3/configuration", ["TMDB_API_KEY"], ["hourly"], true),
   source("trakt", "Trakt", "电影与剧集趋势", "global_metadata", "active", "inherit", true, true, "https://api.trakt.tv/shows/trending?limit=1", ["TRAKT_CLIENT_ID"], ["hourly", "daily"], true),
   source("imdb", "IMDb", "日更数据集与榜单", "global_metadata", "planned", "inherit", false, false, "https://datasets.imdbws.com/title.basics.tsv.gz"),
-  source("thetvdb", "TheTVDB", "影视元数据与外部 ID", "global_metadata", "planned", "inherit", false, false, "https://api4.thetvdb.com/v4/login", ["THETVDB_API_KEY"]),
+  source("thetvdb", "TheTVDB", "影视元数据与外部 ID", "global_metadata", "planned", "inherit", false, false, "https://api4.thetvdb.com/v4/login", ["THETVDB_API_KEY"], ["daily"], false, ["THETVDB_PIN"]),
   source("justwatch", "JustWatch", "可看性与 Streaming Charts", "cross_platform", "commercial", "inherit", false, false, "https://www.justwatch.com/us/streaming-charts"),
   source("flixpatrol", "FlixPatrol", "多平台地区 Top 10", "cross_platform", "commercial", "inherit", false, false, "https://flixpatrol.com/calendar/upcoming/"),
   source("netflix", "Netflix", "官方全球周榜与观看次数", "international_platform", "active", "inherit", true, true, "https://www.netflix.com/tudum/top10/data/all-weeks-global.xlsx", [], ["daily"], true),

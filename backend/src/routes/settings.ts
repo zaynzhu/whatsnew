@@ -34,6 +34,7 @@ const FIELD_LABELS: Record<string, string> = {
   TRAKT_ACCESS_TOKEN: "Trakt Access Token",
   OMDB_API_KEY: "OMDb API Key",
   THETVDB_API_KEY: "TheTVDB API Key",
+  THETVDB_PIN: "TheTVDB PIN（可选）",
   DOUBAN_COOKIE: "豆瓣 Cookie"
 }
 
@@ -102,6 +103,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
         const fields = [
           settings.fieldView(source.baseUrlKey, `${source.name} Base URL`),
           ...source.credentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
+          ...source.optionalCredentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
           settings.fieldView(sourceEnvKey(source.id, "HTTP_PROXY"), `${source.name} HTTP 代理`),
           settings.fieldView(sourceEnvKey(source.id, "HTTPS_PROXY"), `${source.name} HTTPS 代理`)
         ]
