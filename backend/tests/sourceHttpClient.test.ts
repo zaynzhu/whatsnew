@@ -134,6 +134,29 @@ describe("SourceHttpClient", () => {
     expect(error.bodySnippet).not.toContain(secret)
   })
 
+  it("redacts only explicitly supplied sensitive values while preserving HTTP metadata", async () => {
+    const apiKey = "explicit-api-key"
+    const pin = "explicit-pin"
+    const token = "explicit-token"
+    const transport = vi.fn<SourceTransport>(async () => new Response(
+      `echo ${apiKey} ${pin} ${token}`,
+      { status: 418, statusText: "Teapot" }
+    ))
+    const client = new SourceHttpClient(fakeSettings({ SOURCE_THETVDB_PROXY_MODE: "direct" }), transport)
+
+    const error = await client.fetchText("thetvdb", "https://api.example.test/data", {
+      timeoutMs: 1000,
+      sensitiveValues: [apiKey, pin, token]
+    }).catch((caught) => caught)
+
+    expect(error).toBeInstanceOf(SourceHttpError)
+    expect(error).toMatchObject({ statusCode: 418, sourceId: "thetvdb" })
+    for (const secret of [apiKey, pin, token]) {
+      expect(error.message).not.toContain(secret)
+      expect(error.bodySnippet).not.toContain(secret)
+    }
+  })
+
   it("redacts the complete proxy URL when dispatcher creation fails", async () => {
     const proxyUrl = "http://proxy-user:proxy-password@proxy.internal:7890"
     const createDispatcher = vi.fn(() => {

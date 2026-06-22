@@ -82,6 +82,7 @@ type TheTvdbClientOptions = {
 }
 
 type RequestContext = {
+  authKey: string
   apiKey: string
   pin: string
   baseUrl: string
@@ -93,13 +94,17 @@ type TheTvdbEnvelope<T> = {
   data?: T
 }
 
+type AuthState = {
+  token: string | null
+  loginPromise: Promise<string> | null
+}
+
 export function createTheTvdbClient(options: TheTvdbClientOptions = {}): TheTvdbClient {
   const settings = options.settings ?? runtimeSettings
   const httpClient = options.httpClient ?? sourceHttpClient
   const limiter = new RateLimiter(options.minIntervalMs ?? 2000)
   const timeoutMs = options.timeoutMs ?? 30000
-  let token: string | null = null
-  let loginPromise: Promise<string> | null = null
+  const authStates = new Map<string, AuthState>()
 
   function requestContext(): RequestContext {
     const current = settings.view()
@@ -110,6 +115,7 @@ export function createTheTvdbClient(options: TheTvdbClientOptions = {}): TheTvdb
     if (!apiKey) throw new Error("TheTVDB 凭据未配置")
 
     return {
+      authKey: JSON.stringify([apiKey, pin, baseUrl]),
       apiKey,
       pin,
       baseUrl,
@@ -117,11 +123,21 @@ export function createTheTvdbClient(options: TheTvdbClientOptions = {}): TheTvdb
     }
   }
 
-  async function login(context: RequestContext): Promise<string> {
-    if (token) return token
-    if (loginPromise) return loginPromise
+  function authState(context: RequestContext): AuthState {
+    const existing = authStates.get(context.authKey)
+    if (existing) return existing
 
-    loginPromise = limiter.run(async () => {
+    const state = { token: null, loginPromise: null }
+    authStates.set(context.authKey, state)
+    return state
+  }
+
+  async function login(context: RequestContext): Promise<string> {
+    const state = authState(context)
+    if (state.token) return state.token
+    if (state.loginPromise) return state.loginPromise
+
+    const loginPromise = limiter.run(async () => {
       const body = context.pin
         ? { apikey: context.apiKey, pin: context.pin }
         : { apikey: context.apiKey }
@@ -133,16 +149,18 @@ export function createTheTvdbClient(options: TheTvdbClientOptions = {}): TheTvdb
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
           timeoutMs,
-          settingsOverride: context.settingsOverride
+          settingsOverride: context.settingsOverride,
+          sensitiveValues: [context.apiKey, context.pin]
         }
       )
       const nextToken = response.data?.token
       if (!nextToken) throw new Error("TheTVDB 登录响应缺少 Token")
-      token = nextToken
+      state.token = nextToken
       return nextToken
     }).finally(() => {
-      loginPromise = null
+      if (state.loginPromise === loginPromise) state.loginPromise = null
     })
+    state.loginPromise = loginPromise
 
     return loginPromise
   }
@@ -153,12 +171,14 @@ export function createTheTvdbClient(options: TheTvdbClientOptions = {}): TheTvdb
       return await limiter.run(() => httpClient.fetchJson<T>("thetvdb", `${context.baseUrl}${path}`, {
         headers: { Authorization: `Bearer ${currentToken}` },
         timeoutMs,
-        settingsOverride: context.settingsOverride
+        settingsOverride: context.settingsOverride,
+        sensitiveValues: [context.apiKey, context.pin, currentToken]
       }))
     } catch (error) {
-      if (retried || !(error instanceof SourceHttpError) || error.statusCode !== 401) throw error
-      token = null
-      await login(context)
+      if (!(error instanceof SourceHttpError) || error.statusCode !== 401) throw error
+      const state = authState(context)
+      if (state.token === currentToken) state.token = null
+      if (retried) throw error
       return request<T>(context, path, true)
     }
   }

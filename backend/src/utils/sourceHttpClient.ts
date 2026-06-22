@@ -16,6 +16,7 @@ const SENSITIVE_QUERY_KEYS = new Set(["api_key", "key", "token", "access_token"]
 export type SourceRequestOptions = Omit<RequestInit, "signal"> & {
   timeoutMs: number
   settingsOverride?: Record<string, string>
+  sensitiveValues?: readonly string[]
 }
 
 export type SourceTransport = (url: string, options?: UndiciRequestInit) => Promise<Response>
@@ -117,7 +118,7 @@ export class SourceHttpClient {
   }
 
   async request(sourceId: string, url: string, options: SourceRequestOptions): Promise<Response> {
-    const { timeoutMs, settingsOverride, ...requestOptions } = options
+    const { timeoutMs, settingsOverride, sensitiveValues = [], ...requestOptions } = options
     const settings = this.settings.view(settingsOverride)
     const proxyUrl = resolveProxy(settings, sourceId, url)
     const controller = new AbortController()
@@ -125,7 +126,11 @@ export class SourceHttpClient {
       controller.abort(new DOMException(`请求超时（${timeoutMs}ms）`, "TimeoutError"))
     }, timeoutMs)
     const redactedUrl = redactUrl(url)
-    const secrets = [...redactedUrl.secrets, ...(proxyUrl ? proxySecrets(proxyUrl) : [])]
+    const secrets = [
+      ...redactedUrl.secrets,
+      ...(proxyUrl ? proxySecrets(proxyUrl) : []),
+      ...sensitiveValues.filter(Boolean)
+    ]
 
     try {
       const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
