@@ -66,10 +66,10 @@ describe("traktAdapter", () => {
   it("maps trending and anticipated movie and show fixtures into separate signals", async () => {
     const get = vi.fn(async (path: string) => {
       const fixtures: Record<string, unknown> = {
-        "/movies/trending": [{ watchers: 321, movie }],
-        "/shows/trending": [{ watchers: 654, show }],
-        "/movies/anticipated": [{ list_count: 88, movie }],
-        "/shows/anticipated": [{ list_count: 99, show }]
+        "/movies/trending?limit=50": [{ watchers: 321, movie }],
+        "/shows/trending?limit=50": [{ watchers: 654, show }],
+        "/movies/anticipated?limit=50": [{ list_count: 88, movie }],
+        "/shows/anticipated?limit=50": [{ list_count: 99, show }]
       }
       return fixtures[path]
     })

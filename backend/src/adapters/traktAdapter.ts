@@ -230,10 +230,10 @@ export function createTraktPopularityAdapter(options: TraktAdapterOptions = {}):
     scope: "popularity",
     async fetchItems() {
       const [trendingMovies, trendingShows, anticipatedMovies, anticipatedShows] = await Promise.all([
-        client.get<TraktTrendingMovie[]>("/movies/trending"),
-        client.get<TraktTrendingShow[]>("/shows/trending"),
-        client.get<TraktAnticipatedMovie[]>("/movies/anticipated"),
-        client.get<TraktAnticipatedShow[]>("/shows/anticipated")
+        client.get<TraktTrendingMovie[]>("/movies/trending?limit=50"),
+        client.get<TraktTrendingShow[]>("/shows/trending?limit=50"),
+        client.get<TraktAnticipatedMovie[]>("/movies/anticipated?limit=50"),
+        client.get<TraktAnticipatedShow[]>("/shows/anticipated?limit=50")
       ])
       const items = new Map<string, AdapterItem>()
 
