@@ -73,6 +73,8 @@ type TraktAdapterOptions = {
 type TraktMedia = TraktMovie | TraktShow
 type PopularityKind = "trending" | "anticipated"
 
+const defaultTraktClient = createTraktClient()
+
 function todayLocalDate(): string {
   const date = new Date()
   const year = date.getFullYear()
@@ -284,5 +286,5 @@ export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): S
   }
 }
 
-export const traktPopularityAdapter = createTraktPopularityAdapter()
-export const traktCalendarAdapter = createTraktCalendarAdapter()
+export const traktPopularityAdapter = createTraktPopularityAdapter({ client: defaultTraktClient })
+export const traktCalendarAdapter = createTraktCalendarAdapter({ client: defaultTraktClient })

@@ -4,6 +4,7 @@ import {
   createTraktPopularityAdapter
 } from "../src/adapters/traktAdapter.js"
 import type { TraktClient } from "../src/clients/traktClient.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 const movie = {
   title: "示例电影",
@@ -18,6 +19,50 @@ const show = {
 }
 
 describe("traktAdapter", () => {
+  it("shares one limiter across the default popularity and calendar scopes", async () => {
+    vi.useFakeTimers()
+    const starts: number[] = []
+    const clientModule = await vi.importActual<typeof import("../src/clients/traktClient.js")>(
+      "../src/clients/traktClient.js"
+    )
+    const fetchJson = vi.fn(async () => {
+      starts.push(Date.now())
+      return []
+    })
+
+    vi.resetModules()
+    vi.doMock("../src/clients/traktClient.js", () => ({
+      ...clientModule,
+      createTraktClient: () => clientModule.createTraktClient({
+        clientId: "client-id",
+        minIntervalMs: 5,
+        httpClient: { fetchJson } as unknown as SourceHttpClient
+      })
+    }))
+
+    try {
+      const {
+        traktCalendarAdapter,
+        traktPopularityAdapter
+      } = await import("../src/adapters/traktAdapter.js")
+
+      const popularityRun = traktPopularityAdapter.fetchItems()
+      await vi.runAllTimersAsync()
+      await popularityRun
+
+      const calendarRun = traktCalendarAdapter.fetchItems()
+      await vi.runAllTimersAsync()
+      await calendarRun
+
+      expect(starts).toHaveLength(6)
+      expect(starts[4] - starts[3]).toBeGreaterThanOrEqual(5)
+    } finally {
+      vi.doUnmock("../src/clients/traktClient.js")
+      vi.resetModules()
+      vi.useRealTimers()
+    }
+  })
+
   it("maps trending and anticipated movie and show fixtures into separate signals", async () => {
     const get = vi.fn(async (path: string) => {
       const fixtures: Record<string, unknown> = {
