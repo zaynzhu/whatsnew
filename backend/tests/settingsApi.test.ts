@@ -177,6 +177,38 @@ describe("settings API", () => {
     expect(tmdb.latestRun.itemCount).toBe(12)
   })
 
+  it("reports a failed scope when another Trakt scope succeeds", async () => {
+    database.sourceSyncRun.findMany.mockResolvedValue([
+      {
+        source: "trakt",
+        scope: "calendar",
+        status: "success",
+        startedAt: new Date("2026-06-20T10:01:00.000Z"),
+        finishedAt: new Date("2026-06-20T10:02:00.000Z"),
+        durationMs: 60000,
+        itemCount: 160,
+        errorMessage: null
+      },
+      {
+        source: "trakt",
+        scope: "popularity",
+        status: "failed",
+        startedAt: new Date("2026-06-20T10:00:00.000Z"),
+        finishedAt: new Date("2026-06-20T10:00:10.000Z"),
+        durationMs: 10000,
+        itemCount: 0,
+        errorMessage: "popularity failed"
+      }
+    ] as never)
+
+    const response = await request(testApp()).get("/api/settings")
+    const trakt = response.body.sources.find((source: any) => source.id === "trakt")
+
+    expect(trakt.latestRun.status).toBe("failed")
+    expect(trakt.latestRun.itemCount).toBe(160)
+    expect(trakt.latestRun.errorMessage).toContain("popularity failed")
+  })
+
   it("updates settings immediately without accepting unknown keys", async () => {
     const response = await request(testApp()).put("/api/settings").send({
       values: { SOURCE_TMDB_PROXY_MODE: "direct" },

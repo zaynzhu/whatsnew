@@ -428,7 +428,7 @@ export function SettingsPage() {
                                 className="tableIconButton"
                                 aria-label={`测试 ${source.name}`}
                                 title={`测试 ${source.name}`}
-                                disabled={isTesting}
+                                disabled={isTesting || isSyncing}
                                 onClick={() => sourceTestMutation.mutate(source.id)}
                               >
                                 <TestTube2 aria-hidden="true" size={17} />
@@ -438,7 +438,7 @@ export function SettingsPage() {
                                 className="tableIconButton"
                                 aria-label={`同步 ${source.name}`}
                                 title={`同步 ${source.name}`}
-                                disabled={!canSync || isSyncing}
+                                disabled={!canSync || isSyncing || isTesting}
                                 onClick={() => sourceSyncMutation.mutate(source.id)}
                               >
                                 <RefreshCw aria-hidden="true" size={17} />

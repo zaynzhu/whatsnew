@@ -300,6 +300,29 @@ describe("SettingsPage", () => {
     })
   })
 
+  it("同一来源测试期间禁止同时同步", async () => {
+    let resolveTest: ((response: Response) => void) | undefined
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      if (input === "/api/sources/tmdb/test") {
+        return new Promise<Response>((resolve) => {
+          resolveTest = resolve
+        })
+      }
+      return jsonResponse(settingsResponse)
+    })
+    const user = userEvent.setup()
+
+    renderSettings()
+    await user.click(await screen.findByRole("button", { name: "测试 TMDb" }))
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "同步 TMDb" })).toBeDisabled())
+    resolveTest?.(jsonResponse({
+      sourceId: "tmdb",
+      implementationStatus: "active",
+      result: { mode: "source", success: true, durationMs: 10, statusCode: 200, errorType: null, message: "连接成功" }
+    }))
+  })
+
   it("数据源配置对话框绝不回填已保存凭据", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
     const user = userEvent.setup()
