@@ -39,6 +39,26 @@ describe("ConnectionTestService", () => {
     })
   })
 
+  it("uses the Trakt client headers for the connection test", async () => {
+    const request = vi.fn(async (_sourceId: string, _url: string, _options: SourceRequestOptions) => (
+      new Response("{}", { status: 200 })
+    ))
+    const service = new ConnectionTestService(
+      settings({ TRAKT_CLIENT_ID: "client-id", SOURCE_TRAKT_PROXY_MODE: "direct" }),
+      httpClient(request),
+      0
+    )
+
+    await service.testSource(getSourceDefinition("trakt"))
+
+    expect(request.mock.calls[0][2].headers).toMatchObject({
+      "User-Agent": "WhatsNew/0.1",
+      "trakt-api-key": "client-id",
+      "trakt-api-version": "2"
+    })
+  })
+
+
   it("returns credential_missing before making a network request", async () => {
     const request = vi.fn()
     const service = new ConnectionTestService(settings({}), httpClient(request))

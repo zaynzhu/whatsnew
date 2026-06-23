@@ -129,6 +129,7 @@ export class ConnectionTestService {
     }
 
     if (source.id === "trakt") {
+      headers["User-Agent"] = "WhatsNew/0.1"
       headers["trakt-api-key"] = settings.get("TRAKT_CLIENT_ID")
       headers["trakt-api-version"] = "2"
     }
