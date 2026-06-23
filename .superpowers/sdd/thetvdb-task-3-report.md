@@ -64,3 +64,28 @@
 - 未运行 `npm test`，也不会伪称完整测试通过
 - 全程未访问真实 TheTVDB 网络，未申请账户、未读取真实 Key/PIN、未改本地 `.env`
 - 优酷 / 爱奇艺的用户开关状态未被此任务改写；本轮只调整 TheTVDB 的 catalog 默认值
+
+## 后续完整回归修复
+
+### RED
+
+- `npm test`（backend）
+  - MySQL 测试库准备成功
+  - 22 个测试文件中 21 个通过、1 个失败；142 项测试中 141 项通过、1 项失败
+  - 唯一失败为 `runtimeSettings.test.ts` 的陈旧断言：TheTVDB 激活后，`sourceEnabled("thetvdb")` 按设计返回 `true`
+
+### 修复
+
+- 保留“非 active 来源不受环境变量启用”测试语义，将夹具改为仍处于 `planned` 的 IMDb
+- 使用 `SOURCE_IMDB_ENABLED=true`，断言 `sourceEnabled("imdb")` 为 `false`
+- 未修改生产代码
+
+### GREEN
+
+- `npx vitest run tests/runtimeSettings.test.ts`（backend）
+  - 1 个测试文件通过，15 项测试通过
+- `npm test`（仓库根目录）
+  - MySQL 测试库准备成功
+  - backend 22 个测试文件通过，142 项测试通过
+  - frontend 3 个测试文件通过，17 项测试通过
+  - `api.test.ts` 13 项测试通过，原 MySQL 不可用的验证边界已解除

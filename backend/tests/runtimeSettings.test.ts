@@ -104,9 +104,9 @@ it("applies read-only overrides without mutating the live snapshot", async () =>
 })
 
 it("keeps non-active sources disabled regardless of environment values", async () => {
-  const settings = await fixtureSettings("SOURCE_THETVDB_ENABLED=true\nSOURCE_TMDB_ENABLED=true\n")
+  const settings = await fixtureSettings("SOURCE_IMDB_ENABLED=true\nSOURCE_TMDB_ENABLED=true\n")
 
-  expect(settings.sourceEnabled("thetvdb")).toBe(false)
+  expect(settings.sourceEnabled("imdb")).toBe(false)
   expect(settings.sourceEnabled("tmdb")).toBe(true)
   expect(settings.sourceProxyMode("youku")).toBe("direct")
 })
