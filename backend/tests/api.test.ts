@@ -245,6 +245,16 @@ describe("api routes", () => {
     expect(response.body).toEqual({ error: "source_disabled" })
   })
 
+  it("reports disabled before missing credentials", async () => {
+    vi.spyOn(runtimeSettings, "sourceEnabled").mockReturnValue(false)
+    vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue(["TRAKT_CLIENT_ID"])
+
+    const response = await request(createApp()).post("/api/sources/trakt/sync")
+
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({ error: "source_disabled" })
+  })
+
   it("rejects source sync requests with missing credentials", async () => {
     vi.spyOn(runtimeSettings, "sourceEnabled").mockReturnValue(true)
     vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue(["TRAKT_CLIENT_ID"])
