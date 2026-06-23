@@ -18,7 +18,6 @@ cp backend/.env.example backend/.env
 # 编辑 backend/.env，填入 NAS MySQL 的真实用户名和密码
 npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
-npm run seed --workspace backend
 npm run sync:tvmaze --workspace backend
 npm run sync:tmdb --workspace backend
 npm run sync:youku --workspace backend
@@ -92,11 +91,11 @@ npm run test
 npm run build
 ```
 
-## GitHub remote
+## GitHub
 
-等空仓库地址确认后，再执行：
+远端仓库为 `https://github.com/zaynzhu/whatsnew.git`。首次检出后可确认当前分支及跟踪关系：
 
 ```bash
-git remote add origin <github-empty-repo-url>
-git push -u origin HEAD
+git branch --show-current
+git status --short --branch
 ```
