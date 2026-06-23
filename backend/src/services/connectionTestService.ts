@@ -134,9 +134,13 @@ export class ConnectionTestService {
     }
 
     if (source.id === "thetvdb") {
+      const pin = settings.get("THETVDB_PIN")
       headers["content-type"] = "application/json"
       options.method = "POST"
-      options.body = JSON.stringify({ apikey: settings.get("THETVDB_API_KEY") })
+      options.body = JSON.stringify(pin
+        ? { apikey: settings.get("THETVDB_API_KEY"), pin }
+        : { apikey: settings.get("THETVDB_API_KEY") })
+      options.sensitiveValues = [settings.get("THETVDB_API_KEY"), pin]
     }
 
     if (Object.keys(headers).length > 0) options.headers = headers

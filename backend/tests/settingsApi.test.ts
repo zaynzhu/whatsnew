@@ -42,6 +42,7 @@ beforeEach(async () => {
   await writeFile(envPath, [
     "HTTPS_PROXY=http://proxy-user:secret-proxy-password@proxy.test:7890",
     "TMDB_API_KEY=secret-tmdb-key",
+    "TRAKT_CLIENT_ID=secret-trakt-client-id",
     "THETVDB_API_KEY=free-thetvdb-key",
     "THETVDB_PIN=1234",
     "SOURCE_TMDB_ENABLED=true",
@@ -64,7 +65,11 @@ function testApp() {
       connectionTester,
       database: database as never
     }),
-    sourcesRouter: createSourcesRouter({ connectionTester })
+    sourcesRouter: createSourcesRouter({
+      connectionTester,
+      database: database as never,
+      settings: testSettings
+    })
   })
 }
 
@@ -87,6 +92,11 @@ describe("settings API", () => {
     expect(response.body.proxyFields.find((field: any) => field.key === "HTTPS_PROXY").value).toBeNull()
     expect(JSON.stringify(response.body)).not.toContain("secret-proxy-password")
     expect(JSON.stringify(response.body)).not.toContain("secret-tmdb-key")
+    expect(JSON.stringify(response.body)).not.toContain("secret-trakt-client-id")
+    const trakt = response.body.sources.find((source: any) => source.id === "trakt")
+    const clientId = trakt.fields.find((field: any) => field.key === "TRAKT_CLIENT_ID")
+    expect(clientId.value).toBeNull()
+    expect(clientId.sensitive).toBe(true)
   })
 
   it("reports the user switch separately from credential readiness", async () => {
@@ -101,6 +111,24 @@ describe("settings API", () => {
       credentialsComplete: false,
       missingCredentials: ["TMDB_API_KEY"]
     })
+  })
+
+  it("redacts stored errors from the source runs API", async () => {
+    database.sourceSyncRun.findMany.mockResolvedValue([{
+      source: "trakt",
+      status: "failed",
+      startedAt: new Date("2026-06-20T10:00:00.000Z"),
+      finishedAt: new Date("2026-06-20T10:00:01.000Z"),
+      durationMs: 1000,
+      itemCount: 0,
+      errorMessage: "request failed with secret-trakt-client-id"
+    }] as never)
+
+    const response = await request(testApp()).get("/api/sources")
+
+    expect(response.status).toBe(200)
+    expect(JSON.stringify(response.body)).not.toContain("secret-trakt-client-id")
+    expect(response.body.items[0].errorMessage).toContain("[REDACTED]")
   })
 
   it("returns TheTVDB PIN as an optional masked field", async () => {

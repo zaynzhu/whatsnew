@@ -52,6 +52,53 @@ describe("resolveProxy", () => {
 })
 
 describe("SourceHttpClient", () => {
+  it("spaces runtime request starts across callers for the same service", async () => {
+    vi.useFakeTimers()
+    try {
+      const starts: number[] = []
+      const transport = vi.fn<SourceTransport>(async () => {
+        starts.push(Date.now())
+        return new Response("ok", { status: 200 })
+      })
+      const client = new SourceHttpClient(
+        fakeSettings({ SOURCE_TRAKT_PROXY_MODE: "direct" }),
+        transport,
+        undefined,
+        2000
+      )
+
+      const first = client.fetchText("trakt", "https://api.trakt.test/one", { timeoutMs: 5000 })
+      const second = client.fetchText("trakt", "https://api.trakt.test/two", { timeoutMs: 5000 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(starts).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(1999)
+      expect(starts).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(1)
+      await Promise.all([first, second])
+      expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(2000)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("keeps response bodies out of persisted error messages", async () => {
+    const responseBody = "opaque-server-response-body"
+    const transport = vi.fn<SourceTransport>(async () => new Response(responseBody, {
+      status: 500,
+      statusText: "Server Error"
+    }))
+    const client = new SourceHttpClient(fakeSettings({ SOURCE_TMDB_PROXY_MODE: "direct" }), transport)
+
+    const error = await captureError<SourceHttpError>(client.fetchText(
+      "tmdb",
+      "https://api.example.test/data",
+      { timeoutMs: 1000 }
+    ))
+
+    expect(error.bodySnippet).toContain(responseBody)
+    expect(error.message).not.toContain(responseBody)
+  })
+
   it("passes a dispatcher only when a proxy resolves and reuses it", async () => {
     const transport = vi.fn<SourceTransport>(async () => new Response("{}", { status: 200 }))
     const createDispatcher = vi.fn(() => fakeDispatcher)

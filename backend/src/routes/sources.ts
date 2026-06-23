@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client"
 import { Router } from "express"
 import {
   getEnabledAdaptersForSource,
@@ -11,23 +12,33 @@ import {
 import { runSourceSync } from "../services/sourceSyncService.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { getSourceDefinition } from "../settings/sourceCatalog.js"
+import { redactStoredError } from "../settings/settingsRedaction.js"
 
 type SourcesRouterDependencies = {
   connectionTester?: ConnectionTestService
+  database?: Pick<PrismaClient, "sourceSyncRun">
+  settings?: typeof runtimeSettings
 }
 
 export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}): Router {
   const router = Router()
   const connectionTester = dependencies.connectionTester ?? connectionTestService
+  const database = dependencies.database ?? db
+  const settings = dependencies.settings ?? runtimeSettings
 
   router.get("/", async (_req, res) => {
-    const runs = await db.sourceSyncRun.findMany({
+    const runs = await database.sourceSyncRun.findMany({
       where: { source: { not: "demo" } },
       orderBy: { startedAt: "desc" },
       take: 50
     })
 
-    res.json({ items: runs })
+    res.json({
+      items: runs.map((run) => ({
+        ...run,
+        errorMessage: redactStoredError(run.errorMessage, settings)
+      }))
+    })
   })
 
   router.post("/:source/test", async (req, res) => {
@@ -55,12 +66,12 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
       return
     }
 
-    if (!runtimeSettings.sourceEnabled(req.params.source)) {
+    if (!settings.sourceEnabled(req.params.source)) {
       res.status(409).json({ error: "source_disabled" })
       return
     }
 
-    const missingCredentials = runtimeSettings.missingCredentials(req.params.source)
+    const missingCredentials = settings.missingCredentials(req.params.source)
     if (missingCredentials.length > 0) {
       res.status(409).json({ error: "credential_missing", missingCredentials })
       return

@@ -10,10 +10,9 @@ import { SOURCE_CATALOG } from "../settings/sourceCatalog.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import {
   GLOBAL_PROXY_FIELDS,
-  KNOWN_SETTING_KEYS,
-  isSensitiveKey,
   sourceEnvKey
 } from "../settings/settingsFields.js"
+import { redactStoredError } from "../settings/settingsRedaction.js"
 
 const updateSchema = z.object({
   values: z.record(z.string()),
@@ -52,30 +51,6 @@ function validationError(error: unknown): boolean {
 
 function fieldLabel(key: string, fallback: string): string {
   return FIELD_LABELS[key] ?? fallback
-}
-
-function sensitiveVariants(value: string): string[] {
-  const values = [value]
-  try {
-    const url = new URL(value)
-    values.push(url.origin, url.host, url.hostname, url.username, url.password)
-  } catch {
-    // 非 URL 敏感值按原值脱敏
-  }
-  return values.filter(Boolean)
-}
-
-function redactStoredError(message: string | null, settings: RuntimeSettingsService): string | null {
-  if (!message) return null
-  const sensitiveValues = [...KNOWN_SETTING_KEYS]
-    .filter((key) => isSensitiveKey(key))
-    .flatMap((key) => sensitiveVariants(settings.get(key)))
-    .sort((left, right) => right.length - left.length)
-  return sensitiveValues
-    .reduce((current, value) => current.replaceAll(value, "[REDACTED]"), message)
-    .replace(/([?&](?:api_key|key|token|access_token)=)[^&\s)]+/gi, "$1[REDACTED]")
-    .replace(/:\/\/[^/@\s]+@/g, "://[REDACTED]@")
-    .slice(0, 500)
 }
 
 export function createSettingsRouter(dependencies: SettingsRouterDependencies = {}): Router {

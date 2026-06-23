@@ -10,6 +10,7 @@ import {
   RuntimeSettingsService,
   runtimeSettings
 } from "../settings/runtimeSettingsService.js"
+import { RateLimiter } from "./rateLimiter.js"
 
 const SENSITIVE_QUERY_KEYS = new Set(["api_key", "key", "token", "access_token"])
 
@@ -112,11 +113,13 @@ export class SourceHttpError extends Error {
 
 export class SourceHttpClient {
   private readonly dispatchers = new Map<string, Dispatcher>()
+  private readonly limiters = new Map<string, RateLimiter>()
 
   constructor(
     private readonly settings: RuntimeSettingsService,
     private readonly transport: SourceTransport = undiciFetch,
-    private readonly createDispatcher = (proxyUrl: string): Dispatcher => new ProxyAgent(proxyUrl)
+    private readonly createDispatcher = (proxyUrl: string): Dispatcher => new ProxyAgent(proxyUrl),
+    private readonly minIntervalMs = 0
   ) {}
 
   async fetchJson<T>(sourceId: string, url: string, options: SourceRequestOptions): Promise<T> {
@@ -151,16 +154,16 @@ export class SourceHttpClient {
 
     try {
       const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
-      const response = await this.transport(url, {
+      const response = await this.limiterFor(url).run(() => this.transport(url, {
         ...requestOptions as UndiciRequestInit,
         signal: controller.signal,
         ...(dispatcher ? { dispatcher } : {})
-      })
+      }))
       if (response.ok) return response
 
       const body = redactSecrets(await response.text(), secrets).slice(0, 500)
       const message = redactSecrets(
-        `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}: ${body}`,
+        `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}`,
         secrets
       )
       throw new SourceHttpError(message, sourceId, response.status, body, response.headers.get("server"))
@@ -179,6 +182,16 @@ export class SourceHttpClient {
     this.dispatchers.set(proxyUrl, dispatcher)
     return dispatcher
   }
+
+  private limiterFor(url: string): RateLimiter {
+    const service = new URL(url).origin
+    const existing = this.limiters.get(service)
+    if (existing) return existing
+
+    const limiter = new RateLimiter(this.minIntervalMs)
+    this.limiters.set(service, limiter)
+    return limiter
+  }
 }
 
-export const sourceHttpClient = new SourceHttpClient(runtimeSettings)
+export const sourceHttpClient = new SourceHttpClient(runtimeSettings, undiciFetch, undefined, 2000)

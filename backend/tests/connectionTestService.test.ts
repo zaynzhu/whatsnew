@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { Response } from "undici"
-import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
+import type { SourceHttpClient, SourceRequestOptions } from "../src/utils/sourceHttpClient.js"
 import { SourceHttpError } from "../src/utils/sourceHttpClient.js"
 import { ConnectionTestService } from "../src/services/connectionTestService.js"
 import { EnvFileStore } from "../src/settings/envFileStore.js"
@@ -16,6 +16,29 @@ function httpClient(request: ReturnType<typeof vi.fn>): SourceHttpClient {
 }
 
 describe("ConnectionTestService", () => {
+  it("includes an optional TheTVDB PIN in the login test", async () => {
+    const request = vi.fn(async (_sourceId: string, _url: string, _options: SourceRequestOptions) => (
+      new Response("{}", { status: 200 })
+    ))
+    const service = new ConnectionTestService(
+      settings({
+        THETVDB_API_KEY: "free-key",
+        THETVDB_PIN: "optional-pin",
+        SOURCE_THETVDB_PROXY_MODE: "direct"
+      }),
+      httpClient(request),
+      0
+    )
+
+    const result = await service.testSource(getSourceDefinition("thetvdb"))
+
+    expect(result.success).toBe(true)
+    expect(JSON.parse(request.mock.calls[0][2].body as string)).toEqual({
+      apikey: "free-key",
+      pin: "optional-pin"
+    })
+  })
+
   it("returns credential_missing before making a network request", async () => {
     const request = vi.fn()
     const service = new ConnectionTestService(settings({}), httpClient(request))

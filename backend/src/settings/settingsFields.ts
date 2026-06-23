@@ -54,7 +54,7 @@ export const KNOWN_SETTING_KEYS = new Set([
 ])
 
 export function isSensitiveKey(key: string): boolean {
-  return key === "DATABASE_URL" || /(?:PROXY|COOKIE|TOKEN|SECRET|PASSWORD|API_KEY|PIN)(?:$|_)/.test(key)
+  return key === "DATABASE_URL" || /(?:PROXY|COOKIE|TOKEN|SECRET|PASSWORD|API_KEY|CLIENT_ID|PIN)(?:$|_)/.test(key)
 }
 
 export function getSettingFieldDefinition(key: string, label = key): SettingFieldDefinition {
