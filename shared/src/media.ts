@@ -4,6 +4,7 @@ export type MediaType = (typeof MEDIA_TYPES)[number]
 export const RELEASE_FORMS = [
   "theatrical_movie",
   "streaming_movie",
+  "animated_film",
   "tv_series",
   "web_series",
   "animated_series",

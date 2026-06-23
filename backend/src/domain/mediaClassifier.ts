@@ -30,6 +30,10 @@ export function classifyMedia(input: SourceClassificationInput): MediaClassifica
     combined.includes("番剧") ||
     combined.includes("国创")
   ) {
+    if (rawType === "movie" || rawType.includes("电影") || combined.includes("film")) {
+      return { mediaType: "anime", releaseForm: "animated_film" }
+    }
+
     return { mediaType: "anime", releaseForm: "animated_series" }
   }
 

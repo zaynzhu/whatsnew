@@ -37,7 +37,7 @@ export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingM
       const sameLanguage = input.originalLanguage != null && candidate.originalLanguage === input.originalLanguage
       const sameMediaType = candidate.mediaType === input.mediaType
 
-      return sameTitle && sameLanguage && (sameYear || (hasUnknownDate && sameMediaType))
+      return sameTitle && sameLanguage && sameMediaType && (sameYear || hasUnknownDate)
     }) ?? null
   )
 }

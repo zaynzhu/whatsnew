@@ -17,6 +17,13 @@ describe("classifyMedia", () => {
     })
   })
 
+  it("maps animation movies to animated films", () => {
+    expect(classifyMedia({ source: "tmdb", sourceContentType: "movie", genres: ["Animation"] })).toEqual({
+      mediaType: "anime",
+      releaseForm: "animated_film"
+    })
+  })
+
   it("maps short drama source text", () => {
     expect(classifyMedia({ source: "youku", sourceContentType: "短剧", genres: [] })).toEqual({
       mediaType: "short_drama",
@@ -102,6 +109,30 @@ describe("findBestMatch", () => {
     ]
 
     expect(findBestMatch(input, candidates)).toBeNull()
+  })
+
+  it("does not match title, language, and year across different media types", () => {
+    const movieInput: NormalizedMediaInput = {
+      ...input,
+      sourceId: "movie-123",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      sourceContentType: "movie",
+      titleDisplay: "归港夜",
+      titleOriginal: "归港夜",
+      titleAliases: [],
+      firstReleaseDate: "2026-04-01",
+      originalLanguage: "zh",
+      genres: ["Drama"],
+      productionCountries: ["CN"],
+      tmdbId: null
+    }
+
+    const candidates: ExistingMediaCandidate[] = [
+      { ...candidateMetadata, id: "series", mediaType: "series", titleDisplay: "归港夜", titleAliases: [], firstReleaseDate: "2026-09-12", originalLanguage: "zh", tmdbId: null, tvmazeId: null, imdbId: null, traktId: null }
+    ]
+
+    expect(findBestMatch(movieInput, candidates)).toBeNull()
   })
 
   it("matches title, media type, and language when both release dates are unknown", () => {
