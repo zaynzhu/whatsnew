@@ -250,7 +250,7 @@ export function createTraktPopularityAdapter(options: TraktAdapterOptions = {}):
   }
 }
 
-export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): SourceAdapter {
+export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): SourceAdapter<SourceFetchBatch> {
   const client = options.client ?? createTraktClient()
   const today = options.today ?? todayLocalDate
 
@@ -281,7 +281,10 @@ export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): S
         mergeCalendarItem(items, `show:${row.show.ids.trakt}`, item)
       }
 
-      return Array.from(items.values())
+      return {
+        items: Array.from(items.values()),
+        completeReleaseSources: ["trakt"]
+      }
     }
   }
 }

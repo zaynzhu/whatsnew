@@ -283,7 +283,7 @@ describe("api routes", () => {
     vi.spyOn(traktCalendarAdapter, "fetchItems").mockImplementation(async () => {
       expect(popularityFinished).toBe(true)
       executionOrder.push("calendar")
-      return []
+      return { items: [], completeReleaseSources: ["trakt"] }
     })
 
     const response = await request(createApp()).post("/api/sources/trakt/sync")

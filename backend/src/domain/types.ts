@@ -73,6 +73,7 @@ export interface SourceFetchBatch {
   items: AdapterItem[]
   retiredSourceRefs?: SourceRefRetirement[]
   completePopularitySources?: string[]
+  completeReleaseSources?: string[]
 }
 
 export type SourceFetchResult = AdapterItem[] | SourceFetchBatch

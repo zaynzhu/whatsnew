@@ -159,11 +159,13 @@ describe("traktAdapter", () => {
       today
     })
 
-    const items = await adapter.fetchItems()
+    const batch = await adapter.fetchItems()
+    const items = batch.items
     const movieItem = items.find((item) => item.media.mediaType === "movie")!
     const showItem = items.find((item) => item.media.mediaType === "series")!
 
     expect(adapter.scope).toBe("calendar")
+    expect(batch.completeReleaseSources).toEqual(["trakt"])
     expect(today).toHaveBeenCalledTimes(1)
     expect(get.mock.calls.map((call) => call[0])).toEqual([
       "/calendars/all/movies/2026-06-21/14",

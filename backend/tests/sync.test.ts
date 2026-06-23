@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
-import type { SourceAdapter } from "../src/domain/types.js"
+import type { SourceAdapter, SourceFetchBatch } from "../src/domain/types.js"
 import { PopularitySnapshotService } from "../src/services/popularitySnapshotService.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
@@ -93,6 +93,70 @@ function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
 }
 
 describe("runSourceSync", () => {
+  it("serializes concurrent runs for the same source", async () => {
+    let activeFetches = 0
+    let maxActiveFetches = 0
+    const adapter: SourceAdapter = {
+      source: "concurrent_source",
+      async fetchItems() {
+        activeFetches += 1
+        maxActiveFetches = Math.max(maxActiveFetches, activeFetches)
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        activeFetches -= 1
+        const [item] = await demoSeedAdapter.fetchItems()
+        return [{
+          ...item,
+          media: {
+            ...item.media,
+            source: "concurrent_source",
+            sourceId: "stable-one",
+            tmdbId: null,
+            tvmazeId: null,
+            imdbId: null
+          },
+          releases: [],
+          popularitySignals: []
+        }]
+      }
+    }
+
+    await Promise.all([
+      runSourceSync(prisma, adapter),
+      runSourceSync(prisma, adapter)
+    ])
+
+    expect(maxActiveFetches).toBe(1)
+    expect(await prisma.mediaItem.count()).toBe(1)
+    expect(await prisma.mediaSourceRef.count()).toBe(1)
+  })
+
+  it("removes releases missing from a complete source snapshot", async () => {
+    const [first, second] = await demoSeedAdapter.fetchItems()
+    const items = [first, second].map((item, index) => ({
+      ...item,
+      media: {
+        ...item.media,
+        source: "trakt",
+        sourceId: `trakt:snapshot:${index}`
+      },
+      releases: item.releases.map((release) => ({ ...release, source: "trakt" })),
+      popularitySignals: []
+    }))
+    const adapter = (currentItems: typeof items): SourceAdapter<SourceFetchBatch> => ({
+      source: "trakt",
+      scope: "calendar",
+      async fetchItems() {
+        return { items: currentItems, completeReleaseSources: ["trakt"] }
+      }
+    })
+
+    await runSourceSync(prisma, adapter(items))
+    await runSourceSync(prisma, adapter([items[0]]))
+
+    expect(await prisma.mediaItem.count()).toBe(2)
+    expect(await prisma.release.count({ where: { source: "trakt" } })).toBe(1)
+  })
+
   it("persists demo media, releases, popularity signals, source run, and events", async () => {
     const result = await runSourceSync(prisma, demoSeedAdapter)
 

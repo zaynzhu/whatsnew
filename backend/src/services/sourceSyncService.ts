@@ -14,6 +14,7 @@ import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
 const POPULARITY_HISTORY_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
+const sourceSyncTails = new Map<string, Promise<void>>()
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
@@ -21,13 +22,14 @@ function uniqueValues(values: string[]): string[] {
 
 function normalizeFetchResult(result: SourceFetchResult): Required<SourceFetchBatch> {
   if (Array.isArray(result)) {
-    return { items: result, retiredSourceRefs: [], completePopularitySources: [] }
+    return { items: result, retiredSourceRefs: [], completePopularitySources: [], completeReleaseSources: [] }
   }
 
   return {
     items: result.items,
     retiredSourceRefs: result.retiredSourceRefs ?? [],
-    completePopularitySources: result.completePopularitySources ?? []
+    completePopularitySources: result.completePopularitySources ?? [],
+    completeReleaseSources: result.completeReleaseSources ?? []
   }
 }
 
@@ -226,7 +228,7 @@ async function upsertItem(
   return { mediaItem, persistedSignals }
 }
 
-export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
+async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
   const startedAt = new Date()
   const run = await prisma.sourceSyncRun.create({
     data: { source: adapter.source, scope: adapter.scope ?? "all", status: "running", startedAt }
@@ -234,7 +236,7 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
 
   try {
     const batch = normalizeFetchResult(await adapter.fetchItems())
-    const { items, retiredSourceRefs, completePopularitySources } = batch
+    const { items, retiredSourceRefs, completePopularitySources, completeReleaseSources } = batch
 
     if (retiredSourceRefs.length > 0) {
       await prisma.mediaSourceRef.updateMany({
@@ -248,6 +250,7 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
     const candidates = await getCandidates(prisma)
     const snapshotService = new PopularitySnapshotService(prisma)
     const currentSignalIds: string[] = []
+    const releaseMediaIds = new Map(completeReleaseSources.map((source) => [source, new Set<string>()]))
     const signalSources = uniqueValues([
       ...completePopularitySources,
       ...items.flatMap((item) => item.popularitySignals.map((signal) => signal.source))
@@ -264,6 +267,21 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
       )
       if (!result) continue
       currentSignalIds.push(...result.persistedSignals.map((signal) => signal.id))
+      for (const source of completeReleaseSources) {
+        if (item.releases.some((release) => release.source === source)) {
+          releaseMediaIds.get(source)?.add(result.mediaItem.id)
+        }
+      }
+    }
+
+    for (const source of completeReleaseSources) {
+      const mediaItemIds = [...(releaseMediaIds.get(source) ?? [])]
+      await prisma.release.deleteMany({
+        where: {
+          source,
+          ...(mediaItemIds.length > 0 ? { mediaItemId: { notIn: mediaItemIds } } : {})
+        }
+      })
     }
 
     const finishedAt = new Date()
@@ -301,5 +319,23 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
         errorMessage: errorMessageFrom(error)
       }
     })
+  }
+}
+
+export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
+  const previous = sourceSyncTails.get(adapter.source) ?? Promise.resolve()
+  let releaseLock: () => void = () => undefined
+  const current = new Promise<void>((resolve) => {
+    releaseLock = resolve
+  })
+  const tail = previous.catch(() => undefined).then(() => current)
+  sourceSyncTails.set(adapter.source, tail)
+
+  await previous.catch(() => undefined)
+  try {
+    return await runSourceSyncUnlocked(prisma, adapter)
+  } finally {
+    releaseLock()
+    if (sourceSyncTails.get(adapter.source) === tail) sourceSyncTails.delete(adapter.source)
   }
 }
