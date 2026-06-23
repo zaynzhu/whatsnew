@@ -54,6 +54,21 @@ const traktRelease = {
   source: "trakt"
 }
 
+const movieRelease = {
+  ...traktRelease,
+  id: "release-trakt-movie",
+  seasonNumber: null,
+  episodeNumber: null,
+  episodeTitle: null,
+  mediaItem: {
+    ...mediaItem,
+    id: "media-movie-1",
+    mediaType: "movie",
+    releaseForm: "movie",
+    titleDisplay: "午夜档案"
+  }
+}
+
 const signal = {
   id: "signal-1",
   mediaItemId: "media-1",
@@ -155,7 +170,7 @@ const responses: Record<string, unknown> = {
     items: [signal, risingSignal, newSignal]
   },
   "/api/calendar": {
-    items: [traktRelease]
+    items: [traktRelease, movieRelease]
   },
   "/api/sources": {
     items: [sourceRun]
@@ -270,10 +285,15 @@ describe("frontend pages", () => {
     expect(screen.getByRole("option", { name: "Trakt" })).toBeInTheDocument()
 
     renderRoute("/calendar")
-    expect(await screen.findByText("2026-06-18")).toBeInTheDocument()
-    expect(screen.getByText("平台未提供 · GLOBAL")).toBeInTheDocument()
-    expect(screen.getByText("S2 E3 · 新的开始")).toBeInTheDocument()
-    expect(screen.getByText("来源 Trakt")).toBeInTheDocument()
+    const movieRow = (await screen.findByText("午夜档案")).closest("article")
+    const seriesRow = screen.getByText("星际回声").closest("article")
+    expect(seriesRow).toHaveTextContent("平台未提供 · GLOBAL")
+    expect(seriesRow).toHaveTextContent("S2 E3 · 新的开始")
+    expect(seriesRow).toHaveTextContent("来源 Trakt")
+    const movieEpisode = movieRow?.querySelector(".calendarEpisode")
+    expect(movieEpisode).not.toBeNull()
+    expect(movieEpisode).toBeEmptyDOMElement()
+    expect(movieRow).not.toHaveTextContent(/S\d+ E\d+/)
 
     renderRoute("/sources")
     expect(await screen.findByText("tvmaze")).toBeInTheDocument()

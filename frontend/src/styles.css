@@ -416,7 +416,10 @@ h1 {
   padding: 14px;
 }
 
-.calendarRow,
+.calendarRow {
+  grid-template-columns: minmax(110px, 0.55fr) minmax(180px, 1fr) minmax(120px, auto) minmax(140px, 0.75fr) minmax(90px, auto) minmax(90px, auto);
+}
+
 .sourceRow {
   grid-template-columns: minmax(130px, 0.6fr) minmax(180px, 1fr) minmax(120px, auto) minmax(90px, auto);
 }
@@ -1409,6 +1412,10 @@ select:focus-visible {
   .rankRow,
   .eventRow {
     grid-template-columns: 1fr;
+  }
+
+  .calendarEpisode:empty {
+    display: none;
   }
 
   .trendingToolbar,

@@ -42,7 +42,7 @@ export function CalendarPage() {
                 <strong>{release.releaseDate ?? "日期待定"}</strong>
                 <span>{release.mediaItem.titleDisplay}</span>
                 <span>{platformLabel} · {release.region}</span>
-                {episodeLabel && <span>{episodeLabel}</span>}
+                <span className="calendarEpisode">{episodeLabel}</span>
                 <span>来源 {sourceLabel(release.source)}</span>
                 <StatusBadge>{release.releaseStatus}</StatusBadge>
               </article>
