@@ -38,7 +38,7 @@ npm run dev:frontend
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、Netflix、优酷和爱奇艺
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷和爱奇艺
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 
 设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。
@@ -81,6 +81,7 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 - 旧元数据更新不会被当作新的上新标题强行创建
 - popularity 不读取 `score`，不会把它算进热度排序
 - 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
+- 2026-06-23 已使用免费 v4 project API Key 完成真实登录与 daily updates 同步验证
 - 手动同步：`npm run sync:thetvdb --workspace backend`
 
 ## 验证
