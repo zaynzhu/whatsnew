@@ -1,16 +1,57 @@
-# WhatsNew
+<div align="center">
 
-新片新剧监控情报台，用来追踪全球与中国影视内容的上新、播出、上架和热度变化。
+# 🎬 WhatsNew
 
-## MVP 范围
+新片新剧监控情报台，追踪全球与中国影视内容的上新、播出、上架和热度变化
 
-- 电影、剧集、动漫、综艺、短剧、纪录片分类型展示
-- 展示今日上线、本周新片新剧、热度上升、数据源状态
-- 按来源保留 90 天热度历史，展示新进、上升、下降和排名时间线
-- 后端使用 Express + TypeScript + Prisma + MySQL
-- 前端使用 React + Vite + TypeScript
+[![GitHub Stars](https://img.shields.io/github/stars/zaynzhu/whatsnew?style=flat-square)](https://github.com/zaynzhu/whatsnew/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/zaynzhu/whatsnew?style=flat-square)](https://github.com/zaynzhu/whatsnew/commits)
+[![Open Issues](https://img.shields.io/github/issues/zaynzhu/whatsnew?style=flat-square)](https://github.com/zaynzhu/whatsnew/issues)
+[![Forks](https://img.shields.io/github/forks/zaynzhu/whatsnew?style=flat-square)](https://github.com/zaynzhu/whatsnew/forks)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/zaynzhu/whatsnew/compare)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=flat-square)](https://www.typescriptlang.org)
 
-## 开发
+[中文](README.md) | [English](README_EN.md)
+
+</div>
+
+> [!TIP]
+> WhatsNew 聚合 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷、爱奇艺等多来源信号，按 `作品 + 来源 + 平台 + 地区 + 窗口` 保留独立口径的热度历史，适合部署在家庭局域网或 NAS 私有网络中自用。
+
+---
+
+## ✨ Features
+
+- **分类型展示** —— 电影、剧集、动漫、综艺、短剧、纪录片分类浏览
+- **今日上线 / 本周新片新剧** —— 聚合各来源的上新与播出信息
+- **热度变化追踪** —— 展示热度上升、新进、下降，保留 90 天排名时间线
+- **数据源状态** —— 实时查看各来源同步状态与连通性
+- **多源独立口径** —— 不把不同平台混成一个“真实综合榜”，每条信号独立保存
+- **全局与单源代理** —— 支持全局 `HTTP_PROXY` / `HTTPS_PROXY`，单源可 `inherit` / `direct` / `custom`
+- **设置热更新** —— 设置保存后即时生效，无需重启服务，敏感值掩码处理
+- **定时 + 手动同步** —— 定时任务自动拉取，也支持各来源独立手动同步
+
+## 🧱 Tech Stack
+
+| 层 | 技术 |
+|----|------|
+| 前端 | React 18 + Vite + TypeScript + TanStack Query + Zustand + React Router |
+| 后端 | Express 5 + TypeScript + Prisma + MySQL + node-cron + undici |
+| 校验 | Zod（运行时校验） |
+| 测试 | Vitest + Supertest + Testing Library |
+| 构建 | npm workspaces monorepo |
+
+## 📁 项目结构
+
+```
+whatsnew/
+├── backend/      # Express + Prisma + MySQL，数据源适配与同步调度
+├── frontend/     # React + Vite 前端，端口 19992
+├── shared/      # 前后端共享类型
+└── docs/        # 设计与实现计划
+```
+
+## 🚀 Quick Start
 
 ```bash
 npm install
@@ -27,9 +68,9 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-前端默认端口 `19992`，后端默认端口 `19993`。
+前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 
-## 系统设置
+## ⚙️ 系统设置
 
 启动前后端后，通过 `http://127.0.0.1:19992/settings` 管理全局代理、数据源启用状态、单源代理策略、凭据、连通性测试和手动同步。
 
@@ -40,9 +81,10 @@ npm run dev:frontend
 - 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷和爱奇艺
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 
-设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。
+> [!WARNING]
+> 设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。
 
-## 热度历史
+## 🔥 热度历史
 
 - 热度信号按 `作品 + 来源 + 平台 + 地区 + 窗口` 保存独立口径，不把不同平台混成一个“真实综合榜”
 - 同一来源条目通过稳定的 `sourceId` 关联作品；下一次完整榜单未再出现的信号会转为历史
@@ -52,7 +94,9 @@ npm run dev:frontend
 - `GET /api/media/:id/popularity-history` 支持 1–90 天、最多 1000 条的有界历史查询
 - `heatScore` 只取作品各当前来源中的最强排名用于列表排序，页面仍展示原始来源、名次、数值和采集时间
 
-## Netflix Top 10
+## 📡 数据源
+
+### Netflix Top 10
 
 Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜单：英语电影、非英语电影、英语剧集和非英语剧集，共 40 条当前信号。
 
@@ -61,7 +105,7 @@ Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜�
 - 下载沿用统一代理设置、10 秒超时和来源级 2 秒限频
 - 手动同步：`npm run sync:netflix --workspace backend`
 
-## Trakt
+### Trakt
 
 Trakt 公共数据同步只需要配置 `TRAKT_CLIENT_ID`，不需要用户授权凭据。
 
@@ -70,7 +114,7 @@ Trakt 公共数据同步只需要配置 `TRAKT_CLIENT_ID`，不需要用户授�
 - Trakt 日历只表示电影发行或剧集播出排期，不能证明内容已在某个流媒体平台可用
 - 手动同步：`npm run sync:trakt --workspace backend`
 
-## TheTVDB
+### TheTVDB
 
 TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付费访问方式。
 
@@ -80,10 +124,9 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 - 旧元数据更新不会被当作新的上新标题强行创建
 - popularity 不读取 `score`，不会把它算进热度排序
 - 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
-- 2026-06-23 已使用免费 v4 project API Key 完成真实登录与 daily updates 同步验证
 - 手动同步：`npm run sync:thetvdb --workspace backend`
 
-## 验证
+## ✅ 验证
 
 ```bash
 npm run typecheck
@@ -91,11 +134,6 @@ npm run test
 npm run build
 ```
 
-## GitHub
+## 📄 License
 
-远端仓库为 `https://github.com/zaynzhu/whatsnew.git`。首次检出后可确认当前分支及跟踪关系：
-
-```bash
-git branch --show-current
-git status --short --branch
-```
+本项目尚未声明开源许可证。如需公开分发或接受外部贡献，建议添加 LICENSE 文件（如 MIT）以明确使用条款。
