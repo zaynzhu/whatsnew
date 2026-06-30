@@ -147,6 +147,7 @@ const sourceCatalogItems = [
       freshnessNote: "趋势不代表流媒体已上架",
       riskNote: "需要 TMDb API Key"
     },
+    localState: null,
     latestRun: {
       status: "success",
       startedAt: "2026-06-17T00:00:00.000Z",
@@ -155,6 +156,38 @@ const sourceCatalogItems = [
       itemCount: 8,
       errorMessage: null
     }
+  },
+  {
+    id: "imdb",
+    name: "IMDb",
+    description: "日更数据集与榜单",
+    group: "global_metadata",
+    implementationStatus: "planned",
+    enabled: false,
+    runnable: false,
+    proxyMode: "inherit",
+    credentialsComplete: true,
+    missingCredentials: [],
+    supportsSync: false,
+    supportsEnable: false,
+    fields: [],
+    semantics: {
+      signalKinds: ["metadata", "rating"],
+      coverage: "全球电影、剧集、单集和 IMDb ID",
+      cadence: "日级或手动数据集导入",
+      access: "public_api",
+      freshnessNote: "优先使用 IMDb 非商业 datasets",
+      riskNote: "数据集体积较大，需要本地缓存"
+    },
+    localState: {
+      kind: "imdb_datasets",
+      status: "ready",
+      configured: true,
+      readyFiles: 2,
+      totalFiles: 2,
+      files: []
+    },
+    latestRun: null
   },
   {
     id: "flixpatrol",
@@ -178,6 +211,7 @@ const sourceCatalogItems = [
       freshnessNote: "需要商业授权后才能同步",
       riskNote: "当前不能作为免费来源启用"
     },
+    localState: null,
     latestRun: null
   }
 ]
@@ -358,6 +392,9 @@ describe("frontend pages", () => {
     expect(screen.getByText("社区热度")).toBeInTheDocument()
     expect(screen.getByText("全球电影与剧集 · 小时级趋势与日级发现")).toBeInTheDocument()
     expect(screen.getByText("8 条")).toBeInTheDocument()
+    expect(screen.getByText("IMDb")).toBeInTheDocument()
+    expect(screen.getByText("缓存就绪")).toBeInTheDocument()
+    expect(screen.getByText("2/2 文件")).toBeInTheDocument()
     expect(screen.getByText("FlixPatrol")).toBeInTheDocument()
     expect(screen.getByText("商业授权")).toBeInTheDocument()
     expect(screen.getByText("当前不能作为免费来源启用")).toBeInTheDocument()

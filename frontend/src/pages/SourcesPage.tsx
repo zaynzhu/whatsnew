@@ -3,6 +3,10 @@ import { apiGet } from "../api/client"
 import type { SourcesResponse } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
 import {
+  SOURCE_LOCAL_STATE_LABELS,
+  sourceLocalStateDetail
+} from "../utils/sourceLocalState"
+import {
   SOURCE_ACCESS_LABELS,
   SOURCE_GROUP_LABELS,
   SOURCE_SIGNAL_LABELS
@@ -81,6 +85,13 @@ export function SourcesPage() {
                   <>
                     <StatusBadge>{source.latestRun.status}</StatusBadge>
                     <span>{source.latestRun.itemCount} 条</span>
+                  </>
+                ) : source.localState ? (
+                  <>
+                    <strong className={`localStateLabel ${source.localState.status}`}>
+                      {SOURCE_LOCAL_STATE_LABELS[source.localState.status]}
+                    </strong>
+                    <span>{sourceLocalStateDetail(source.localState)}</span>
                   </>
                 ) : (
                   <>

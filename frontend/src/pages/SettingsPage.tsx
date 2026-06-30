@@ -24,6 +24,10 @@ import type {
 } from "../api/types"
 import { SourceConfigDialog } from "../components/SourceConfigDialog"
 import {
+  SOURCE_LOCAL_STATE_LABELS,
+  sourceLocalStateDetail
+} from "../utils/sourceLocalState"
+import {
   SOURCE_ACCESS_LABELS,
   SOURCE_SIGNAL_LABELS
 } from "../utils/sourceSemantics"
@@ -435,6 +439,13 @@ export function SettingsPage() {
                                   {testResult.message}
                                 </strong>
                                 <span>{testResult.durationMs} ms</span>
+                              </>
+                            ) : source.localState ? (
+                              <>
+                                <strong className={`localStateLabel ${source.localState.status}`}>
+                                  {SOURCE_LOCAL_STATE_LABELS[source.localState.status]}
+                                </strong>
+                                <span>{sourceLocalStateDetail(source.localState)}</span>
                               </>
                             ) : source.latestRun ? (
                               <>

@@ -18,6 +18,7 @@ type SourceFixtureOptions = {
   missingCredentials?: string[]
   fields?: SettingsFieldView[]
   semantics?: SourceSettingsView["semantics"]
+  localState?: SourceSettingsView["localState"]
 }
 
 function sourceFixture(id: string, name: string, options: SourceFixtureOptions): SourceSettingsView {
@@ -43,6 +44,7 @@ function sourceFixture(id: string, name: string, options: SourceFixtureOptions):
       freshnessNote: `${name} 时效说明`,
       riskNote: `${name} 风险说明`
     },
+    localState: options.localState ?? null,
     latestRun: null
   } as SourceSettingsView
 }
@@ -94,7 +96,20 @@ const sourceFixtures = [
     credentialsComplete: false,
     missingCredentials: ["TRAKT_CLIENT_ID"]
   }),
-  sourceFixture("imdb", "IMDb", { group: "global_metadata" }),
+  sourceFixture("imdb", "IMDb", {
+    group: "global_metadata",
+    fields: [
+      { key: "IMDB_DATASET_CACHE_DIR", label: "IMDb 数据集缓存目录", type: "text", sensitive: false, configured: true, maskedValue: null, value: "/data/imdb" }
+    ],
+    localState: {
+      kind: "imdb_datasets",
+      status: "ready",
+      configured: true,
+      readyFiles: 2,
+      totalFiles: 2,
+      files: []
+    }
+  }),
   sourceFixture("thetvdb", "TheTVDB", {
     group: "global_metadata",
     implementationStatus: "active",
@@ -293,6 +308,20 @@ describe("SettingsPage", () => {
     expect(screen.getByText("JustWatch")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "启用 IMDb" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "同步 JustWatch" })).toBeDisabled()
+  })
+
+  it("展示 IMDb 本地缓存状态并提供缓存目录配置", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
+    const user = userEvent.setup()
+
+    renderSettings()
+
+    expect(await screen.findByText("缓存就绪")).toBeInTheDocument()
+    expect(screen.getByText("2/2 文件")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "配置 IMDb" }))
+
+    expect(screen.getByRole("dialog", { name: "配置 IMDb" })).toBeInTheDocument()
+    expect(screen.getByLabelText("IMDb 数据集缓存目录")).toHaveValue("/data/imdb")
   })
 
   it("展示数据源口径、覆盖范围和访问方式", async () => {

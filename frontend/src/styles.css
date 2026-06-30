@@ -1275,8 +1275,18 @@ h1 {
   color: var(--amber);
 }
 
+.localStateLabel.ready {
+  color: var(--teal);
+}
+
+.localStateLabel.missing_config,
+.localStateLabel.missing_files,
+.localStateLabel.partial {
+  color: var(--amber);
+}
+
 .sourceRuntimeState {
-  width: 110px;
+  width: 128px;
 }
 
 .sourceActions {
