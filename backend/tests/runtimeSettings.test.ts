@@ -70,6 +70,20 @@ it("accepts and masks an optional TheTVDB PIN", async () => {
   expect(settings.get("THETVDB_PIN")).toBe("5678")
 })
 
+it("accepts IMDb cache directory as a non-sensitive local setting", async () => {
+  const settings = await fixtureSettings("IMDB_DATASET_CACHE_DIR=/data/imdb\n")
+
+  expect(settings.fieldView("IMDB_DATASET_CACHE_DIR")).toMatchObject({
+    key: "IMDB_DATASET_CACHE_DIR",
+    sensitive: false,
+    value: "/data/imdb",
+    configured: true
+  })
+
+  await settings.update({ IMDB_DATASET_CACHE_DIR: "/new/cache" }, [])
+  expect(settings.get("IMDB_DATASET_CACHE_DIR")).toBe("/new/cache")
+})
+
 it("clears a sensitive value only when clearKeys explicitly includes it", async () => {
   const settings = await fixtureSettings("TMDB_API_KEY=abcd-secret-1234\n")
   await settings.update({}, ["TMDB_API_KEY"])
