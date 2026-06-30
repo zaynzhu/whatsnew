@@ -6,6 +6,7 @@ import type {
   PopularityHistoryResponse,
   PopularitySignal
 } from "../api/types"
+import { SourceLink } from "../components/SourceLink"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
 
@@ -94,7 +95,7 @@ export function MediaDetailPage() {
                     <strong>{platformLabel}</strong>
                     <span>{release.releaseDate ?? "日期待定"}</span>
                     {episodeLabel && <span>{episodeLabel}</span>}
-                    <span>来源 {sourceLabel(release.source)}</span>
+                    <SourceLink source={release.source} sourceUrl={release.sourceUrl} />
                     <StatusBadge>{release.releaseStatus}</StatusBadge>
                   </article>
                 )
@@ -116,6 +117,7 @@ export function MediaDetailPage() {
                   <strong>{sourceLabel(signal.source)} #{signal.rank ?? "-"}</strong>
                   <span>{signal.valueLabel ?? signal.window}</span>
                   <span>{signal.platform ?? "未知平台"}</span>
+                  <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} />
                 </article>
               ))
             ) : (
@@ -173,6 +175,7 @@ export function MediaDetailPage() {
                 <strong>{event.eventType}</strong>
                 <span>{event.title}</span>
                 <span>{event.description}</span>
+                <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
               </article>
             ))
           ) : (

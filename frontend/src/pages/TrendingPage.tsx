@@ -6,6 +6,7 @@ import type {
   PopularitySignal,
   TrendingResponse
 } from "../api/types"
+import { SourceLink } from "../components/SourceLink"
 import { sourceLabel } from "../utils/sourceLabel"
 
 const MOVEMENT_TABS: Array<{
@@ -155,7 +156,7 @@ export function TrendingPage() {
                 <span>{signal.mediaItem.mediaType} · {signal.platform ?? signal.region ?? "全局"}</span>
               </Link>
               <span className="rankSource">
-                <span>{sourceLabel(signal.source)}</span>
+                <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
                 <small>{signal.valueLabel ?? signal.window}</small>
               </span>
               <strong className="rankPosition">#{signal.rank ?? "-"}</strong>

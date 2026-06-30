@@ -386,6 +386,10 @@ describe("frontend pages", () => {
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
     expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByText("88 list_count")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute(
+      "href",
+      "https://example.com/trending"
+    )
     expect(screen.getByRole("option", { name: "Trakt 趋势榜" })).toBeInTheDocument()
     expect(screen.getByRole("option", { name: "Trakt 期待榜" })).toBeInTheDocument()
     expect(screen.getByRole("option", { name: "Trakt" })).toBeInTheDocument()
@@ -396,6 +400,10 @@ describe("frontend pages", () => {
     expect(seriesRow).toHaveTextContent("平台未提供 · GLOBAL")
     expect(seriesRow).toHaveTextContent("S2 E3 · 新的开始")
     expect(seriesRow).toHaveTextContent("来源 Trakt")
+    expect(screen.getAllByRole("link", { name: "打开 Trakt 来源" })[0]).toHaveAttribute(
+      "href",
+      "https://example.com"
+    )
     const movieEpisode = movieRow?.querySelector(".calendarEpisode")
     expect(movieEpisode).not.toBeNull()
     expect(movieEpisode).toBeEmptyDOMElement()
@@ -449,6 +457,9 @@ describe("frontend pages", () => {
     expect(screen.getByText("平台未提供")).toBeInTheDocument()
     expect(screen.getByText("S2 E3 · 新的开始")).toBeInTheDocument()
     expect(screen.getByText("来源 Trakt")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "打开 Trakt 来源" })).toHaveAttribute("href", "https://example.com")
+    expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute("href", "https://example.com/trending")
+    expect(screen.getByRole("link", { name: "打开 TVmaze 来源" })).toHaveAttribute("href", "https://example.com")
     expect(screen.getByText("release_added")).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/media/media-1/popularity-history?days=30"

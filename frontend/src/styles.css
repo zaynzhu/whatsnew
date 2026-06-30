@@ -594,6 +594,27 @@ h1 {
   color: var(--muted);
 }
 
+.sourceLink {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  color: var(--muted);
+  font-size: inherit;
+}
+
+.sourceLink span {
+  overflow-wrap: anywhere;
+}
+
+.sourceLink svg {
+  flex: 0 0 auto;
+}
+
+.sourceLink:hover {
+  color: var(--teal);
+}
+
 .contentSplit .row {
   grid-template-columns: minmax(0, 1fr);
 }
