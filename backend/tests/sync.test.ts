@@ -60,6 +60,37 @@ function adapterWithoutSignals(): SourceAdapter {
   }
 }
 
+function adapterWithLongTitleAliases(): SourceAdapter {
+  return {
+    source: "alias_overflow",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+
+      return [{
+        ...base,
+        media: {
+          ...base.media,
+          source: "alias_overflow",
+          sourceId: "alias-overflow-1",
+          titleDisplay: "Alias Overflow",
+          titleOriginal: null,
+          titleAliases: [
+            "Short alias",
+            ...Array.from({ length: 20 }, (_, index) => `Alias overflow ${index} ${"long-title-fragment".repeat(4)}`)
+          ],
+          tmdbId: null,
+          tvmazeId: null,
+          imdbId: null,
+          traktId: null,
+          tvdbId: null
+        },
+        releases: [],
+        popularitySignals: []
+      }]
+    }
+  }
+}
+
 function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
   return {
     source: "source_identity_test",
@@ -174,6 +205,16 @@ describe("runSourceSync", () => {
     expect(popularityCount).toBeGreaterThanOrEqual(4)
     expect(eventCount).toBeGreaterThanOrEqual(4)
     expect(runCount).toBe(1)
+  })
+
+  it("keeps title aliases within the database storage limit", async () => {
+    const result = await runSourceSync(prisma, adapterWithLongTitleAliases())
+
+    expect(result.status).toBe("success")
+    const item = await prisma.mediaItem.findFirstOrThrow()
+    const aliases = JSON.parse(item.titleAliases) as string[]
+    expect(item.titleAliases.length).toBeLessThanOrEqual(191)
+    expect(aliases).toContain("Short alias")
   })
 
   it("keeps release rows idempotent and appends popularity history", async () => {

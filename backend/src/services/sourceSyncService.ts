@@ -14,10 +14,24 @@ import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
 const POPULARITY_HISTORY_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
+const TITLE_ALIASES_STORAGE_LIMIT = 191
 const sourceSyncTails = new Map<string, Promise<void>>()
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
+}
+
+function compactTitleAliases(values: string[]): string[] {
+  const aliases: string[] = []
+
+  for (const value of uniqueValues(values)) {
+    const nextAliases = [...aliases, value]
+    if (toJsonArray(nextAliases).length <= TITLE_ALIASES_STORAGE_LIMIT) {
+      aliases.push(value)
+    }
+  }
+
+  return aliases
 }
 
 function normalizeFetchResult(result: SourceFetchResult): Required<SourceFetchBatch> {
@@ -65,8 +79,8 @@ async function upsertItem(
   if (!match && item.createIfMissing === false) return null
 
   const titleAliases = match
-    ? uniqueValues([...match.titleAliases, ...item.media.titleAliases])
-    : uniqueValues(item.media.titleAliases)
+    ? compactTitleAliases([...match.titleAliases, ...item.media.titleAliases])
+    : compactTitleAliases(item.media.titleAliases)
 
   const mediaItem = match
     ? await prisma.mediaItem.update({
