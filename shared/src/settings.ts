@@ -35,6 +35,28 @@ export type SourceSemanticsView = {
   riskNote: string
 }
 
+export type SourceLocalFileIssue = "missing_file" | "missing_metadata" | "size_mismatch"
+
+export type SourceLocalFileState = {
+  fileName: string
+  exists: boolean
+  sizeBytes: number | null
+  expectedBytes: number | null
+  downloadedAt: string | null
+  lastModified: string | null
+  etag: string | null
+  issue: SourceLocalFileIssue | null
+}
+
+export type SourceLocalStateView = {
+  kind: "imdb_datasets"
+  status: "missing_config" | "missing_files" | "partial" | "ready"
+  configured: boolean
+  readyFiles: number
+  totalFiles: number
+  files: SourceLocalFileState[]
+}
+
 export type SettingsFieldView = {
   key: string
   label: string
@@ -61,6 +83,7 @@ export type SourceSettingsView = {
   supportsEnable: boolean
   fields: SettingsFieldView[]
   semantics: SourceSemanticsView
+  localState: SourceLocalStateView | null
   latestRun: {
     status: string
     startedAt: string
