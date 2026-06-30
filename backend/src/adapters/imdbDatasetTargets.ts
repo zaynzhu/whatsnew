@@ -1,7 +1,11 @@
 import type { MediaType } from "@whatsnew/shared/media"
 import { normalizeTitle } from "../domain/normalizer.js"
-import type { ExistingMediaCandidate } from "../domain/types.js"
-import type { ImdbTitleBasicsRow } from "./imdbDatasetsParser.js"
+import type { AdapterItem, ExistingMediaCandidate } from "../domain/types.js"
+import {
+  imdbRowsToAdapterItem,
+  type ImdbTitleBasicsRow,
+  type ImdbTitleRatingRow
+} from "./imdbDatasetsParser.js"
 
 export type ImdbTargetIndex = {
   imdbIds: Set<string>
@@ -62,4 +66,22 @@ export function imdbRowMatchesTargets(row: ImdbTitleBasicsRow, targets: ImdbTarg
     const key = targetKey(title, startYear, mediaType)
     return key != null && targets.titleYearMediaTypeKeys.has(key)
   })
+}
+
+export function filterImdbRowsForTargets(
+  basicsRows: ImdbTitleBasicsRow[],
+  ratingRows: ImdbTitleRatingRow[],
+  targets: ImdbTargetIndex
+): AdapterItem[] {
+  const ratingsByTconst = new Map(ratingRows.map((rating) => [rating.tconst, rating]))
+  const items: AdapterItem[] = []
+
+  for (const row of basicsRows) {
+    if (!imdbRowMatchesTargets(row, targets)) continue
+
+    const item = imdbRowsToAdapterItem(row, ratingsByTconst.get(row.tconst))
+    if (item) items.push(item)
+  }
+
+  return items
 }
