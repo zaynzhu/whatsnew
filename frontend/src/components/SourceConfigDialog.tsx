@@ -165,6 +165,22 @@ export function SourceConfigDialog({ source, open, onClose, onSave }: SourceConf
           </div>
 
           {fields.length === 0 && <p className="emptyText">此数据源没有可编辑字段</p>}
+
+          {source.manualCommands.length > 0 && (
+            <section className="manualCommandPanel" aria-labelledby="manual-command-heading">
+              <h3 id="manual-command-heading">本地操作</h3>
+              <div className="manualCommandList">
+                {source.manualCommands.map((command) => (
+                  <div className="manualCommandItem" key={command.command}>
+                    <strong>{command.label}</strong>
+                    <code>{command.command}</code>
+                    <span>{command.description}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {saveError && <p className="errorText dialogError">数据源配置保存失败</p>}
 
           <footer className="dialogActions">

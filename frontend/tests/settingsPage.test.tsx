@@ -19,6 +19,7 @@ type SourceFixtureOptions = {
   fields?: SettingsFieldView[]
   semantics?: SourceSettingsView["semantics"]
   localState?: SourceSettingsView["localState"]
+  manualCommands?: SourceSettingsView["manualCommands"]
 }
 
 function sourceFixture(id: string, name: string, options: SourceFixtureOptions): SourceSettingsView {
@@ -45,6 +46,7 @@ function sourceFixture(id: string, name: string, options: SourceFixtureOptions):
       riskNote: `${name} 风险说明`
     },
     localState: options.localState ?? null,
+    manualCommands: options.manualCommands ?? [],
     latestRun: null
   } as SourceSettingsView
 }
@@ -108,7 +110,19 @@ const sourceFixtures = [
       readyFiles: 2,
       totalFiles: 2,
       files: []
-    }
+    },
+    manualCommands: [
+      {
+        label: "下载或刷新 IMDb 缓存",
+        command: "npm run download:imdb --workspace backend",
+        description: "从 IMDb 官方 datasets 下载 gzip 到已配置缓存目录"
+      },
+      {
+        label: "同步 IMDb 本地缓存",
+        command: "npm run sync:imdb --workspace backend",
+        description: "只补充当前库已有作品的 IMDb ID 和评分，不创建陌生作品"
+      }
+    ]
   }),
   sourceFixture("thetvdb", "TheTVDB", {
     group: "global_metadata",
@@ -322,6 +336,20 @@ describe("SettingsPage", () => {
 
     expect(screen.getByRole("dialog", { name: "配置 IMDb" })).toBeInTheDocument()
     expect(screen.getByLabelText("IMDb 数据集缓存目录")).toHaveValue("/data/imdb")
+    expect(screen.getByRole("heading", { name: "本地操作" })).toBeInTheDocument()
+    expect(screen.getByText("npm run download:imdb --workspace backend")).toBeInTheDocument()
+    expect(screen.getByText("npm run sync:imdb --workspace backend")).toBeInTheDocument()
+  })
+
+  it("无本地命令的数据源配置不显示本地操作", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
+    const user = userEvent.setup()
+
+    renderSettings()
+    await user.click(await screen.findByRole("button", { name: "配置 TMDb" }))
+
+    expect(screen.getByRole("dialog", { name: "配置 TMDb" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "本地操作" })).not.toBeInTheDocument()
   })
 
   it("展示数据源口径、覆盖范围和访问方式", async () => {

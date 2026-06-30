@@ -148,6 +148,7 @@ const sourceCatalogItems = [
       riskNote: "需要 TMDb API Key"
     },
     localState: null,
+    manualCommands: [],
     latestRun: {
       status: "success",
       startedAt: "2026-06-17T00:00:00.000Z",
@@ -187,6 +188,18 @@ const sourceCatalogItems = [
       totalFiles: 2,
       files: []
     },
+    manualCommands: [
+      {
+        label: "下载或刷新 IMDb 缓存",
+        command: "npm run download:imdb --workspace backend",
+        description: "从 IMDb 官方 datasets 下载 gzip 到已配置缓存目录"
+      },
+      {
+        label: "同步 IMDb 本地缓存",
+        command: "npm run sync:imdb --workspace backend",
+        description: "只补充当前库已有作品的 IMDb ID 和评分，不创建陌生作品"
+      }
+    ],
     latestRun: null
   },
   {
@@ -212,6 +225,7 @@ const sourceCatalogItems = [
       riskNote: "当前不能作为免费来源启用"
     },
     localState: null,
+    manualCommands: [],
     latestRun: null
   }
 ]
@@ -395,6 +409,7 @@ describe("frontend pages", () => {
     expect(screen.getByText("IMDb")).toBeInTheDocument()
     expect(screen.getByText("缓存就绪")).toBeInTheDocument()
     expect(screen.getByText("2/2 文件")).toBeInTheDocument()
+    expect(screen.getByText("npm run download:imdb --workspace backend")).toBeInTheDocument()
     expect(screen.getByText("FlixPatrol")).toBeInTheDocument()
     expect(screen.getByText("商业授权")).toBeInTheDocument()
     expect(screen.getByText("当前不能作为免费来源启用")).toBeInTheDocument()

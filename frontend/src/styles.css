@@ -442,7 +442,8 @@ h1 {
 .sourceStats span,
 .sourceCatalogIdentity span,
 .sourceCatalogMeta span,
-.sourceRiskNote {
+.sourceRiskNote,
+.sourceCommandHint {
   color: var(--muted);
   font-size: 11px;
 }
@@ -473,7 +474,8 @@ h1 {
 
 .sourceCatalogIdentity,
 .sourceCatalogMeta,
-.sourceRiskNote {
+.sourceRiskNote,
+.sourceCommandHint {
   min-width: 0;
 }
 
@@ -481,7 +483,8 @@ h1 {
 .sourceCatalogIdentity p,
 .sourceCatalogMeta span,
 .sourceCatalogMeta strong,
-.sourceRiskNote {
+.sourceRiskNote,
+.sourceCommandHint {
   display: block;
   overflow-wrap: anywhere;
 }
@@ -493,8 +496,30 @@ h1 {
 }
 
 .sourceCatalogIdentity p,
-.sourceRiskNote {
+.sourceRiskNote,
+.sourceCommandHint {
   margin: 4px 0 0;
+}
+
+.sourceCommandHint {
+  grid-column: 1 / -1;
+}
+
+.sourceCommandHint code,
+.manualCommandItem code {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid #33423c;
+  border-radius: 5px;
+  padding: 7px 9px;
+  overflow-x: auto;
+  background: #0f1412;
+  color: #d8e6df;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .sourceCatalogMeta strong {
@@ -1371,6 +1396,46 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 18px;
+}
+
+.manualCommandPanel {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.manualCommandPanel h3 {
+  margin: 0 0 12px;
+  color: var(--mist);
+  font-size: 14px;
+}
+
+.manualCommandList {
+  display: grid;
+  gap: 10px;
+}
+
+.manualCommandItem {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.manualCommandItem strong,
+.manualCommandItem span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.manualCommandItem strong {
+  color: var(--mist);
+  font-size: 12px;
+}
+
+.manualCommandItem span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .dialogField {

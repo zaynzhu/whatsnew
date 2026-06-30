@@ -107,6 +107,11 @@ export function SourcesPage() {
                   ? source.semantics.freshnessNote
                   : source.semantics.riskNote}
               </p>
+              {source.manualCommands[0] && (
+                <p className="sourceCommandHint">
+                  <code>{source.manualCommands[0].command}</code>
+                </p>
+              )}
             </article>
           ))
         ) : (
