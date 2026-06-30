@@ -4,6 +4,7 @@ import { sourceActionGuidance } from "../src/utils/sourceActionGuidance"
 
 const downloadCommand = "npm run download:imdb --workspace backend"
 const syncCommand = "npm run sync:imdb --workspace backend"
+type LatestRunFixture = NonNullable<SourceSettingsView["latestRun"]>
 
 function sourceFixture(
   overrides: Partial<SourceSettingsView> = {}
@@ -69,7 +70,7 @@ function sourceFixture(
 function runFixture(
   status: string,
   startedAt = "2026-06-30T00:00:00.000Z"
-): SourceSettingsView["latestRun"] {
+): LatestRunFixture {
   return {
     status,
     startedAt,
