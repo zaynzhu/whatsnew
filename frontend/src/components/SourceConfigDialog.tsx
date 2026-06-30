@@ -1,6 +1,7 @@
 import { Eye, EyeOff, Save, X } from "lucide-react"
 import { FormEvent, useEffect, useState } from "react"
 import type { SettingsUpdateRequest, SourceSettingsView } from "../api/types"
+import { sourceActionGuidance } from "../utils/sourceActionGuidance"
 
 type SourceConfigDialogProps = {
   source: SourceSettingsView
@@ -47,6 +48,7 @@ export function SourceConfigDialog({ source, open, onClose, onSave }: SourceConf
     !isCustomProxyField(field.key) || source.proxyMode === "custom"
   ))
   const hasChanges = Object.keys(changedValues).length > 0 || clearKeys.length > 0
+  const guidance = sourceActionGuidance(source)
 
   function updateValue(key: string, value: string) {
     setSaveError(false)
@@ -169,6 +171,13 @@ export function SourceConfigDialog({ source, open, onClose, onSave }: SourceConf
           {source.manualCommands.length > 0 && (
             <section className="manualCommandPanel" aria-labelledby="manual-command-heading">
               <h3 id="manual-command-heading">本地操作</h3>
+              {guidance && (
+                <div className={`manualCommandGuidance sourceGuidance ${guidance.tone}`}>
+                  <strong>{guidance.title}</strong>
+                  <span>{guidance.detail}</span>
+                  {guidance.command && <code>{guidance.command}</code>}
+                </div>
+              )}
               <div className="manualCommandList">
                 {source.manualCommands.map((command) => (
                   <div className="manualCommandItem" key={command.command}>

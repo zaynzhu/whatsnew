@@ -6,6 +6,7 @@ import {
   SOURCE_LOCAL_STATE_LABELS,
   sourceLocalStateDetail
 } from "../utils/sourceLocalState"
+import { sourceActionGuidance } from "../utils/sourceActionGuidance"
 import {
   SOURCE_ACCESS_LABELS,
   SOURCE_GROUP_LABELS,
@@ -62,58 +63,68 @@ export function SourcesPage() {
 
       <div className="sourceCatalogList">
         {items.length > 0 ? (
-          items.map((source) => (
-            <article className="sourceCatalogRow" key={source.id}>
-              <div className="sourceCatalogIdentity">
-                <span>{SOURCE_GROUP_LABELS[source.group]}</span>
-                <strong>{source.name}</strong>
-                <p>{source.description}</p>
-              </div>
-              <div className="semanticTags" aria-label={`${source.name} 信号类型`}>
-                {source.semantics.signalKinds.map((kind) => (
-                  <span className="semanticTag" key={kind}>
-                    {SOURCE_SIGNAL_LABELS[kind]}
-                  </span>
-                ))}
-              </div>
-              <div className="sourceCatalogMeta">
-                <span>{source.semantics.coverage} · {source.semantics.cadence}</span>
-                <strong>{SOURCE_ACCESS_LABELS[source.semantics.access]}</strong>
-              </div>
-              <div className="sourceRuntimeState">
-                {source.latestRun ? (
-                  <>
-                    <StatusBadge>{source.latestRun.status}</StatusBadge>
-                    <span>{source.latestRun.itemCount} 条</span>
-                  </>
-                ) : source.localState ? (
-                  <>
-                    <strong className={`localStateLabel ${source.localState.status}`}>
-                      {SOURCE_LOCAL_STATE_LABELS[source.localState.status]}
-                    </strong>
-                    <span>{sourceLocalStateDetail(source.localState)}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className={`sourceStatus ${source.implementationStatus}`}>
-                      {SOURCE_STATUS_LABELS[source.implementationStatus]}
+          items.map((source) => {
+            const guidance = sourceActionGuidance(source)
+
+            return (
+              <article className="sourceCatalogRow" key={source.id}>
+                <div className="sourceCatalogIdentity">
+                  <span>{SOURCE_GROUP_LABELS[source.group]}</span>
+                  <strong>{source.name}</strong>
+                  <p>{source.description}</p>
+                </div>
+                <div className="semanticTags" aria-label={`${source.name} 信号类型`}>
+                  {source.semantics.signalKinds.map((kind) => (
+                    <span className="semanticTag" key={kind}>
+                      {SOURCE_SIGNAL_LABELS[kind]}
                     </span>
-                    <span>暂无同步</span>
-                  </>
-                )}
-              </div>
-              <p className="sourceRiskNote">
-                {source.implementationStatus === "active" && source.runnable
-                  ? source.semantics.freshnessNote
-                  : source.semantics.riskNote}
-              </p>
-              {source.manualCommands[0] && (
-                <p className="sourceCommandHint">
-                  <code>{source.manualCommands[0].command}</code>
+                  ))}
+                </div>
+                <div className="sourceCatalogMeta">
+                  <span>{source.semantics.coverage} · {source.semantics.cadence}</span>
+                  <strong>{SOURCE_ACCESS_LABELS[source.semantics.access]}</strong>
+                </div>
+                <div className="sourceRuntimeState">
+                  {source.latestRun ? (
+                    <>
+                      <StatusBadge>{source.latestRun.status}</StatusBadge>
+                      <span>{source.latestRun.itemCount} 条</span>
+                    </>
+                  ) : source.localState ? (
+                    <>
+                      <strong className={`localStateLabel ${source.localState.status}`}>
+                        {SOURCE_LOCAL_STATE_LABELS[source.localState.status]}
+                      </strong>
+                      <span>{sourceLocalStateDetail(source.localState)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={`sourceStatus ${source.implementationStatus}`}>
+                        {SOURCE_STATUS_LABELS[source.implementationStatus]}
+                      </span>
+                      <span>暂无同步</span>
+                    </>
+                  )}
+                </div>
+                <p className="sourceRiskNote">
+                  {source.implementationStatus === "active" && source.runnable
+                    ? source.semantics.freshnessNote
+                    : source.semantics.riskNote}
                 </p>
-              )}
-            </article>
-          ))
+                {guidance ? (
+                  <div className={`sourceGuidance ${guidance.tone}`}>
+                    <strong>{guidance.title}</strong>
+                    <span>{guidance.detail}</span>
+                    {guidance.command && <code>{guidance.command}</code>}
+                  </div>
+                ) : source.manualCommands[0] && (
+                  <p className="sourceCommandHint">
+                    <code>{source.manualCommands[0].command}</code>
+                  </p>
+                )}
+              </article>
+            )
+          })
         ) : (
           <p className="emptyText">暂无同步记录</p>
         )}

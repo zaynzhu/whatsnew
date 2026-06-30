@@ -443,7 +443,8 @@ h1 {
 .sourceCatalogIdentity span,
 .sourceCatalogMeta span,
 .sourceRiskNote,
-.sourceCommandHint {
+.sourceCommandHint,
+.sourceGuidance span {
   color: var(--muted);
   font-size: 11px;
 }
@@ -475,7 +476,8 @@ h1 {
 .sourceCatalogIdentity,
 .sourceCatalogMeta,
 .sourceRiskNote,
-.sourceCommandHint {
+.sourceCommandHint,
+.sourceGuidance {
   min-width: 0;
 }
 
@@ -484,7 +486,9 @@ h1 {
 .sourceCatalogMeta span,
 .sourceCatalogMeta strong,
 .sourceRiskNote,
-.sourceCommandHint {
+.sourceCommandHint,
+.sourceGuidance strong,
+.sourceGuidance span {
   display: block;
   overflow-wrap: anywhere;
 }
@@ -505,7 +509,47 @@ h1 {
   grid-column: 1 / -1;
 }
 
+.sourceCatalogRow > .sourceGuidance {
+  grid-column: 1 / -1;
+}
+
+.sourceGuidance {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #33423c;
+  border-left: 3px solid #405049;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #101613;
+}
+
+.sourceGuidance strong {
+  color: var(--mist);
+  font-size: 12px;
+}
+
+.sourceGuidance span {
+  line-height: 1.5;
+}
+
+.sourceGuidance.neutral {
+  border-left-color: var(--teal);
+}
+
+.sourceGuidance.warning {
+  border-left-color: var(--amber);
+}
+
+.sourceGuidance.success {
+  border-left-color: var(--teal);
+}
+
+.sourceGuidance.error {
+  border-left-color: var(--red);
+}
+
 .sourceCommandHint code,
+.sourceGuidance code,
 .manualCommandItem code {
   display: block;
   width: fit-content;
@@ -1413,6 +1457,10 @@ h1 {
 .manualCommandList {
   display: grid;
   gap: 10px;
+}
+
+.manualCommandGuidance {
+  margin-bottom: 12px;
 }
 
 .manualCommandItem {

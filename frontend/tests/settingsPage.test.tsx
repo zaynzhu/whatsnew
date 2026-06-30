@@ -337,8 +337,10 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("dialog", { name: "配置 IMDb" })).toBeInTheDocument()
     expect(screen.getByLabelText("IMDb 数据集缓存目录")).toHaveValue("/data/imdb")
     expect(screen.getByRole("heading", { name: "本地操作" })).toBeInTheDocument()
+    expect(screen.getByText("缓存已就绪，等待同步")).toBeInTheDocument()
+    expect(screen.getByText("运行本地同步后会写入 IMDb ID 和评分")).toBeInTheDocument()
     expect(screen.getByText("npm run download:imdb --workspace backend")).toBeInTheDocument()
-    expect(screen.getByText("npm run sync:imdb --workspace backend")).toBeInTheDocument()
+    expect(screen.getAllByText("npm run sync:imdb --workspace backend")).toHaveLength(2)
   })
 
   it("无本地命令的数据源配置不显示本地操作", async () => {
