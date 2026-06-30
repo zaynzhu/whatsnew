@@ -103,4 +103,16 @@ describe("IMDb dataset targets", () => {
       imdbRow({ tconst: "tt1000001", isAdult: true })
     ], [], targets)).toEqual([])
   })
+
+  it("copies candidate language as a matcher hint for title-key matches", () => {
+    const targets = createImdbTargetIndex([
+      candidate({ imdbId: null, originalLanguage: "en" })
+    ])
+
+    const [item] = filterImdbRowsForTargets([
+      imdbRow({ tconst: "tt3000003", primaryTitle: "Midnight File" })
+    ], [], targets)
+
+    expect(item.media.originalLanguage).toBe("en")
+  })
 })

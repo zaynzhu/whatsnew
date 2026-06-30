@@ -10,6 +10,7 @@ import {
 export type ImdbTargetIndex = {
   imdbIds: Set<string>
   titleYearMediaTypeKeys: Set<string>
+  titleYearMediaTypeLanguages: Map<string, string | null>
 }
 
 const TITLE_TYPE_MEDIA_TYPE: Record<string, MediaType> = {
@@ -35,9 +36,19 @@ function rowMediaType(row: ImdbTitleBasicsRow): MediaType | null {
   return TITLE_TYPE_MEDIA_TYPE[row.titleType] ?? null
 }
 
+function titleKeysForRow(row: ImdbTitleBasicsRow): string[] {
+  const mediaType = rowMediaType(row)
+  if (mediaType == null || row.startYear == null) return []
+
+  return [row.primaryTitle, row.originalTitle ?? ""]
+    .map((title) => targetKey(title, row.startYear as number, mediaType))
+    .filter((key): key is string => key != null)
+}
+
 export function createImdbTargetIndex(candidates: ExistingMediaCandidate[]): ImdbTargetIndex {
   const imdbIds = new Set<string>()
   const titleYearMediaTypeKeys = new Set<string>()
+  const titleYearMediaTypeLanguages = new Map<string, string | null>()
 
   for (const candidate of candidates) {
     if (candidate.imdbId) imdbIds.add(candidate.imdbId)
@@ -47,11 +58,16 @@ export function createImdbTargetIndex(candidates: ExistingMediaCandidate[]): Imd
 
     for (const title of [candidate.titleDisplay, ...candidate.titleAliases]) {
       const key = targetKey(title, year, candidate.mediaType)
-      if (key) titleYearMediaTypeKeys.add(key)
+      if (!key) continue
+
+      titleYearMediaTypeKeys.add(key)
+      if (!titleYearMediaTypeLanguages.has(key)) {
+        titleYearMediaTypeLanguages.set(key, candidate.originalLanguage)
+      }
     }
   }
 
-  return { imdbIds, titleYearMediaTypeKeys }
+  return { imdbIds, titleYearMediaTypeKeys, titleYearMediaTypeLanguages }
 }
 
 export function imdbRowMatchesTargets(row: ImdbTitleBasicsRow, targets: ImdbTargetIndex): boolean {
@@ -60,12 +76,20 @@ export function imdbRowMatchesTargets(row: ImdbTitleBasicsRow, targets: ImdbTarg
   const mediaType = rowMediaType(row)
   if (mediaType == null || row.startYear == null) return false
 
-  const startYear = row.startYear
-  const titles = [row.primaryTitle, row.originalTitle ?? ""]
-  return titles.some((title) => {
-    const key = targetKey(title, startYear, mediaType)
-    return key != null && targets.titleYearMediaTypeKeys.has(key)
-  })
+  return titleKeysForRow(row).some((key) => targets.titleYearMediaTypeKeys.has(key))
+}
+
+export function targetLanguageForImdbRow(
+  row: ImdbTitleBasicsRow,
+  targets: ImdbTargetIndex
+): string | null | undefined {
+  for (const key of titleKeysForRow(row)) {
+    if (targets.titleYearMediaTypeLanguages.has(key)) {
+      return targets.titleYearMediaTypeLanguages.get(key)
+    }
+  }
+
+  return undefined
 }
 
 export function filterImdbRowsForTargets(
@@ -80,7 +104,13 @@ export function filterImdbRowsForTargets(
     if (!imdbRowMatchesTargets(row, targets)) continue
 
     const item = imdbRowsToAdapterItem(row, ratingsByTconst.get(row.tconst))
-    if (item) items.push(item)
+    if (!item) continue
+
+    const targetLanguage = targetLanguageForImdbRow(row, targets)
+    if (targetLanguage !== undefined && item.media.originalLanguage == null) {
+      item.media.originalLanguage = targetLanguage
+    }
+    items.push(item)
   }
 
   return items
