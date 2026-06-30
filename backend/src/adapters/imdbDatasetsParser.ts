@@ -19,7 +19,7 @@ export type ImdbTitleRatingRow = {
   numVotes: number
 }
 
-type ParsedTsvRow = Record<string, string | null>
+export type ParsedImdbTsvRow = Record<string, string | null>
 type TitleTypeMapping = {
   mediaType: MediaType
   releaseForm: ReleaseForm
@@ -44,7 +44,7 @@ function numberOrNull(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function parseTsv(text: string, requiredFields: string[]): ParsedTsvRow[] {
+function parseTsv(text: string, requiredFields: string[]): ParsedImdbTsvRow[] {
   const lines = text
     .split("\n")
     .map((line) => line.replace(/\r$/, ""))
@@ -80,7 +80,19 @@ export function parseImdbTitleBasics(text: string): ImdbTitleBasicsRow[] {
     "endYear",
     "runtimeMinutes",
     "genres"
-  ]).map((row) => ({
+  ]).map(imdbTitleBasicsFromParsedRow)
+}
+
+export function parseImdbTitleRatings(text: string): ImdbTitleRatingRow[] {
+  return parseTsv(text, [
+    "tconst",
+    "averageRating",
+    "numVotes"
+  ]).map(imdbTitleRatingFromParsedRow)
+}
+
+export function imdbTitleBasicsFromParsedRow(row: ParsedImdbTsvRow): ImdbTitleBasicsRow {
+  return {
     tconst: row.tconst ?? "",
     titleType: row.titleType ?? "",
     primaryTitle: row.primaryTitle ?? "",
@@ -90,19 +102,15 @@ export function parseImdbTitleBasics(text: string): ImdbTitleBasicsRow[] {
     endYear: numberOrNull(row.endYear),
     runtimeMinutes: numberOrNull(row.runtimeMinutes),
     genres: genresFrom(row.genres)
-  }))
+  }
 }
 
-export function parseImdbTitleRatings(text: string): ImdbTitleRatingRow[] {
-  return parseTsv(text, [
-    "tconst",
-    "averageRating",
-    "numVotes"
-  ]).map((row) => ({
+export function imdbTitleRatingFromParsedRow(row: ParsedImdbTsvRow): ImdbTitleRatingRow {
+  return {
     tconst: row.tconst ?? "",
     averageRating: Number(row.averageRating ?? 0),
     numVotes: Number(row.numVotes ?? 0)
-  }))
+  }
 }
 
 function uniqueTitles(values: Array<string | null>): string[] {
