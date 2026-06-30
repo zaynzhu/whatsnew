@@ -1,8 +1,9 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import request from "supertest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { IMDB_DATASET_DOWNLOADS } from "../src/adapters/imdbDatasetDownloader.js"
 import { createApp } from "../src/app.js"
 import { createSettingsRouter } from "../src/routes/settings.js"
 import { createSourcesRouter } from "../src/routes/sources.js"
@@ -11,6 +12,7 @@ import { EnvFileStore } from "../src/settings/envFileStore.js"
 import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
 
 let tempDir: string
+let imdbCacheDir: string
 let testSettings: RuntimeSettingsService
 
 const successResult = {
@@ -38,6 +40,7 @@ const database = {
 
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "whatsnew-settings-api-"))
+  imdbCacheDir = join(tempDir, "imdb-cache")
   const envPath = join(tempDir, ".env")
   await writeFile(envPath, [
     "HTTPS_PROXY=http://proxy-user:secret-proxy-password@proxy.test:7890",
@@ -45,6 +48,7 @@ beforeEach(async () => {
     "TRAKT_CLIENT_ID=secret-trakt-client-id",
     "THETVDB_API_KEY=free-thetvdb-key",
     "THETVDB_PIN=1234",
+    `IMDB_DATASET_CACHE_DIR=${imdbCacheDir}`,
     "SOURCE_TMDB_ENABLED=true",
     "SOURCE_TMDB_PROXY_MODE=inherit"
   ].join("\n"))
@@ -71,6 +75,20 @@ function testApp() {
       settings: testSettings
     })
   })
+}
+
+async function writeReadyImdbCache() {
+  await mkdir(imdbCacheDir, { recursive: true })
+  for (const dataset of IMDB_DATASET_DOWNLOADS) {
+    await writeFile(join(imdbCacheDir, dataset.fileName), Buffer.from([1, 2, 3, 4]))
+    await writeFile(join(imdbCacheDir, `${dataset.fileName}.meta.json`), `${JSON.stringify({
+      etag: `"${dataset.fileName}-etag"`,
+      lastModified: "Mon, 29 Jun 2026 12:34:11 GMT",
+      contentLength: 4,
+      bytesWritten: 4,
+      downloadedAt: "2026-06-30T00:00:00.000Z"
+    })}\n`)
+  }
 }
 
 describe("settings API", () => {
@@ -100,6 +118,7 @@ describe("settings API", () => {
   })
 
   it("returns source semantics for settings and source catalog APIs", async () => {
+    await writeReadyImdbCache()
     database.sourceSyncRun.findMany.mockResolvedValue([{
       source: "tmdb",
       scope: "popularity",
@@ -114,7 +133,9 @@ describe("settings API", () => {
     const settingsResponse = await request(testApp()).get("/api/settings")
     const sourcesResponse = await request(testApp()).get("/api/sources")
     const trakt = settingsResponse.body.sources.find((source: any) => source.id === "trakt")
+    const imdbSettings = settingsResponse.body.sources.find((source: any) => source.id === "imdb")
     const tmdb = sourcesResponse.body.items.find((source: any) => source.id === "tmdb")
+    const imdbSources = sourcesResponse.body.items.find((source: any) => source.id === "imdb")
 
     expect(settingsResponse.status).toBe(200)
     expect(trakt.semantics).toMatchObject({
@@ -123,6 +144,25 @@ describe("settings API", () => {
     })
     expect(sourcesResponse.status).toBe(200)
     expect(sourcesResponse.body.items).toHaveLength(22)
+    expect(imdbSettings.fields.find((field: any) => field.key === "IMDB_DATASET_CACHE_DIR")).toMatchObject({
+      label: "IMDb 数据集缓存目录",
+      value: imdbCacheDir,
+      sensitive: false
+    })
+    expect(imdbSettings.localState).toMatchObject({
+      kind: "imdb_datasets",
+      status: "ready",
+      readyFiles: 2,
+      totalFiles: 2
+    })
+    expect(JSON.stringify(imdbSettings.localState)).not.toContain(imdbCacheDir)
+    expect(imdbSources.localState).toMatchObject({
+      kind: "imdb_datasets",
+      status: "ready",
+      readyFiles: 2,
+      totalFiles: 2
+    })
+    expect(JSON.stringify(sourcesResponse.body)).not.toContain(imdbCacheDir)
     expect(tmdb).toMatchObject({
       id: "tmdb",
       name: "TMDb",

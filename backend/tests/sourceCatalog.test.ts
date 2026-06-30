@@ -30,6 +30,12 @@ describe("source catalog", () => {
       credentialKeys: ["THETVDB_API_KEY"],
       optionalCredentialKeys: ["THETVDB_PIN"]
     })
+    expect(getSourceDefinition("imdb")).toMatchObject({
+      implementationStatus: "planned",
+      supportsSync: false,
+      supportsEnable: false,
+      localSettingKeys: ["IMDB_DATASET_CACHE_DIR"]
+    })
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
   })

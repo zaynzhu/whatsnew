@@ -50,6 +50,7 @@ export const KNOWN_SETTING_KEYS = new Set([
     source.baseUrlKey,
     ...source.credentialKeys,
     ...source.optionalCredentialKeys,
+    ...source.localSettingKeys,
     ...SOURCE_SETTING_SUFFIXES.map((suffix) => sourceEnvKey(source.id, suffix))
   ])
 ])

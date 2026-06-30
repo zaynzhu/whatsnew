@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
+import type { SourceLocalStateView } from "@whatsnew/shared/settings"
 import { Router } from "express"
 import { z } from "zod"
 import { db } from "../config/db.js"
@@ -13,6 +14,7 @@ import {
   sourceEnvKey
 } from "../settings/settingsFields.js"
 import { redactStoredError } from "../settings/settingsRedaction.js"
+import { getImdbCacheStatus } from "../services/imdbCacheStatusService.js"
 
 const updateSchema = z.object({
   values: z.record(z.string()),
@@ -34,6 +36,7 @@ const FIELD_LABELS: Record<string, string> = {
   OMDB_API_KEY: "OMDb API Key",
   THETVDB_API_KEY: "TheTVDB API Key",
   THETVDB_PIN: "TheTVDB PIN（可选）",
+  IMDB_DATASET_CACHE_DIR: "IMDb 数据集缓存目录",
   DOUBAN_COOKIE: "豆瓣 Cookie"
 }
 
@@ -51,6 +54,14 @@ function validationError(error: unknown): boolean {
 
 function fieldLabel(key: string, fallback: string): string {
   return FIELD_LABELS[key] ?? fallback
+}
+
+async function sourceLocalState(
+  sourceId: string,
+  settings: RuntimeSettingsService
+): Promise<SourceLocalStateView | null> {
+  if (sourceId !== "imdb") return null
+  return getImdbCacheStatus(settings.get("IMDB_DATASET_CACHE_DIR"))
 }
 
 export function createSettingsRouter(dependencies: SettingsRouterDependencies = {}): Router {
@@ -77,69 +88,73 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
       runsBySource.set(run.source, sourceRuns)
     }
 
+    const sources = await Promise.all(SOURCE_CATALOG.map(async (source) => {
+      const sourceRuns = runsBySource.get(source.id) ?? []
+      const statusPriority = new Map([
+        ["success", 1],
+        ["warning", 2],
+        ["failed", 3],
+        ["running", 4]
+      ])
+      const latestRun = sourceRuns.length > 0 ? {
+        status: sourceRuns.reduce((selected, run) => (
+          (statusPriority.get(run.status) ?? 0) > (statusPriority.get(selected) ?? 0)
+            ? run.status
+            : selected
+        ), "success"),
+        startedAt: new Date(Math.max(...sourceRuns.map((run) => run.startedAt.getTime()))),
+        finishedAt: sourceRuns.some((run) => run.finishedAt == null)
+          ? null
+          : new Date(Math.max(...sourceRuns.map((run) => run.finishedAt?.getTime() ?? 0))),
+        itemCount: sourceRuns.reduce((total, run) => total + run.itemCount, 0),
+        durationMs: sourceRuns.every((run) => run.durationMs == null)
+          ? null
+          : sourceRuns.reduce((total, run) => total + (run.durationMs ?? 0), 0),
+        errorMessage: sourceRuns
+          .filter((run) => run.errorMessage)
+          .map((run) => `[${run.scope ?? "all"}] ${run.errorMessage}`)
+          .join("；") || null
+      } : null
+      const missingCredentials = settings.missingCredentials(source.id)
+      const fields = [
+        settings.fieldView(source.baseUrlKey, `${source.name} Base URL`),
+        ...source.localSettingKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
+        ...source.credentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
+        ...source.optionalCredentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
+        settings.fieldView(sourceEnvKey(source.id, "HTTP_PROXY"), `${source.name} HTTP 代理`),
+        settings.fieldView(sourceEnvKey(source.id, "HTTPS_PROXY"), `${source.name} HTTPS 代理`)
+      ]
+
+      return {
+        id: source.id,
+        name: source.name,
+        description: source.description,
+        group: source.group,
+        implementationStatus: source.implementationStatus,
+        enabled: settings.sourceEnabled(source.id),
+        runnable: settings.sourceRunnable(source.id),
+        proxyMode: settings.sourceProxyMode(source.id),
+        credentialsComplete: missingCredentials.length === 0,
+        missingCredentials,
+        supportsSync: source.supportsSync,
+        supportsEnable: source.supportsEnable,
+        fields,
+        semantics: source.semantics,
+        localState: await sourceLocalState(source.id, settings),
+        latestRun: latestRun ? {
+          status: latestRun.status,
+          startedAt: latestRun.startedAt.toISOString(),
+          finishedAt: latestRun.finishedAt?.toISOString() ?? null,
+          itemCount: latestRun.itemCount,
+          durationMs: latestRun.durationMs,
+          errorMessage: redactStoredError(latestRun.errorMessage, settings)
+        } : null
+      }
+    }))
+
     res.json({
       proxyFields: GLOBAL_PROXY_FIELDS.map((field) => settings.fieldView(field.key, field.label)),
-      sources: SOURCE_CATALOG.map((source) => {
-        const sourceRuns = runsBySource.get(source.id) ?? []
-        const statusPriority = new Map([
-          ["success", 1],
-          ["warning", 2],
-          ["failed", 3],
-          ["running", 4]
-        ])
-        const latestRun = sourceRuns.length > 0 ? {
-          status: sourceRuns.reduce((selected, run) => (
-            (statusPriority.get(run.status) ?? 0) > (statusPriority.get(selected) ?? 0)
-              ? run.status
-              : selected
-          ), "success"),
-          startedAt: new Date(Math.max(...sourceRuns.map((run) => run.startedAt.getTime()))),
-          finishedAt: sourceRuns.some((run) => run.finishedAt == null)
-            ? null
-            : new Date(Math.max(...sourceRuns.map((run) => run.finishedAt?.getTime() ?? 0))),
-          itemCount: sourceRuns.reduce((total, run) => total + run.itemCount, 0),
-          durationMs: sourceRuns.every((run) => run.durationMs == null)
-            ? null
-            : sourceRuns.reduce((total, run) => total + (run.durationMs ?? 0), 0),
-          errorMessage: sourceRuns
-            .filter((run) => run.errorMessage)
-            .map((run) => `[${run.scope ?? "all"}] ${run.errorMessage}`)
-            .join("；") || null
-        } : null
-        const missingCredentials = settings.missingCredentials(source.id)
-        const fields = [
-          settings.fieldView(source.baseUrlKey, `${source.name} Base URL`),
-          ...source.credentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
-          ...source.optionalCredentialKeys.map((key) => settings.fieldView(key, fieldLabel(key, key))),
-          settings.fieldView(sourceEnvKey(source.id, "HTTP_PROXY"), `${source.name} HTTP 代理`),
-          settings.fieldView(sourceEnvKey(source.id, "HTTPS_PROXY"), `${source.name} HTTPS 代理`)
-        ]
-
-        return {
-          id: source.id,
-          name: source.name,
-          description: source.description,
-          group: source.group,
-          implementationStatus: source.implementationStatus,
-          enabled: settings.sourceEnabled(source.id),
-          runnable: settings.sourceRunnable(source.id),
-          proxyMode: settings.sourceProxyMode(source.id),
-          credentialsComplete: missingCredentials.length === 0,
-          missingCredentials,
-          supportsSync: source.supportsSync,
-          supportsEnable: source.supportsEnable,
-          fields,
-          semantics: source.semantics,
-          latestRun: latestRun ? {
-            status: latestRun.status,
-            startedAt: latestRun.startedAt.toISOString(),
-            finishedAt: latestRun.finishedAt?.toISOString() ?? null,
-            itemCount: latestRun.itemCount,
-            durationMs: latestRun.durationMs,
-            errorMessage: redactStoredError(latestRun.errorMessage, settings)
-          } : null
-        }
-      })
+      sources
     })
   })
 
