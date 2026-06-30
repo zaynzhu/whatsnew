@@ -57,6 +57,12 @@ export type SourceLocalStateView = {
   files: SourceLocalFileState[]
 }
 
+export type SourceManualCommandView = {
+  label: string
+  command: string
+  description: string
+}
+
 export type SettingsFieldView = {
   key: string
   label: string
@@ -84,6 +90,7 @@ export type SourceSettingsView = {
   fields: SettingsFieldView[]
   semantics: SourceSemanticsView
   localState: SourceLocalStateView | null
+  manualCommands: SourceManualCommandView[]
   latestRun: {
     status: string
     startedAt: string

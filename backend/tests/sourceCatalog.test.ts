@@ -36,6 +36,17 @@ describe("source catalog", () => {
       supportsEnable: false,
       localSettingKeys: ["IMDB_DATASET_CACHE_DIR"]
     })
+    expect(getSourceDefinition("imdb").manualCommands).toEqual([
+      expect.objectContaining({
+        label: "下载或刷新 IMDb 缓存",
+        command: "npm run download:imdb --workspace backend"
+      }),
+      expect.objectContaining({
+        label: "同步 IMDb 本地缓存",
+        command: "npm run sync:imdb --workspace backend"
+      })
+    ])
+    expect(getSourceDefinition("tmdb").manualCommands).toEqual([])
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
   })

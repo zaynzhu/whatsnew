@@ -3,6 +3,7 @@ import type {
   SourceGroup,
   SourceId,
   SourceImplementationStatus,
+  SourceManualCommandView,
   SourceSemanticsView
 } from "@whatsnew/shared/settings"
 
@@ -22,6 +23,7 @@ export type SourceDefinition = {
   credentialKeys: readonly string[]
   optionalCredentialKeys: readonly string[]
   localSettingKeys: readonly string[]
+  manualCommands: readonly SourceManualCommandView[]
   defaultEnabled: boolean
   scheduleGroups: readonly ScheduleGroup[]
   semantics: SourceSemanticsView
@@ -53,7 +55,8 @@ function source(
   scheduleGroups: readonly ScheduleGroup[] = ["daily"],
   defaultEnabled = false,
   optionalCredentialKeys: string[] = [],
-  localSettingKeys: string[] = []
+  localSettingKeys: string[] = [],
+  manualCommands: SourceManualCommandView[] = []
 ): SourceDefinition {
   return {
     id,
@@ -69,6 +72,7 @@ function source(
     credentialKeys,
     optionalCredentialKeys,
     localSettingKeys,
+    manualCommands,
     defaultEnabled,
     scheduleGroups,
     semantics: SOURCE_SEMANTICS[id]
@@ -254,11 +258,24 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   }
 }
 
+const IMDB_MANUAL_COMMANDS: SourceManualCommandView[] = [
+  {
+    label: "下载或刷新 IMDb 缓存",
+    command: "npm run download:imdb --workspace backend",
+    description: "从 IMDb 官方 datasets 下载 gzip 到已配置缓存目录"
+  },
+  {
+    label: "同步 IMDb 本地缓存",
+    command: "npm run sync:imdb --workspace backend",
+    description: "只补充当前库已有作品的 IMDb ID 和评分，不创建陌生作品"
+  }
+]
+
 export const SOURCE_CATALOG = [
   source("tvmaze", "TVmaze", "剧集与集数排期", "global_metadata", "active", "inherit", true, true, "https://api.tvmaze.com/shows/1", [], ["hourly"], true),
   source("tmdb", "TMDb", "电影、剧集、趋势和基础元数据", "global_metadata", "active", "inherit", true, true, "https://api.themoviedb.org/3/configuration", ["TMDB_API_KEY"], ["hourly"], true),
   source("trakt", "Trakt", "电影与剧集趋势", "global_metadata", "active", "inherit", true, true, "https://api.trakt.tv/shows/trending?limit=1", ["TRAKT_CLIENT_ID"], ["hourly", "daily"], true),
-  source("imdb", "IMDb", "日更数据集与榜单", "global_metadata", "planned", "inherit", false, false, "https://datasets.imdbws.com/title.basics.tsv.gz", [], ["daily"], false, [], ["IMDB_DATASET_CACHE_DIR"]),
+  source("imdb", "IMDb", "日更数据集与榜单", "global_metadata", "planned", "inherit", false, false, "https://datasets.imdbws.com/title.basics.tsv.gz", [], ["daily"], false, [], ["IMDB_DATASET_CACHE_DIR"], IMDB_MANUAL_COMMANDS),
   source("thetvdb", "TheTVDB", "影视元数据与外部 ID", "global_metadata", "active", "inherit", true, true, "https://api4.thetvdb.com/v4/login", ["THETVDB_API_KEY"], ["daily"], false, ["THETVDB_PIN"]),
   source("justwatch", "JustWatch", "可看性与 Streaming Charts", "cross_platform", "commercial", "inherit", false, false, "https://www.justwatch.com/us/streaming-charts"),
   source("flixpatrol", "FlixPatrol", "多平台地区 Top 10", "cross_platform", "commercial", "inherit", false, false, "https://flixpatrol.com/calendar/upcoming/"),

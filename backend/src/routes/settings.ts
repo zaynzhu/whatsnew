@@ -141,6 +141,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
         fields,
         semantics: source.semantics,
         localState: await sourceLocalState(source.id, settings),
+        manualCommands: source.manualCommands,
         latestRun: latestRun ? {
           status: latestRun.status,
           startedAt: latestRun.startedAt.toISOString(),

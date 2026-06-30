@@ -155,6 +155,16 @@ describe("settings API", () => {
       readyFiles: 2,
       totalFiles: 2
     })
+    expect(imdbSettings.manualCommands).toEqual([
+      expect.objectContaining({
+        label: "下载或刷新 IMDb 缓存",
+        command: "npm run download:imdb --workspace backend"
+      }),
+      expect.objectContaining({
+        label: "同步 IMDb 本地缓存",
+        command: "npm run sync:imdb --workspace backend"
+      })
+    ])
     expect(JSON.stringify(imdbSettings.localState)).not.toContain(imdbCacheDir)
     expect(imdbSources.localState).toMatchObject({
       kind: "imdb_datasets",
@@ -162,6 +172,10 @@ describe("settings API", () => {
       readyFiles: 2,
       totalFiles: 2
     })
+    expect(imdbSources.manualCommands.map((command: any) => command.command)).toEqual([
+      "npm run download:imdb --workspace backend",
+      "npm run sync:imdb --workspace backend"
+    ])
     expect(JSON.stringify(sourcesResponse.body)).not.toContain(imdbCacheDir)
     expect(tmdb).toMatchObject({
       id: "tmdb",
