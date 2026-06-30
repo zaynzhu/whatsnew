@@ -88,7 +88,7 @@ describe("settings API", () => {
     const response = await request(testApp()).get("/api/settings")
 
     expect(response.status).toBe(200)
-    expect(response.body.sources).toHaveLength(20)
+    expect(response.body.sources).toHaveLength(22)
     expect(response.body.proxyFields.find((field: any) => field.key === "HTTPS_PROXY").value).toBeNull()
     expect(JSON.stringify(response.body)).not.toContain("secret-proxy-password")
     expect(JSON.stringify(response.body)).not.toContain("secret-tmdb-key")
@@ -122,7 +122,7 @@ describe("settings API", () => {
       access: "free_key"
     })
     expect(sourcesResponse.status).toBe(200)
-    expect(sourcesResponse.body.items).toHaveLength(20)
+    expect(sourcesResponse.body.items).toHaveLength(22)
     expect(tmdb).toMatchObject({
       id: "tmdb",
       name: "TMDb",

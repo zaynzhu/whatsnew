@@ -3,7 +3,7 @@ import { SOURCE_CATALOG, getSourceDefinition } from "../src/settings/sourceCatal
 
 describe("source catalog", () => {
   it("lists the approved active and planned sources without pretending planned sources are syncable", () => {
-    expect(SOURCE_CATALOG).toHaveLength(20)
+    expect(SOURCE_CATALOG).toHaveLength(22)
     expect(SOURCE_CATALOG.filter((source) => source.implementationStatus === "active").map((source) => source.id)).toEqual([
       "tvmaze",
       "tmdb",
@@ -44,6 +44,24 @@ describe("source catalog", () => {
     )
     expect((getSourceDefinition("justwatch") as any).semantics.access).toBe("application")
     expect((getSourceDefinition("flixpatrol") as any).semantics.access).toBe("commercial")
+  })
+
+  it("keeps Maoyan and Dengta as non-syncable restricted market signal sources", () => {
+    expect(getSourceDefinition("maoyan_pro")).toMatchObject({
+      name: "猫眼专业版",
+      implementationStatus: "planned",
+      supportsSync: false,
+      supportsEnable: false,
+      defaultProxyMode: "direct"
+    })
+    expect(getSourceDefinition("maoyan_pro").semantics).toMatchObject({
+      signalKinds: expect.arrayContaining(["box_office", "platform_rank"]),
+      access: "restricted_page"
+    })
+    expect(getSourceDefinition("dengta_pro").semantics).toMatchObject({
+      signalKinds: expect.arrayContaining(["box_office", "platform_rank"]),
+      access: "restricted_page"
+    })
   })
 
   it("assigns sources to schedule groups with safe defaults", () => {

@@ -1,7 +1,8 @@
 export const SOURCE_IDS = [
   "tvmaze", "tmdb", "trakt", "imdb", "thetvdb", "justwatch", "flixpatrol",
   "netflix", "prime_video", "hulu", "disney_plus", "max", "apple_tv_plus",
-  "youku", "iqiyi", "tencent", "mango_tv", "bilibili", "douban", "mtime"
+  "youku", "iqiyi", "tencent", "mango_tv", "bilibili", "douban", "mtime",
+  "maoyan_pro", "dengta_pro"
 ] as const
 export type SourceId = (typeof SOURCE_IDS)[number]
 

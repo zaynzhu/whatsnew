@@ -225,6 +225,22 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     freshnessNote: "不是上新源，只做口碑补充",
     riskNote: "不得高频爬取或绕过登录、验证码和反爬限制"
   },
+  maoyan_pro: {
+    signalKinds: ["box_office", "platform_rank"],
+    coverage: "中国电影票房、排片、网播热度和市场指标",
+    cadence: "公开页面实时变化，完整能力受专业版限制",
+    access: "restricted_page",
+    freshnessNote: "只作为市场信号候选，不代表已接入同步",
+    riskNote: "不得绕过 App、登录、验证码或专业版限制"
+  },
+  dengta_pro: {
+    signalKinds: ["box_office", "platform_rank"],
+    coverage: "中国电影票房、剧综网播、动漫热度和收视指标",
+    cadence: "公开说明显示专业数据实时更新，完整能力受专业版限制",
+    access: "restricted_page",
+    freshnessNote: "只作为市场信号候选，不代表已接入同步",
+    riskNote: "不得绕过 App、登录、验证码或专业版限制"
+  },
   mtime: {
     signalKinds: ["news_signal", "metadata"],
     coverage: "中文影视资讯和资料补充",
@@ -255,6 +271,8 @@ export const SOURCE_CATALOG = [
   source("mango_tv", "芒果TV", "热播、预约与追更日历", "china_platform", "planned", "direct", false, false, "https://www.mgtv.com/tv/"),
   source("bilibili", "哔哩哔哩", "番剧、国创与榜单", "china_platform", "planned", "direct", false, false, "https://www.bilibili.com/anime/"),
   source("douban", "豆瓣", "中国口碑与评分", "china_platform", "planned", "direct", false, false, "https://movie.douban.com/"),
+  source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),
+  source("dengta_pro", "灯塔专业版", "票房、网播热度与收视指标", "china_platform", "planned", "direct", false, false, "https://www.taopiaopiao.com/"),
   source("mtime", "时光网", "中文影视资讯补充", "china_platform", "planned", "direct", false, false, "https://www.mtime.com/")
 ] as const
 

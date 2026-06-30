@@ -78,7 +78,7 @@ describe("api routes", () => {
     expect(trendingResponse.status).toBe(200)
     expect(trendingResponse.body.items.length).toBeGreaterThan(0)
     expect(sourcesResponse.status).toBe(200)
-    expect(sourcesResponse.body.items).toHaveLength(20)
+    expect(sourcesResponse.body.items).toHaveLength(22)
     expect(sourcesResponse.body.items.find((source: any) => source.id === "tmdb")).toMatchObject({
       name: "TMDb",
       latestRun: expect.objectContaining({

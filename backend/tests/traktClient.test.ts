@@ -22,13 +22,13 @@ describe("traktClient", () => {
     })
     const client = createTraktClient({
       clientId: "client-id",
-      minIntervalMs: 5,
+      minIntervalMs: 25,
       httpClient: { fetchJson } as unknown as SourceHttpClient
     })
 
     await Promise.all([client.get("/movies/trending"), client.get("/shows/trending")])
 
-    expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(5)
+    expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(20)
   })
 
   it("rejects requests when the runtime client ID is empty", async () => {
