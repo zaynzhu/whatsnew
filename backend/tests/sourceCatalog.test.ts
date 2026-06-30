@@ -34,6 +34,18 @@ describe("source catalog", () => {
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
   })
 
+  it("describes source semantics without implying a fake global ranking", () => {
+    expect((getSourceDefinition("trakt") as any).semantics).toMatchObject({
+      signalKinds: expect.arrayContaining(["community_trend", "release_calendar"]),
+      access: "free_key"
+    })
+    expect((getSourceDefinition("youku") as any).semantics.signalKinds).toEqual(
+      expect.arrayContaining(["platform_catalog", "platform_rank"])
+    )
+    expect((getSourceDefinition("justwatch") as any).semantics.access).toBe("application")
+    expect((getSourceDefinition("flixpatrol") as any).semantics.access).toBe("commercial")
+  })
+
   it("assigns sources to schedule groups with safe defaults", () => {
     expect(getSourceDefinition("netflix").scheduleGroups).toEqual(["daily"])
     expect(["tvmaze", "tmdb", "youku", "iqiyi"].map((sourceId) => {

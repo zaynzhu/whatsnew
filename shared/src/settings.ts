@@ -14,6 +14,26 @@ export type SourceImplementationStatus = (typeof SOURCE_IMPLEMENTATION_STATUSES)
 export const SOURCE_GROUPS = ["global_metadata", "cross_platform", "international_platform", "china_platform"] as const
 export type SourceGroup = (typeof SOURCE_GROUPS)[number]
 
+export const SOURCE_SIGNAL_KINDS = [
+  "release_calendar", "platform_catalog", "platform_rank", "community_trend",
+  "metadata", "availability", "box_office", "rating", "news_signal"
+] as const
+export type SourceSignalKind = (typeof SOURCE_SIGNAL_KINDS)[number]
+
+export const SOURCE_ACCESS_TYPES = [
+  "public_api", "free_key", "application", "commercial", "public_page", "restricted_page"
+] as const
+export type SourceAccessType = (typeof SOURCE_ACCESS_TYPES)[number]
+
+export type SourceSemanticsView = {
+  signalKinds: SourceSignalKind[]
+  coverage: string
+  cadence: string
+  access: SourceAccessType
+  freshnessNote: string
+  riskNote: string
+}
+
 export type SettingsFieldView = {
   key: string
   label: string
@@ -39,6 +59,7 @@ export type SourceSettingsView = {
   supportsSync: boolean
   supportsEnable: boolean
   fields: SettingsFieldView[]
+  semantics: SourceSemanticsView
   latestRun: {
     status: string
     startedAt: string
@@ -52,6 +73,12 @@ export type SourceSettingsView = {
 export type SettingsResponse = {
   proxyFields: SettingsFieldView[]
   sources: SourceSettingsView[]
+}
+
+export type SourceCatalogItem = SourceSettingsView
+
+export type SourcesResponse = {
+  items: SourceCatalogItem[]
 }
 
 export type SettingsUpdateRequest = {

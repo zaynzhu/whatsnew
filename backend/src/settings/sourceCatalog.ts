@@ -2,7 +2,8 @@ import type {
   ProxyMode,
   SourceGroup,
   SourceId,
-  SourceImplementationStatus
+  SourceImplementationStatus,
+  SourceSemanticsView
 } from "@whatsnew/shared/settings"
 
 export type ScheduleGroup = "hourly" | "daily"
@@ -22,6 +23,7 @@ export type SourceDefinition = {
   optionalCredentialKeys: readonly string[]
   defaultEnabled: boolean
   scheduleGroups: readonly ScheduleGroup[]
+  semantics: SourceSemanticsView
 }
 
 const BASE_URL_KEY_OVERRIDES: Partial<Record<SourceId, string>> = {
@@ -65,7 +67,171 @@ function source(
     credentialKeys,
     optionalCredentialKeys,
     defaultEnabled,
-    scheduleGroups
+    scheduleGroups,
+    semantics: SOURCE_SEMANTICS[id]
+  }
+}
+
+const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
+  tvmaze: {
+    signalKinds: ["release_calendar", "metadata"],
+    coverage: "全球剧集与单集播出排期",
+    cadence: "小时级剧集排期",
+    access: "public_api",
+    freshnessNote: "适合补充剧集播出日历，不提供电影",
+    riskNote: "公开 API 可用性变动会影响排期采集"
+  },
+  tmdb: {
+    signalKinds: ["metadata", "community_trend", "release_calendar"],
+    coverage: "全球电影与剧集",
+    cadence: "小时级趋势与日级发现",
+    access: "free_key",
+    freshnessNote: "趋势和排期不代表流媒体已上架",
+    riskNote: "需要 TMDb API Key；地区上映口径需要单独解释"
+  },
+  trakt: {
+    signalKinds: ["community_trend", "release_calendar", "metadata"],
+    coverage: "全球电影与剧集，社区观看和期待信号",
+    cadence: "小时级热度，日级 14 天日历",
+    access: "free_key",
+    freshnessNote: "热度来自 Trakt 当前榜单，日历不代表流媒体可看",
+    riskNote: "需要 Trakt Client ID；网络路径可能需要代理"
+  },
+  imdb: {
+    signalKinds: ["metadata", "rating"],
+    coverage: "全球电影、剧集、单集和 IMDb ID",
+    cadence: "日级或手动数据集导入",
+    access: "public_api",
+    freshnessNote: "优先使用 IMDb 非商业 datasets，不接商业 API 作为默认方案",
+    riskNote: "数据集体积较大，导入前需要设计下载、解压和增量策略"
+  },
+  thetvdb: {
+    signalKinds: ["metadata", "release_calendar"],
+    coverage: "全球电影与剧集元数据、外部 ID 和播出日期",
+    cadence: "日级 48 小时更新窗口",
+    access: "free_key",
+    freshnessNote: "只补元数据和日期，不生成热度",
+    riskNote: "只允许免费 project API Key，不回退到付费能力"
+  },
+  justwatch: {
+    signalKinds: ["availability", "platform_rank"],
+    coverage: "多地区流媒体可看性与 Streaming Charts",
+    cadence: "官方口径包含日级、周级、月级榜单",
+    access: "application",
+    freshnessNote: "需要申请或合作后才能确认可同步字段",
+    riskNote: "当前不能作为免费直接同步来源启用"
+  },
+  flixpatrol: {
+    signalKinds: ["platform_rank", "availability"],
+    coverage: "全球多平台和地区 VOD 榜单",
+    cadence: "商业数据产品",
+    access: "commercial",
+    freshnessNote: "需要商业授权后才能同步",
+    riskNote: "当前不能作为免费来源启用"
+  },
+  netflix: {
+    signalKinds: ["platform_rank"],
+    coverage: "Netflix 全球周榜，按英语和非英语电影剧集拆分",
+    cadence: "周榜每日检查，最新一周幂等更新",
+    access: "public_page",
+    freshnessNote: "只代表 Netflix 官方 Top 10 周榜",
+    riskNote: "XLSX 文件结构变化会影响解析"
+  },
+  prime_video: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "Prime Video 片库、趋势和新内容候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "地区、登录态和页面结构可能限制采集"
+  },
+  hulu: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "Hulu 上新、合集和平台榜候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "地区和登录态限制可能影响可达性"
+  },
+  disney_plus: {
+    signalKinds: ["platform_catalog", "release_calendar"],
+    coverage: "Disney+ 上新文章和平台日历候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "公开文章不是结构化 API，需要单独验证"
+  },
+  max: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "Max 即将上线、下架和平台榜候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "帮助页或专题页结构变化会影响采集"
+  },
+  apple_tv_plus: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "Apple TV+ 新片和热门榜候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "地区化页面和客户端渲染可能限制采集"
+  },
+  youku: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "中国电影、剧集、综艺、动漫和短剧",
+    cadence: "小时级平台热度",
+    access: "public_page",
+    freshnessNote: "只代表优酷站内口径，不代表全网",
+    riskNote: "页面结构变化会影响采集"
+  },
+  iqiyi: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "中国电影、剧集、综艺、动漫和短剧",
+    cadence: "小时级平台内容页",
+    access: "public_page",
+    freshnessNote: "只代表爱奇艺站内口径，不代表全网",
+    riskNote: "页面稳定性低于优酷，需按已验证能力展示"
+  },
+  tencent: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "腾讯视频剧集、综艺、动漫和热榜候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "页面结构和登录态可能限制采集"
+  },
+  mango_tv: {
+    signalKinds: ["platform_catalog", "platform_rank", "release_calendar"],
+    coverage: "芒果TV 综艺、剧集、预约和追更候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "预约和追更口径需要单独验证"
+  },
+  bilibili: {
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "哔哩哔哩番剧、国创、纪录片和站内榜单候选",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "尚未实现，只保留规划入口",
+    riskNote: "不同分区榜单口径差异较大"
+  },
+  douban: {
+    signalKinds: ["rating", "metadata"],
+    coverage: "中文评分、口碑和基础资料",
+    cadence: "低频或手动校正辅助",
+    access: "restricted_page",
+    freshnessNote: "不是上新源，只做口碑补充",
+    riskNote: "不得高频爬取或绕过登录、验证码和反爬限制"
+  },
+  mtime: {
+    signalKinds: ["news_signal", "metadata"],
+    coverage: "中文影视资讯和资料补充",
+    cadence: "待核对公开页面",
+    access: "public_page",
+    freshnessNote: "不作为核心热度源",
+    riskNote: "资讯页面结构化程度有限"
   }
 }
 

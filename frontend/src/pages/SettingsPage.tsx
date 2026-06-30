@@ -23,6 +23,10 @@ import type {
   SourceSettingsView
 } from "../api/types"
 import { SourceConfigDialog } from "../components/SourceConfigDialog"
+import {
+  SOURCE_ACCESS_LABELS,
+  SOURCE_SIGNAL_LABELS
+} from "../utils/sourceSemantics"
 
 const MODE_LABELS: Record<ConnectionTestResult["mode"], string> = {
   direct: "直连",
@@ -329,6 +333,9 @@ export function SettingsPage() {
                   <thead>
                     <tr>
                       <th>来源</th>
+                      <th>信号类型</th>
+                      <th>覆盖与刷新</th>
+                      <th>访问方式</th>
                       <th>接入状态</th>
                       <th>启用</th>
                       <th>网络策略</th>
@@ -354,6 +361,23 @@ export function SettingsPage() {
                           <td className="sourceIdentity">
                             <strong>{source.name}</strong>
                             <span>{source.description}</span>
+                          </td>
+                          <td>
+                            <div className="semanticTags" aria-label={`${source.name} 信号类型`}>
+                              {source.semantics.signalKinds.map((kind) => (
+                                <span className="semanticTag" key={kind}>
+                                  {SOURCE_SIGNAL_LABELS[kind]}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="sourceCadence">
+                            <span>{source.semantics.coverage} · {source.semantics.cadence}</span>
+                          </td>
+                          <td>
+                            <span className={`accessBadge ${source.semantics.access}`}>
+                              {SOURCE_ACCESS_LABELS[source.semantics.access]}
+                            </span>
                           </td>
                           <td>
                             <span className={`sourceStatus ${source.implementationStatus}`}>

@@ -129,6 +129,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
           supportsSync: source.supportsSync,
           supportsEnable: source.supportsEnable,
           fields,
+          semantics: source.semantics,
           latestRun: latestRun ? {
             status: latestRun.status,
             startedAt: latestRun.startedAt.toISOString(),

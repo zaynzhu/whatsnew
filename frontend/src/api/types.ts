@@ -7,10 +7,14 @@ export type {
   SettingsResponse,
   SettingsUpdateRequest,
   SettingsUpdateResponse,
+  SourceCatalogItem,
   SourceSettingsView
 } from "@whatsnew/shared/settings"
 
-import type { ConnectionTestResult } from "@whatsnew/shared/settings"
+import type {
+  ConnectionTestResult,
+  SourceCatalogItem
+} from "@whatsnew/shared/settings"
 
 export type ApiMediaItem = MediaSummary & {
   dataSources?: string[]
@@ -121,7 +125,7 @@ export type CalendarResponse = {
 }
 
 export type SourcesResponse = {
-  items: SourceSyncRun[]
+  items: SourceCatalogItem[]
 }
 
 export type ProxyTestResponse = {

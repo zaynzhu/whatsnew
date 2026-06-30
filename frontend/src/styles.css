@@ -424,6 +424,85 @@ h1 {
   grid-template-columns: minmax(130px, 0.6fr) minmax(180px, 1fr) minmax(120px, auto) minmax(90px, auto);
 }
 
+.sourceStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.sourceStats div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #131715;
+}
+
+.sourceStats span,
+.sourceCatalogIdentity span,
+.sourceCatalogMeta span,
+.sourceRiskNote {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sourceStats strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--mist);
+  font-size: 26px;
+}
+
+.sourceCatalogList {
+  display: grid;
+  gap: 10px;
+}
+
+.sourceCatalogRow {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(170px, 0.65fr) minmax(230px, 1fr) minmax(110px, 0.45fr) minmax(180px, 0.75fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #141816;
+}
+
+.sourceCatalogIdentity,
+.sourceCatalogMeta,
+.sourceRiskNote {
+  min-width: 0;
+}
+
+.sourceCatalogIdentity strong,
+.sourceCatalogIdentity p,
+.sourceCatalogMeta span,
+.sourceCatalogMeta strong,
+.sourceRiskNote {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.sourceCatalogIdentity strong {
+  margin-top: 3px;
+  color: var(--mist);
+  font-size: 14px;
+}
+
+.sourceCatalogIdentity p,
+.sourceRiskNote {
+  margin: 4px 0 0;
+}
+
+.sourceCatalogMeta strong {
+  margin-top: 5px;
+  color: var(--amber);
+  font-size: 12px;
+}
+
 .rankRow {
   grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.65fr) 64px minmax(96px, auto) minmax(110px, auto);
 }
@@ -963,7 +1042,7 @@ h1 {
 
 .sourceTable table {
   width: 100%;
-  min-width: 1050px;
+  min-width: 1280px;
   border-collapse: collapse;
   background: #131715;
 }
@@ -994,6 +1073,59 @@ h1 {
 
 .sourceIdentity {
   width: 215px;
+}
+
+.semanticTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.semanticTag,
+.accessBadge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.semanticTag {
+  background: #202622;
+  color: #d3ded8;
+}
+
+.accessBadge.public_api,
+.accessBadge.free_key,
+.accessBadge.public_page {
+  background: rgba(61, 214, 179, 0.12);
+  color: var(--teal);
+}
+
+.accessBadge.application,
+.accessBadge.restricted_page {
+  background: rgba(242, 184, 75, 0.12);
+  color: var(--amber);
+}
+
+.accessBadge.commercial {
+  background: rgba(239, 93, 86, 0.12);
+  color: var(--red);
+}
+
+.sourceCadence {
+  min-width: 185px;
+}
+
+.sourceCadence span {
+  display: block;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .sourceIdentity strong,

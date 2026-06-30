@@ -17,6 +17,7 @@ type SourceFixtureOptions = {
   credentialsComplete?: boolean
   missingCredentials?: string[]
   fields?: SettingsFieldView[]
+  semantics?: SourceSettingsView["semantics"]
 }
 
 function sourceFixture(id: string, name: string, options: SourceFixtureOptions): SourceSettingsView {
@@ -34,8 +35,16 @@ function sourceFixture(id: string, name: string, options: SourceFixtureOptions):
     supportsSync: options.supportsSync ?? false,
     supportsEnable: options.supportsEnable ?? false,
     fields: options.fields ?? [],
+    semantics: options.semantics ?? {
+      signalKinds: ["metadata"],
+      coverage: `${name} 覆盖范围`,
+      cadence: "日级刷新",
+      access: "public_page",
+      freshnessNote: `${name} 时效说明`,
+      riskNote: `${name} 风险说明`
+    },
     latestRun: null
-  }
+  } as SourceSettingsView
 }
 
 const proxyFields: SettingsFieldView[] = [
@@ -96,15 +105,51 @@ const sourceFixtures = [
     credentialsComplete: false,
     missingCredentials: ["THETVDB_API_KEY"]
   }),
-  sourceFixture("justwatch", "JustWatch", { group: "cross_platform", implementationStatus: "commercial" }),
-  sourceFixture("flixpatrol", "FlixPatrol", { group: "cross_platform", implementationStatus: "commercial" }),
+  sourceFixture("justwatch", "JustWatch", {
+    group: "cross_platform",
+    implementationStatus: "commercial",
+    semantics: {
+      signalKinds: ["availability", "platform_rank"],
+      coverage: "多地区流媒体可看性",
+      cadence: "日级榜单",
+      access: "application",
+      freshnessNote: "需要申请后才能确认同步频率",
+      riskNote: "申请制数据源，当前不能直接同步"
+    }
+  }),
+  sourceFixture("flixpatrol", "FlixPatrol", {
+    group: "cross_platform",
+    implementationStatus: "commercial",
+    semantics: {
+      signalKinds: ["platform_rank"],
+      coverage: "全球多平台地区榜单",
+      cadence: "商业数据产品",
+      access: "commercial",
+      freshnessNote: "需要商业授权后才能同步",
+      riskNote: "当前不能作为免费来源启用"
+    }
+  }),
   sourceFixture("netflix", "Netflix", { group: "international_platform" }),
   sourceFixture("prime_video", "Prime Video", { group: "international_platform" }),
   sourceFixture("hulu", "Hulu", { group: "international_platform" }),
   sourceFixture("disney_plus", "Disney+", { group: "international_platform" }),
   sourceFixture("max", "Max", { group: "international_platform" }),
   sourceFixture("apple_tv_plus", "Apple TV+", { group: "international_platform" }),
-  sourceFixture("youku", "优酷", { group: "china_platform", implementationStatus: "active", enabled: true, supportsSync: true, supportsEnable: true }),
+  sourceFixture("youku", "优酷", {
+    group: "china_platform",
+    implementationStatus: "active",
+    enabled: true,
+    supportsSync: true,
+    supportsEnable: true,
+    semantics: {
+      signalKinds: ["platform_catalog", "platform_rank"],
+      coverage: "中国电影、剧集、综艺、动漫和短剧",
+      cadence: "小时级平台热度",
+      access: "public_page",
+      freshnessNote: "只代表优酷站内口径",
+      riskNote: "页面结构变化会影响采集"
+    }
+  }),
   sourceFixture("iqiyi", "爱奇艺", { group: "china_platform", implementationStatus: "active", enabled: true, supportsSync: true, supportsEnable: true }),
   sourceFixture("tencent", "腾讯视频", { group: "china_platform" }),
   sourceFixture("mango_tv", "芒果TV", { group: "china_platform" }),
@@ -248,6 +293,17 @@ describe("SettingsPage", () => {
     expect(screen.getByText("JustWatch")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "启用 IMDb" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "同步 JustWatch" })).toBeDisabled()
+  })
+
+  it("展示数据源口径、覆盖范围和访问方式", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(settingsResponse))
+
+    renderSettings()
+
+    expect((await screen.findAllByText("平台榜")).length).toBeGreaterThan(0)
+    expect(screen.getByText("中国电影、剧集、综艺、动漫和短剧 · 小时级平台热度")).toBeInTheDocument()
+    expect(screen.getByText("申请制")).toBeInTheDocument()
+    expect(screen.getByText("商业授权")).toBeInTheDocument()
   })
 
   it("缺少 Trakt 凭据时保留启用开关并禁止同步", async () => {

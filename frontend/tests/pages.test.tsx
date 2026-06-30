@@ -124,6 +124,64 @@ const sourceRun = {
   nextRunAt: "2026-06-18T00:00:00.000Z"
 }
 
+const sourceCatalogItems = [
+  {
+    id: "tmdb",
+    name: "TMDb",
+    description: "电影、剧集、趋势和基础元数据",
+    group: "global_metadata",
+    implementationStatus: "active",
+    enabled: true,
+    runnable: true,
+    proxyMode: "inherit",
+    credentialsComplete: true,
+    missingCredentials: [],
+    supportsSync: true,
+    supportsEnable: true,
+    fields: [],
+    semantics: {
+      signalKinds: ["metadata", "community_trend", "release_calendar"],
+      coverage: "全球电影与剧集",
+      cadence: "小时级趋势与日级发现",
+      access: "free_key",
+      freshnessNote: "趋势不代表流媒体已上架",
+      riskNote: "需要 TMDb API Key"
+    },
+    latestRun: {
+      status: "success",
+      startedAt: "2026-06-17T00:00:00.000Z",
+      finishedAt: "2026-06-17T00:00:02.000Z",
+      durationMs: 2000,
+      itemCount: 8,
+      errorMessage: null
+    }
+  },
+  {
+    id: "flixpatrol",
+    name: "FlixPatrol",
+    description: "多平台地区 Top 10",
+    group: "cross_platform",
+    implementationStatus: "commercial",
+    enabled: false,
+    runnable: false,
+    proxyMode: "inherit",
+    credentialsComplete: true,
+    missingCredentials: [],
+    supportsSync: false,
+    supportsEnable: false,
+    fields: [],
+    semantics: {
+      signalKinds: ["platform_rank", "availability"],
+      coverage: "全球多平台和地区榜单",
+      cadence: "商业数据产品",
+      access: "commercial",
+      freshnessNote: "需要商业授权后才能同步",
+      riskNote: "当前不能作为免费来源启用"
+    },
+    latestRun: null
+  }
+]
+
 const event = {
   id: "event-1",
   mediaItemId: "media-1",
@@ -173,7 +231,7 @@ const responses: Record<string, unknown> = {
     items: [traktRelease, movieRelease]
   },
   "/api/sources": {
-    items: [sourceRun]
+    items: sourceCatalogItems
   },
   "/api/media/media-1": {
     ...mediaItem,
@@ -296,8 +354,13 @@ describe("frontend pages", () => {
     expect(movieRow).not.toHaveTextContent(/S\d+ E\d+/)
 
     renderRoute("/sources")
-    expect(await screen.findByText("tvmaze")).toBeInTheDocument()
+    expect(await screen.findByText("TMDb")).toBeInTheDocument()
+    expect(screen.getByText("社区热度")).toBeInTheDocument()
+    expect(screen.getByText("全球电影与剧集 · 小时级趋势与日级发现")).toBeInTheDocument()
     expect(screen.getByText("8 条")).toBeInTheDocument()
+    expect(screen.getByText("FlixPatrol")).toBeInTheDocument()
+    expect(screen.getByText("商业授权")).toBeInTheDocument()
+    expect(screen.getByText("当前不能作为免费来源启用")).toBeInTheDocument()
   })
 
   it("writes movement and source filters to the API request", async () => {

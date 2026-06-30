@@ -11,7 +11,7 @@ import {
 } from "../services/connectionTestService.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
-import { getSourceDefinition } from "../settings/sourceCatalog.js"
+import { SOURCE_CATALOG, getSourceDefinition } from "../settings/sourceCatalog.js"
 import { redactStoredError } from "../settings/settingsRedaction.js"
 
 type SourcesRouterDependencies = {
@@ -28,16 +28,45 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
 
   router.get("/", async (_req, res) => {
     const runs = await database.sourceSyncRun.findMany({
-      where: { source: { not: "demo" } },
+      where: { source: { in: SOURCE_CATALOG.map((source) => source.id) } },
       orderBy: { startedAt: "desc" },
-      take: 50
+      take: 200
     })
+    const latestRuns = new Map<string, (typeof runs)[number]>()
+    for (const run of runs) {
+      if (!latestRuns.has(run.source)) latestRuns.set(run.source, run)
+    }
 
     res.json({
-      items: runs.map((run) => ({
-        ...run,
-        errorMessage: redactStoredError(run.errorMessage, settings)
-      }))
+      items: SOURCE_CATALOG.map((source) => {
+        const missingCredentials = settings.missingCredentials(source.id)
+        const latestRun = latestRuns.get(source.id)
+
+        return {
+          id: source.id,
+          name: source.name,
+          description: source.description,
+          group: source.group,
+          implementationStatus: source.implementationStatus,
+          enabled: settings.sourceEnabled(source.id),
+          runnable: settings.sourceRunnable(source.id),
+          proxyMode: settings.sourceProxyMode(source.id),
+          credentialsComplete: missingCredentials.length === 0,
+          missingCredentials,
+          supportsSync: source.supportsSync,
+          supportsEnable: source.supportsEnable,
+          fields: [],
+          semantics: source.semantics,
+          latestRun: latestRun ? {
+            status: latestRun.status,
+            startedAt: latestRun.startedAt.toISOString(),
+            finishedAt: latestRun.finishedAt?.toISOString() ?? null,
+            itemCount: latestRun.itemCount,
+            durationMs: latestRun.durationMs,
+            errorMessage: redactStoredError(latestRun.errorMessage, settings)
+          } : null
+        }
+      })
     })
   })
 

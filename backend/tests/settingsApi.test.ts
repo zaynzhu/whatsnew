@@ -99,6 +99,43 @@ describe("settings API", () => {
     expect(clientId.sensitive).toBe(true)
   })
 
+  it("returns source semantics for settings and source catalog APIs", async () => {
+    database.sourceSyncRun.findMany.mockResolvedValue([{
+      source: "tmdb",
+      scope: "popularity",
+      status: "success",
+      startedAt: new Date("2026-06-20T10:00:00.000Z"),
+      finishedAt: new Date("2026-06-20T10:00:01.000Z"),
+      durationMs: 1000,
+      itemCount: 12,
+      errorMessage: null
+    }] as never)
+
+    const settingsResponse = await request(testApp()).get("/api/settings")
+    const sourcesResponse = await request(testApp()).get("/api/sources")
+    const trakt = settingsResponse.body.sources.find((source: any) => source.id === "trakt")
+    const tmdb = sourcesResponse.body.items.find((source: any) => source.id === "tmdb")
+
+    expect(settingsResponse.status).toBe(200)
+    expect(trakt.semantics).toMatchObject({
+      signalKinds: expect.arrayContaining(["community_trend", "release_calendar"]),
+      access: "free_key"
+    })
+    expect(sourcesResponse.status).toBe(200)
+    expect(sourcesResponse.body.items).toHaveLength(20)
+    expect(tmdb).toMatchObject({
+      id: "tmdb",
+      name: "TMDb",
+      latestRun: expect.objectContaining({
+        status: "success",
+        itemCount: 12
+      }),
+      semantics: expect.objectContaining({
+        signalKinds: expect.arrayContaining(["metadata", "community_trend"])
+      })
+    })
+  })
+
   it("reports the user switch separately from credential readiness", async () => {
     await testSettings.update({}, ["TMDB_API_KEY"])
 
@@ -128,7 +165,8 @@ describe("settings API", () => {
 
     expect(response.status).toBe(200)
     expect(JSON.stringify(response.body)).not.toContain("secret-trakt-client-id")
-    expect(response.body.items[0].errorMessage).toContain("[REDACTED]")
+    const trakt = response.body.items.find((source: any) => source.id === "trakt")
+    expect(trakt.latestRun.errorMessage).toContain("[REDACTED]")
   })
 
   it("returns TheTVDB PIN as an optional masked field", async () => {
