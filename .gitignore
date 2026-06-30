@@ -10,5 +10,6 @@ dist/
 .DS_Store
 coverage/
 frontend/.vite/
+backend/.cache/
 .superpowers/
 .worktrees/
