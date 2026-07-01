@@ -29,6 +29,7 @@ This file is the short operational handoff for the current branch.
 | Hulu | Official press schedule. |
 | Disney+ | Official New to Disney+ article. |
 | Max | Official WBD Pressroom monthly What's New page. |
+| Apple TV+ | Official Press RSS feed (news_signal, filtered to film/TV). |
 | Youku | China platform catalog/rank page. |
 | iQIYI | China platform new-online page. |
 | MangoTV | China TV channel hot drama ranking and new drama catalog. |

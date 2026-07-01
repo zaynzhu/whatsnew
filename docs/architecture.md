@@ -39,7 +39,7 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 | Group | Active syncable sources |
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
-| International platforms | Netflix, Hulu, Disney+, Max |
+| International platforms | Netflix, Hulu, Disney+, Max, Apple TV+ |
 | China platforms | Youku, iQIYI, MangoTV, Bilibili |
 | Local enrichment | IMDb datasets cache, manual only |
 

@@ -76,13 +76,14 @@ npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
 npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
+npm run sync:apple-tv-plus --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
 
-Hulu, Disney+, Max and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
+Hulu, Disney+, Max, Apple TV+ and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
 
 ## ⚙️ System Settings
 
@@ -92,7 +93,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI, MangoTV, Bilibili; IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Youku, iQIYI, MangoTV, Bilibili; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
@@ -172,6 +173,15 @@ The Bilibili source reads the pgc season ranking API (`api.bilibili.com/pgc/seas
 - The three rankings are complete snapshots; signals missing from the next sync become historical
 - The pgc ranking endpoint may gain signature requirements or go offline at any time; parse failures surface visibly and never fake success
 - Manual sync: `npm run sync:bilibili --workspace backend`
+
+### Apple TV+
+
+The Apple TV+ source reads the official Press RSS feed (`https://www.apple.com/tv-pr/news-feed.xml`, Atom XML) and syncs the latest 10 press releases.
+
+- `tv.apple.com` collection returns 404 over local HTTP, so the platform catalog is not scraped; the official RSS feed is used as a `news_signal` source instead
+- `<updated>` is the press release date and is used as `releaseDate` (not the exact streaming debut); non-film/TV news (no series/movie/documentary/special keyword) is filtered out
+- The source is disabled by default and must be enabled from the settings page before manual sync
+- Manual sync: `npm run sync:apple-tv-plus --workspace backend`
 
 ## ✅ Validation
 
