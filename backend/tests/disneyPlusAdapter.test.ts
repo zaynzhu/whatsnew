@@ -61,7 +61,7 @@ describe("Disney+ adapter", () => {
     const fetchText = vi.fn(async () => disneyHtml)
     const adapter = createDisneyPlusAdapter({
       httpClient: { fetchText } as unknown as SourceHttpClient,
-      settings: fakeSettings({}),
+      settings: fakeSettings({ HTTPS_PROXY: "http://proxy.test:7890" }),
       minIntervalMs: 0,
       today: () => "2026-07-01"
     })
@@ -71,9 +71,16 @@ describe("Disney+ adapter", () => {
     expect(fetchText).toHaveBeenCalledWith(
       "disney_plus",
       "https://www.disneyplus.com/explore/articles/new-to-disney-plus",
-      expect.objectContaining({ timeoutMs: 30000 })
+      expect.objectContaining({
+        timeoutMs: 30000,
+        settingsOverride: expect.objectContaining({
+          HTTPS_PROXY: "http://proxy.test:7890",
+          SOURCE_DISNEY_PLUS_PROXY_MODE: "inherit"
+        })
+      })
     )
     expect(items).toHaveLength(2)
+    expect(items[0].popularitySignals).toEqual([])
     expect(items[0].media).toMatchObject({
       source: "disney_plus",
       mediaType: "movie",
