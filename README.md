@@ -74,6 +74,7 @@ npm run sync:trakt --workspace backend
 npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
+npm run sync:mango-tv --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
@@ -90,7 +91,7 @@ Hulu、Disney+、Max 和 TheTVDB 默认关闭，可在设置页启用后手动�
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、优酷和爱奇艺；IMDb 使用本地 datasets 手动导入
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、优酷、爱奇艺和芒果TV；IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
 
@@ -151,6 +152,15 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 - popularity 不读取 `score`，不会把它算进热度排序
 - 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
 - 手动同步：`npm run sync:thetvdb --workspace backend`
+
+### 芒果TV
+
+芒果TV 来源读取电视剧频道页（`https://www.mgtv.com/tv/`）的 `__NUXT__` 内嵌数据，同步"热播剧集"和"新剧速递"两个模块。
+
+- "热播剧集"作为完整热度榜写入 popularity signal，下一次同步不在榜的信号会转为历史
+- "新剧速递"作为平台上新目录写入无日期 release，页面未提供具体上线日期
+- 首版不接入预约和追更日历，因为页面未提供结构化日期数据
+- 手动同步：`npm run sync:mango-tv --workspace backend`
 
 ## ✅ 验证
 

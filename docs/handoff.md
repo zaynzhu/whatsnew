@@ -31,6 +31,7 @@ This file is the short operational handoff for the current branch.
 | Max | Official WBD Pressroom monthly What's New page. |
 | Youku | China platform catalog/rank page. |
 | iQIYI | China platform new-online page. |
+| MangoTV | China TV channel hot drama ranking and new drama catalog. |
 | IMDb | Manual local datasets enrichment only. |
 
 ## Known Constraints

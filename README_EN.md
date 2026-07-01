@@ -74,6 +74,7 @@ npm run sync:trakt --workspace backend
 npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
+npm run sync:mango-tv --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
@@ -90,7 +91,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI; IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI, MangoTV; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
@@ -151,6 +152,15 @@ TheTVDB supports only the free project API Key and never falls back to any paid 
 - `popularity` does not read `score` and never counts it toward popularity ranking
 - Anywhere TheTVDB-provided data is shown on a page, the TheTVDB source attribution is displayed
 - Manual sync: `npm run sync:thetvdb --workspace backend`
+
+### MangoTV
+
+The MangoTV source reads `__NUXT__` embedded data from the TV channel page (`https://www.mgtv.com/tv/`) and syncs the "Hot Dramas" and "New Dramas" modules.
+
+- "Hot Dramas" is a complete ranking written as popularity signals; entries missing from the next sync become historical
+- "New Dramas" is a platform catalog written as dateless releases; the page provides no specific launch dates
+- Reservation and follow-along calendars are not included in this version, as the page exposes no structured date data
+- Manual sync: `npm run sync:mango-tv --workspace backend`
 
 ## ✅ Validation
 
