@@ -225,12 +225,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "pgc 排行端点可能随时加签名或下线，失败需可见不伪装"
   },
   douban: {
-    signalKinds: ["rating", "metadata"],
-    coverage: "中文评分、口碑和基础资料",
-    cadence: "低频或手动校正辅助",
-    access: "restricted_page",
-    freshnessNote: "不是上新源，只做口碑补充",
-    riskNote: "不得高频爬取或绕过登录、验证码和反爬限制"
+    signalKinds: ["rating"],
+    coverage: "豆瓣电影 TOP250 高分段口碑评分",
+    cadence: "日级检查，低频同步前 20 条",
+    access: "public_page",
+    freshnessNote: "只代表豆瓣评分口碑，不提供上线日期，不输出 release",
+    riskNote: "不得高频爬取；TOP250 静态榜单，rank 长期稳定"
   },
   maoyan_pro: {
     signalKinds: ["box_office", "platform_rank"],
@@ -290,7 +290,7 @@ export const SOURCE_CATALOG = [
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
   source("mango_tv", "芒果TV", "热播剧集与平台上新", "china_platform", "active", "direct", true, true, "https://www.mgtv.com/tv/", [], ["hourly"], true),
   source("bilibili", "哔哩哔哩", "番剧、国创与纪录片榜单", "china_platform", "active", "direct", true, true, "https://api.bilibili.com/pgc/season/rank/web/list?season_type=1&day=3", [], ["daily"], true),
-  source("douban", "豆瓣", "中国口碑与评分", "china_platform", "planned", "direct", false, false, "https://movie.douban.com/"),
+  source("douban", "豆瓣", "电影 TOP250 口碑评分", "china_platform", "active", "direct", true, true, "https://movie.douban.com/j/chart/top_list?type=24&interval_id=100:90&action=&start=0&limit=20", [], ["daily"], false),
   source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),
   source("dengta_pro", "灯塔专业版", "票房、网播热度与收视指标", "china_platform", "planned", "direct", false, false, "https://www.taopiaopiao.com/"),
   source("mtime", "时光网", "中文影视资讯补充", "china_platform", "planned", "direct", false, false, "https://www.mtime.com/")

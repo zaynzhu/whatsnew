@@ -20,6 +20,7 @@
     "sync:disney-plus": "tsx src/scripts/syncDisneyPlus.ts",
     "sync:max": "tsx src/scripts/syncMax.ts",
     "sync:apple-tv-plus": "tsx src/scripts/syncAppleTvPlus.ts",
+    "sync:douban": "tsx src/scripts/syncDouban.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",
     "test": "tsx src/scripts/prepareTestDatabase.ts && vitest run",

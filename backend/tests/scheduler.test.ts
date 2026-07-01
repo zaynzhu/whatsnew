@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   mgtvAdapter: { source: "mgtv" },
   bilibiliAdapter: { source: "bilibili" },
   appleTvPlusAdapter: { source: "apple_tv_plus" },
+  doubanAdapter: { source: "douban" },
   netflixAdapter: { source: "netflix" },
   huluAdapter: { source: "hulu" },
   disneyPlusAdapter: { source: "disney_plus" },
@@ -75,6 +76,10 @@ vi.mock("../src/adapters/bilibiliAdapter.js", () => ({
 
 vi.mock("../src/adapters/appleTvPlusAdapter.js", () => ({
   appleTvPlusAdapter: mocks.appleTvPlusAdapter
+}))
+
+vi.mock("../src/adapters/doubanAdapter.js", () => ({
+  doubanAdapter: mocks.doubanAdapter
 }))
 
 vi.mock("../src/adapters/netflixTop10Adapter.js", () => ({
@@ -144,7 +149,7 @@ describe("scheduler", () => {
     })?.[1] as () => Promise<void>
     await dailyJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(8)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(9)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
@@ -153,16 +158,18 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.maxAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
       return !["netflix", "thetvdb", "hulu", "disney_plus", "max"].includes(sourceId)
     })
     await dailyJob()
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
   })
 
   it("resolves enabled adapters for initial sync", async () => {
@@ -187,7 +194,8 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.mgtvAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(13)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(14)
     })
   })
 
@@ -212,7 +220,8 @@ describe("scheduler", () => {
       { sourceId: "youku", scheduleGroup: "hourly" },
       { sourceId: "iqiyi", scheduleGroup: "hourly" },
       { sourceId: "mango_tv", scheduleGroup: "hourly" },
-      { sourceId: "bilibili", scheduleGroup: "daily" }
+      { sourceId: "bilibili", scheduleGroup: "daily" },
+      { sourceId: "douban", scheduleGroup: "daily" }
     ])
     expect(getImplementedAdaptersForSource("tmdb")).toHaveLength(1)
     expect(getImplementedAdaptersForSource("trakt")).toHaveLength(2)

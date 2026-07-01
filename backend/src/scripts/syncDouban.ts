@@ -1,0 +1,14 @@
+import { doubanAdapter } from "../adapters/doubanAdapter.js"
+import { db } from "../config/db.js"
+import { runSourceSync } from "../services/sourceSyncService.js"
+import { runtimeSettings } from "../settings/runtimeSettingsService.js"
+
+await runtimeSettings.load()
+const run = await runSourceSync(db, doubanAdapter)
+
+console.log(`豆瓣 sync complete: ${run.itemCount} items, status=${run.status}`)
+await db.$disconnect()
+
+if (run.status !== "success") {
+  process.exit(1)
+}
