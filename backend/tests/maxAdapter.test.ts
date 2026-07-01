@@ -252,7 +252,8 @@ describe("Max adapter", () => {
       today: () => "2026-07-01"
     })
 
-    const items = await adapter.fetchItems()
+    const batch = await adapter.fetchItems()
+    const items = batch.items
 
     expect(fetchText).toHaveBeenCalledWith(
       "max",
@@ -265,6 +266,7 @@ describe("Max adapter", () => {
         })
       })
     )
+    expect(batch.completeReleaseSources).toEqual(["max"])
     expect(items).toHaveLength(3)
     expect(items[0].popularitySignals).toEqual([])
     expect(items[0].media).toMatchObject({

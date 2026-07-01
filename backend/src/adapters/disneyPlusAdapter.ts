@@ -1,4 +1,4 @@
-import type { SourceAdapter } from "../domain/types.js"
+import type { SourceAdapter, SourceFetchBatch } from "../domain/types.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import {
   RuntimeSettingsService,
@@ -44,7 +44,7 @@ function todayLocalDate(): string {
   ].join("-")
 }
 
-export function createDisneyPlusAdapter(options: DisneyPlusAdapterOptions = {}): SourceAdapter {
+export function createDisneyPlusAdapter(options: DisneyPlusAdapterOptions = {}): SourceAdapter<SourceFetchBatch> {
   const httpClient = options.httpClient ?? sourceHttpClient
   const settings = options.settings ?? runtimeSettings
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
@@ -64,9 +64,14 @@ export function createDisneyPlusAdapter(options: DisneyPlusAdapterOptions = {}):
       const todayValue = today()
       const candidates = parseDisneyPlusNewReleases(html, url, Number(todayValue.slice(0, 4)))
 
-      return candidates
+      const items = candidates
         .map((candidate) => candidateToAdapterItem({ ...CONFIG, sourceUrl: url }, candidate, todayValue))
         .filter((item): item is NonNullable<typeof item> => item != null)
+
+      return {
+        items,
+        completeReleaseSources: ["disney_plus"]
+      }
     }
   }
 }

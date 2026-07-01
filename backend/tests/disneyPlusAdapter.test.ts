@@ -54,6 +54,38 @@ describe("Disney+ parser", () => {
     expect(() => parseDisneyPlusNewReleases("<main><h1>Marketing</h1></main>", "https://example.test", 2026))
       .toThrow("Disney+ 页面没有可解析条目")
   })
+
+  it("ignores navigation and footer lists outside the article body", () => {
+    const html = `
+      <body>
+        <nav>
+          <ul>
+            <li>Movie News</li>
+          </ul>
+        </nav>
+        <article>
+          <h1>New on Disney+ in July 2026</h1>
+          <h2>July 2</h2>
+          <h3>Ocean Movie</h3>
+          <p>Original movie premiere.</p>
+        </article>
+        <footer>
+          <ul>
+            <li>Footer Promo</li>
+          </ul>
+        </footer>
+      </body>
+    `
+
+    const rows = parseDisneyPlusNewReleases(html, "https://example.test/disney", 2026)
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "Ocean Movie",
+        releaseDate: "2026-07-02"
+      })
+    ])
+  })
 })
 
 describe("Disney+ adapter", () => {
@@ -66,7 +98,8 @@ describe("Disney+ adapter", () => {
       today: () => "2026-07-01"
     })
 
-    const items = await adapter.fetchItems()
+    const batch = await adapter.fetchItems()
+    const items = batch.items
 
     expect(fetchText).toHaveBeenCalledWith(
       "disney_plus",
@@ -79,6 +112,7 @@ describe("Disney+ adapter", () => {
         })
       })
     )
+    expect(batch.completeReleaseSources).toEqual(["disney_plus"])
     expect(items).toHaveLength(2)
     expect(items[0].popularitySignals).toEqual([])
     expect(items[0].media).toMatchObject({

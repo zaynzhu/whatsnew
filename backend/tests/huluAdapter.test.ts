@@ -164,7 +164,8 @@ describe("Hulu adapter", () => {
       today: () => "2026-07-01"
     })
 
-    const items = await adapter.fetchItems()
+    const batch = await adapter.fetchItems()
+    const items = batch.items
 
     expect(fetchText).toHaveBeenCalledWith(
       "hulu",
@@ -177,6 +178,7 @@ describe("Hulu adapter", () => {
         })
       })
     )
+    expect(batch.completeReleaseSources).toEqual(["hulu"])
     expect(items).toHaveLength(2)
     expect(items[0].media).toMatchObject({
       source: "hulu",

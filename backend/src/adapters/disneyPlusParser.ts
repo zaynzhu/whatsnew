@@ -5,6 +5,16 @@ import {
   type PlatformReleaseCandidate
 } from "./platformPageUtils.js"
 
+function pickContentRoot(html: ReturnType<typeof load>) {
+  const article = html("article").first()
+  if (article.length > 0) return article
+
+  const main = html("main").first()
+  if (main.length > 0) return main
+
+  return html("body").first()
+}
+
 function inferContentType(title: string, description: string | null): string {
   const text = `${title} ${description ?? ""}`.toLowerCase()
 
@@ -22,7 +32,7 @@ export function parseDisneyPlusNewReleases(
   fallbackYear: number
 ): PlatformReleaseCandidate[] {
   const $ = load(html)
-  const root = $("article, main, body").first()
+  const root = pickContentRoot($)
   const candidates: PlatformReleaseCandidate[] = []
   let currentDate: string | null = null
 
