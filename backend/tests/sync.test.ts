@@ -123,7 +123,7 @@ function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
   }
 }
 
-function adapterWithFutureRelease(releaseDate: string): SourceAdapter {
+function adapterWithFutureRelease(releaseDate: string, releaseStatus = "upcoming"): SourceAdapter {
   return {
     source: "schedule_test",
     async fetchItems() {
@@ -146,7 +146,7 @@ function adapterWithFutureRelease(releaseDate: string): SourceAdapter {
           releaseDate,
           releaseTime: null,
           releasePattern: "streaming_drop",
-          releaseStatus: "upcoming",
+          releaseStatus,
           seasonNumber: null,
           episodeNumber: null,
           source: "schedule_test",
@@ -530,5 +530,30 @@ describe("runSourceSync", () => {
     await runSourceSync(prisma, adapterWithFutureRelease("2026-06-01"))
     const announced = await prisma.changeEvent.findMany({ where: { eventType: "release_announced" } })
     expect(announced).toHaveLength(0)
+  })
+
+  it("records an airing_today event for a new release dated today and does not repeat", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-01", "airing_today"))
+    const events = await prisma.changeEvent.findMany({ where: { eventType: "airing_today" } })
+    expect(events).toHaveLength(1)
+    expect(events[0].title).toContain("今日播出")
+
+    // 第二次同步 prevDate 已是今天，不再重复
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-01", "airing_today"))
+    const eventsAfter = await prisma.changeEvent.findMany({ where: { eventType: "airing_today" } })
+    expect(eventsAfter).toHaveLength(1)
+  })
+
+  it("records an available_now event when a today-dated release is available", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-01", "available"))
+    const events = await prisma.changeEvent.findMany({ where: { eventType: "available_now" } })
+    expect(events).toHaveLength(1)
+    expect(events[0].title).toContain("今日上架")
   })
 })

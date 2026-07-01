@@ -148,6 +148,39 @@ export async function createDelayedEvent(
   })
 }
 
+export async function createAiringTodayEvent(
+  prisma: PrismaClient,
+  mediaItemId: string,
+  mediaTitle: string,
+  release: ReleaseInput,
+  eventType: "airing_today" | "available_now",
+  eventAt: Date
+): Promise<void> {
+  const verb = eventType === "available_now" ? "今日上架" : "今日播出"
+  const action = eventType === "available_now" ? "上架" : "播出"
+  const title = `${verb}：${mediaTitle}（${release.platform}）`
+  await prisma.changeEvent.create({
+    data: {
+      mediaItemId,
+      eventType,
+      title,
+      description: `${mediaTitle} 于 ${release.releaseDate} 在 ${release.platform}（${release.region}）${action}`,
+      source: release.source,
+      sourceUrl: release.sourceUrl,
+      eventAt,
+      payload: JSON.stringify({
+        source: release.source,
+        platform: release.platform,
+        region: release.region,
+        seasonNumber: release.seasonNumber,
+        episodeNumber: release.episodeNumber,
+        releaseDate: release.releaseDate,
+        releaseStatus: release.releaseStatus
+      })
+    }
+  })
+}
+
 type ReleaseRef = {
   source: string
   platform: string
@@ -180,19 +213,27 @@ export async function generateReleaseEvents(
 
   for (const next of newReleases) {
     const prev = previousByKey.get(releaseKey(next))
+    const nextDate = next.releaseDate
+    const prevDate = prev?.releaseDate ?? null
+
+    // 今日到档：首次发现今天播出/上架；下次同步 prevDate 已是今天，不再重复
+    if (nextDate && nextDate === today && prevDate !== today) {
+      const eventType = next.releaseStatus === "available" ? "available_now" : "airing_today"
+      await createAiringTodayEvent(prisma, mediaItemId, mediaTitle, next, eventType, now)
+      continue
+    }
+
     if (!prev) {
       // 新槽位：只有未来日期才记为定档，已过去的日期不追溯
-      if (next.releaseDate && next.releaseDate > today) {
+      if (nextDate && nextDate > today) {
         await createReleaseAnnouncedEvent(prisma, mediaItemId, mediaTitle, next, now)
       }
       continue
     }
 
     // 同槽位：仅记录延后为改档，提前暂不记录
-    const previousDate = prev.releaseDate
-    const nextDate = next.releaseDate
-    if (previousDate && nextDate && nextDate > previousDate) {
-      await createDelayedEvent(prisma, mediaItemId, mediaTitle, next, previousDate, nextDate, now)
+    if (prevDate && nextDate && nextDate > prevDate) {
+      await createDelayedEvent(prisma, mediaItemId, mediaTitle, next, prevDate, nextDate, now)
     }
   }
 }
