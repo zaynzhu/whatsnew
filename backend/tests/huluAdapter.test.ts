@@ -100,6 +100,54 @@ describe("Hulu schedule parser", () => {
     ])
   })
 
+  it("parses the live Hulu schedule table header shape", () => {
+    const rows = parseHuluSchedule(`
+      <html>
+        <body>
+          <article>
+            <table>
+              <thead>
+                <tr>
+                  <td>Date</td>
+                  <td>Show</td>
+                  <td>Category</td>
+                  <td>Status</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-sort="1782864000"><span data-month="July"></span> July 1</td>
+                  <td>GMA First Listen: Complete Season 1</td>
+                  <td>ABC News</td>
+                  <td>Added</td>
+                </tr>
+                <tr>
+                  <td data-sort="1782864000"><span data-month="July"></span> July 1</td>
+                  <td>Bad Boys (1995)</td>
+                  <td></td>
+                  <td>Added</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </body>
+      </html>
+    `, "https://press.hulu.com/schedule/", 2026)
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "GMA First Listen: Complete Season 1",
+        sourceContentType: "series",
+        releaseDate: "2026-07-01"
+      }),
+      expect.objectContaining({
+        title: "Bad Boys (1995)",
+        sourceContentType: "movie",
+        releaseDate: "2026-07-01"
+      })
+    ])
+  })
+
   it("throws when the schedule page contains no usable dated rows", () => {
     expect(() => parseHuluSchedule("<html><table></table></html>", "https://press.hulu.com/schedule/", 2026))
       .toThrow("Hulu schedule 没有可解析条目")

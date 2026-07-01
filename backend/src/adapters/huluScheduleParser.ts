@@ -9,7 +9,7 @@ import {
 function inferContentType(title: string, labels: string[]): string {
   const text = [title, ...labels].join(" ").toLowerCase()
 
-  if (text.includes("movie") || text.includes("film")) return "movie"
+  if (text.includes("movie") || text.includes("film") || /\(\d{4}\)/.test(title)) return "movie"
   if (text.includes("season") || text.includes("series") || text.includes("episode")) return "series"
   if (text.includes("documentary")) return "documentary"
   if (text.includes("special")) return "special"
@@ -29,7 +29,7 @@ function headerTexts(table: Cheerio<AnyNode>, $: CheerioAPI): string[] {
   return table
     .find("tr")
     .first()
-    .find("th")
+    .find("th, td")
     .map((_index, cell) => cleanPlatformText($(cell).text())?.toLowerCase())
     .get()
     .filter((value): value is string => value != null)
@@ -37,7 +37,7 @@ function headerTexts(table: Cheerio<AnyNode>, $: CheerioAPI): string[] {
 
 function isScheduleTable(table: Cheerio<AnyNode>, $: CheerioAPI): boolean {
   const headers = headerTexts(table, $)
-  return headers.includes("date") && headers.includes("title")
+  return headers.includes("date") && (headers.includes("title") || headers.includes("show"))
 }
 
 export function parseHuluSchedule(
