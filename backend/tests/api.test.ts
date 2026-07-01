@@ -99,6 +99,26 @@ describe("api routes", () => {
         access: "public_page"
       })
     })
+    expect(sourcesResponse.body.items.find((source: any) => source.id === "disney_plus")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      enabled: false,
+      runnable: false,
+      semantics: expect.objectContaining({
+        signalKinds: ["platform_catalog", "release_calendar"],
+        access: "public_page"
+      })
+    })
+    expect(sourcesResponse.body.items.find((source: any) => source.id === "max")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      enabled: false,
+      runnable: false,
+      semantics: expect.objectContaining({
+        signalKinds: ["platform_catalog", "release_calendar"],
+        access: "public_page"
+      })
+    })
     expect(sourcesResponse.body.items.find((source: any) => source.id === "prime_video")).toMatchObject({
       implementationStatus: "planned",
       supportsSync: false,
