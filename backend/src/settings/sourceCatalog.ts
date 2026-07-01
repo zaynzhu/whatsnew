@@ -217,12 +217,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "页面结构变化会影响采集；追更日历未提供日期数据，首版不接入"
   },
   bilibili: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "哔哩哔哩番剧、国创、纪录片和站内榜单候选",
-    cadence: "待核对公开页面",
-    access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "不同分区榜单口径差异较大"
+    signalKinds: ["platform_rank"],
+    coverage: "哔哩哔哩番剧、国创与纪录片 pgc 排行榜（近 3 日综合得分）",
+    cadence: "日级榜单检查",
+    access: "public_api",
+    freshnessNote: "只代表 B站站内播放与追番口径，不代表全网",
+    riskNote: "pgc 排行端点可能随时加签名或下线，失败需可见不伪装"
   },
   douban: {
     signalKinds: ["rating", "metadata"],
@@ -289,7 +289,7 @@ export const SOURCE_CATALOG = [
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
   source("mango_tv", "芒果TV", "热播剧集与平台上新", "china_platform", "active", "direct", true, true, "https://www.mgtv.com/tv/", [], ["hourly"], true),
-  source("bilibili", "哔哩哔哩", "番剧、国创与榜单", "china_platform", "planned", "direct", false, false, "https://www.bilibili.com/anime/"),
+  source("bilibili", "哔哩哔哩", "番剧、国创与纪录片榜单", "china_platform", "active", "direct", true, true, "https://api.bilibili.com/pgc/season/rank/web/list?season_type=1&day=3", [], ["daily"], true),
   source("douban", "豆瓣", "中国口碑与评分", "china_platform", "planned", "direct", false, false, "https://movie.douban.com/"),
   source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),
   source("dengta_pro", "灯塔专业版", "票房、网播热度与收视指标", "china_platform", "planned", "direct", false, false, "https://www.taopiaopiao.com/"),

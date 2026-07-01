@@ -1,6 +1,7 @@
 import type { SourceAdapter, SourceFetchResult } from "../domain/types.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import type { ScheduleGroup } from "../settings/sourceCatalog.js"
+import { bilibiliAdapter } from "./bilibiliAdapter.js"
 import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
 import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
@@ -31,7 +32,8 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter },
-  { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter }
+  { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter },
+  { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter }
 ]
 
 export function getEnabledAdapters(scheduleGroup?: ScheduleGroup): RegisteredAdapter[] {
