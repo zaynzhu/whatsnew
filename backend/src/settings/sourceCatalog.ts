@@ -254,7 +254,7 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     cadence: "待核对公开页面",
     access: "public_page",
     freshnessNote: "不作为核心热度源",
-    riskNote: "资讯页面结构化程度有限"
+    riskNote: "已核对：资讯列表页文章链接结构需二次解析，官方 RSS feed 无响应，结构化程度有限，首版未接入"
   }
 }
 
