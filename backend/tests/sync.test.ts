@@ -512,15 +512,32 @@ describe("runSourceSync", () => {
     expect(delayed).toHaveLength(1)
     expect(delayed[0].title).toContain("2026-08-01")
     expect(delayed[0].title).toContain("2026-09-01")
+    expect(delayed[0].title).toContain("延后")
 
     const delayedPayload = JSON.parse(delayed[0].payload)
     expect(delayedPayload.previousDate).toBe("2026-08-01")
     expect(delayedPayload.releaseDate).toBe("2026-09-01")
+    expect(delayedPayload.direction).toBe("延后")
 
     // 第三次同步档期不变，不再重复生成改档事件
     await runSourceSync(prisma, adapterWithFutureRelease("2026-09-01"))
     const delayedAfter = await prisma.changeEvent.findMany({ where: { eventType: "delayed" } })
     expect(delayedAfter).toHaveLength(1)
+  })
+
+  it("records a delayed event when a release date moves earlier", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-09-01"))
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-08-15"))
+
+    const delayed = await prisma.changeEvent.findMany({ where: { eventType: "delayed" } })
+    expect(delayed).toHaveLength(1)
+    expect(delayed[0].title).toContain("提前")
+    expect(delayed[0].title).toContain("2026-09-01")
+    expect(delayed[0].title).toContain("2026-08-15")
+    expect(JSON.parse(delayed[0].payload).direction).toBe("提前")
   })
 
   it("does not record release_announced for a past release date", async () => {

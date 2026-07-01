@@ -122,15 +122,16 @@ export async function createDelayedEvent(
   release: ReleaseInput,
   previousDate: string,
   nextDate: string,
+  direction: "提前" | "延后",
   eventAt: Date
 ): Promise<void> {
-  const title = `改档：${mediaTitle} 由 ${previousDate} 延后至 ${nextDate}`
+  const title = `改档：${mediaTitle} 由 ${previousDate} ${direction}至 ${nextDate}`
   await prisma.changeEvent.create({
     data: {
       mediaItemId,
       eventType: "delayed",
       title,
-      description: `${mediaTitle} 在 ${release.platform}（${release.region}）的档期由 ${previousDate} 延后至 ${nextDate}`,
+      description: `${mediaTitle} 在 ${release.platform}（${release.region}）的档期由 ${previousDate} ${direction}至 ${nextDate}`,
       source: release.source,
       sourceUrl: release.sourceUrl,
       eventAt,
@@ -142,6 +143,7 @@ export async function createDelayedEvent(
         episodeNumber: release.episodeNumber,
         previousDate,
         releaseDate: nextDate,
+        direction,
         releaseStatus: release.releaseStatus
       })
     }
@@ -231,9 +233,10 @@ export async function generateReleaseEvents(
       continue
     }
 
-    // 同槽位：仅记录延后为改档，提前暂不记录
-    if (prevDate && nextDate && nextDate > prevDate) {
-      await createDelayedEvent(prisma, mediaItemId, mediaTitle, next, prevDate, nextDate, now)
+    // 同槽位：日期变化即记为改档，区分提前与延后
+    if (prevDate && nextDate && nextDate !== prevDate) {
+      const direction = nextDate > prevDate ? "延后" : "提前"
+      await createDelayedEvent(prisma, mediaItemId, mediaTitle, next, prevDate, nextDate, direction, now)
     }
   }
 }

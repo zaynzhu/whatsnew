@@ -146,7 +146,7 @@ model ChangeEvent {
   source      String
   sourceUrl   String?  @db.Text
   eventAt     DateTime @default(now())
-  payload     String   @default("{}")
+  payload     String   @db.Text
 
   mediaItem MediaItem? @relation(fields: [mediaItemId], references: [id], onDelete: SetNull)
 
