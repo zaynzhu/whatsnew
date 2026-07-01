@@ -19,7 +19,7 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
 | `PopularitySignal` | Source-specific ranking or metric snapshots. Current rows power `/api/trending`; historical rows power detail charts. |
 | `SourceSyncRun` | One adapter execution, including `source`, `scope`, status, counts, duration and redacted errors. |
-| `ChangeEvent` | Audit events for detected titles and source-driven changes. |
+| `ChangeEvent` | Change feed events. Types: `media_detected`, `release_announced`, `airing_today`, `available_now`, `rank_entered`, `rank_changed`, `heat_rising`, `delayed`, `source_failed`. `mediaItemId` is nullable for `source_failed`. |
 
 ## Sync Flow
 
@@ -40,7 +40,7 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
 | International platforms | Netflix, Hulu, Disney+, Max |
-| China platforms | Youku, iQIYI |
+| China platforms | Youku, iQIYI, MangoTV |
 | Local enrichment | IMDb datasets cache, manual only |
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.
