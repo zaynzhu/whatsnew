@@ -6,7 +6,7 @@ import {
 } from "./platformPageUtils.js"
 
 const SKIP_ENTRY_PATTERN = /\b(?:coming later|check back|streaming now|last chance|leaving|expires?)\b/i
-const RESET_SECTION_PATTERN = /\b(?:coming later|last chance|leaving this month|leaving in)\b/i
+const RESET_SECTION_PATTERN = /\b(?:check back|streaming now|expires?)\b/i
 const BLOCKED_SECTION_PATTERN = /\b(?:last chance|leaving(?: this month)?|coming later|worth the wait)\b/i
 const RELEASE_SECTION_PATTERN = /\b(?:what'?s new|available|premieres?)\b/i
 
@@ -59,22 +59,23 @@ export function parseMaxWhatsNew(
 
   root.find("p, li, h2, h3, h4").each((_index, element) => {
     const tagName = element.tagName?.toLowerCase()
+    const isHeading = tagName === "h2" || tagName === "h3" || tagName === "h4"
     const raw = cleanPlatformText($(element).text())
     if (!raw) return
 
-    if (tagName === "h2" || tagName === "h3" || tagName === "h4") {
-      if (BLOCKED_SECTION_PATTERN.test(raw)) {
-        blockedSection = true
-        currentDate = null
-        return
-      }
+    if (isHeading && RELEASE_SECTION_PATTERN.test(raw)) {
+      blockedSection = false
+      currentDate = null
+      return
+    }
 
-      if (RELEASE_SECTION_PATTERN.test(raw)) {
-        blockedSection = false
-        currentDate = null
-        return
-      }
+    if (BLOCKED_SECTION_PATTERN.test(raw)) {
+      blockedSection = true
+      currentDate = null
+      return
+    }
 
+    if (isHeading) {
       return
     }
 

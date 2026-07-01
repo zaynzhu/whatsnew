@@ -127,6 +127,39 @@ describe("Max press parser", () => {
     )
   })
 
+  it("blocks dated rows after paragraph blocked markers until a release heading appears", () => {
+    const html = `
+      <article>
+        <h1>What's New On Max</h1>
+        <p>Coming later this month</p>
+        <p>July 31</p>
+        <ul>
+          <li>Future Promo Movie</li>
+        </ul>
+        <p>Leaving</p>
+        <p>July 31</p>
+        <ul>
+          <li>Leaving Movie</li>
+        </ul>
+        <h2>What's New This Month</h2>
+        <p>August 1</p>
+        <ul>
+          <li>Fresh Drop, 2025 (HBO)</li>
+        </ul>
+      </article>
+    `
+
+    const rows = parseMaxWhatsNew(html, "https://example.test/max", 2026)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        title: "Fresh Drop",
+        releaseDate: "2026-08-01"
+      })
+    )
+  })
+
   it("ignores category headings as candidates within an active date section", () => {
     const html = `
       <article>
