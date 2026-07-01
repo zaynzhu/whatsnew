@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   theTvdbAdapter: { source: "thetvdb", scope: "updates" },
   youkuAdapter: { source: "youku" },
   iqiyiAdapter: { source: "iqiyi" },
+  mgtvAdapter: { source: "mgtv" },
   netflixAdapter: { source: "netflix" },
   huluAdapter: { source: "hulu" },
   disneyPlusAdapter: { source: "disney_plus" },
@@ -62,6 +63,10 @@ vi.mock("../src/adapters/iqiyiAdapter.js", () => ({
   iqiyiAdapter: mocks.iqiyiAdapter
 }))
 
+vi.mock("../src/adapters/mgtvAdapter.js", () => ({
+  mgtvAdapter: mocks.mgtvAdapter
+}))
+
 vi.mock("../src/adapters/netflixTop10Adapter.js", () => ({
   netflixTop10Adapter: mocks.netflixAdapter
 }))
@@ -105,14 +110,14 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
     await scheduledJob()
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(6)
   })
 
   it("runs only enabled daily adapters on the daily schedule", async () => {
@@ -165,7 +170,8 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.huluAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.disneyPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.maxAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(10)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.mgtvAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(11)
     })
   })
 
@@ -187,7 +193,8 @@ describe("scheduler", () => {
       { sourceId: "disney_plus", scheduleGroup: "daily" },
       { sourceId: "max", scheduleGroup: "daily" },
       { sourceId: "youku", scheduleGroup: "hourly" },
-      { sourceId: "iqiyi", scheduleGroup: "hourly" }
+      { sourceId: "iqiyi", scheduleGroup: "hourly" },
+      { sourceId: "mango_tv", scheduleGroup: "hourly" }
     ])
     expect(getImplementedAdaptersForSource("tmdb")).toHaveLength(1)
     expect(getImplementedAdaptersForSource("trakt")).toHaveLength(2)

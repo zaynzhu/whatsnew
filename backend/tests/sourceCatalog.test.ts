@@ -14,7 +14,8 @@ describe("source catalog", () => {
       "disney_plus",
       "max",
       "youku",
-      "iqiyi"
+      "iqiyi",
+      "mango_tv"
     ])
     expect(getSourceDefinition("trakt")).toMatchObject({
       implementationStatus: "active",

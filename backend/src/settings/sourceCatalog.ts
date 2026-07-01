@@ -209,12 +209,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "页面结构和登录态可能限制采集"
   },
   mango_tv: {
-    signalKinds: ["platform_catalog", "platform_rank", "release_calendar"],
-    coverage: "芒果TV 综艺、剧集、预约和追更候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["platform_catalog", "platform_rank"],
+    coverage: "芒果TV 电视剧频道热播剧集与新剧速递",
+    cadence: "小时级平台热度",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "预约和追更口径需要单独验证"
+    freshnessNote: "只代表芒果TV站内口径，不代表全网",
+    riskNote: "页面结构变化会影响采集；追更日历未提供日期数据，首版不接入"
   },
   bilibili: {
     signalKinds: ["platform_catalog", "platform_rank"],
@@ -288,7 +288,7 @@ export const SOURCE_CATALOG = [
   source("youku", "优酷", "电影、长剧、独播与热度", "china_platform", "active", "direct", true, true, "https://tv.youku.com/", [], ["hourly"], true),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
-  source("mango_tv", "芒果TV", "热播、预约与追更日历", "china_platform", "planned", "direct", false, false, "https://www.mgtv.com/tv/"),
+  source("mango_tv", "芒果TV", "热播剧集与平台上新", "china_platform", "active", "direct", true, true, "https://www.mgtv.com/tv/", [], ["hourly"], true),
   source("bilibili", "哔哩哔哩", "番剧、国创与榜单", "china_platform", "planned", "direct", false, false, "https://www.bilibili.com/anime/"),
   source("douban", "豆瓣", "中国口碑与评分", "china_platform", "planned", "direct", false, false, "https://movie.douban.com/"),
   source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),

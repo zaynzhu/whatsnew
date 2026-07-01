@@ -4,6 +4,7 @@ import type { ScheduleGroup } from "../settings/sourceCatalog.js"
 import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
 import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
+import { mgtvAdapter } from "./mgtvAdapter.js"
 import { maxAdapter } from "./maxAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
 import { theTvdbAdapter } from "./theTvdbAdapter.js"
@@ -29,7 +30,8 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "disney_plus", scheduleGroup: "daily", adapter: disneyPlusAdapter },
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter },
-  { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter }
+  { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter },
+  { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter }
 ]
 
 export function getEnabledAdapters(scheduleGroup?: ScheduleGroup): RegisteredAdapter[] {
