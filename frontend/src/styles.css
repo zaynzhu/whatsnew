@@ -577,8 +577,32 @@ h1 {
 }
 
 .eventRow {
-  grid-template-columns: minmax(160px, 0.7fr) minmax(180px, 1fr) minmax(90px, auto);
+  --event-color: var(--muted);
+  grid-template-columns: minmax(88px, auto) minmax(160px, 0.7fr) minmax(180px, 1fr) minmax(90px, auto);
 }
+
+.eventTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: fit-content;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--event-color);
+  background: color-mix(in srgb, var(--event-color) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--event-color) 38%, transparent);
+}
+
+.event-detect { --event-color: #6aa9ff; }
+.event-announce { --event-color: #b08bff; }
+.event-today { --event-color: #4ec9a0; }
+.event-rising { --event-color: #f5a623; }
+.event-change { --event-color: #8a9bb5; }
+.event-delay { --event-color: #e0c44a; }
+.event-failed { --event-color: #e0563f; }
+.event-neutral { --event-color: var(--muted); }
 
 .row strong,
 .row span {

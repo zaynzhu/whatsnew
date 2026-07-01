@@ -233,7 +233,7 @@ const sourceCatalogItems = [
 const event = {
   id: "event-1",
   mediaItemId: "media-1",
-  eventType: "release_added",
+  eventType: "release_announced",
   title: "新增上线日期",
   description: "Netflix US 档期进入监控",
   source: "tvmaze",
@@ -472,7 +472,7 @@ describe("frontend pages", () => {
     expect(screen.getByRole("link", { name: "打开 Trakt 来源" })).toHaveAttribute("href", "https://example.com")
     expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute("href", "https://example.com/trending")
     expect(screen.getByRole("link", { name: "打开 TVmaze 来源" })).toHaveAttribute("href", "https://example.com")
-    expect(screen.getByText("release_added")).toBeInTheDocument()
+    expect(screen.getByText("即将上线")).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/media/media-1/popularity-history?days=30"
     )

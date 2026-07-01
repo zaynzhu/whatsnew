@@ -7,6 +7,7 @@ import type { DashboardResponse } from "../api/types"
 import { MediaCard } from "../components/MediaCard"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
+import { eventStyle } from "../utils/eventStyle"
 
 type MetricPanelProps = {
   icon: LucideIcon
@@ -71,13 +72,17 @@ export function DashboardPage() {
           </div>
           <div className="list">
             {events.length > 0 ? (
-              events.slice(0, 5).map((event) => (
-                <article className="row eventRow" key={event.id}>
-                  <strong>{event.title}</strong>
-                  <span>{event.description}</span>
-                  <span>{event.source}</span>
-                </article>
-              ))
+              events.slice(0, 5).map((event) => {
+                const style = eventStyle(event.eventType)
+                return (
+                  <article className={`row eventRow event-${style.tone}`} key={event.id}>
+                    <span className="eventTag">{style.label}</span>
+                    <strong>{event.title}</strong>
+                    <span>{event.description}</span>
+                    <span>{event.source}</span>
+                  </article>
+                )
+              })
             ) : (
               <p className="emptyText">暂无事件</p>
             )}

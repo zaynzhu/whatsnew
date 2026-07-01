@@ -9,6 +9,7 @@ import type {
 import { SourceLink } from "../components/SourceLink"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
+import { eventStyle } from "../utils/eventStyle"
 
 function timelineMovement(signal: Omit<PopularitySignal, "mediaItem">): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
@@ -170,14 +171,17 @@ export function MediaDetailPage() {
         </div>
         <div className="list">
           {data.changeEvents.length > 0 ? (
-            data.changeEvents.map((event) => (
-              <article className="row eventRow" key={event.id}>
-                <strong>{event.eventType}</strong>
-                <span>{event.title}</span>
-                <span>{event.description}</span>
-                <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
-              </article>
-            ))
+            data.changeEvents.map((event) => {
+              const style = eventStyle(event.eventType)
+              return (
+                <article className={`row eventRow event-${style.tone}`} key={event.id}>
+                  <span className="eventTag">{style.label}</span>
+                  <span>{event.title}</span>
+                  <span>{event.description}</span>
+                  <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
+                </article>
+              )
+            })
           ) : (
             <p className="emptyText">暂无事件记录</p>
           )}
