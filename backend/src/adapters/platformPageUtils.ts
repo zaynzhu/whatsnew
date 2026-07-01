@@ -85,9 +85,17 @@ function stableHash(value: string): string {
   return createHash("sha1").update(value).digest("hex").slice(0, 12)
 }
 
-function includesKeyword(value: string, keyword: string): boolean {
-  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return new RegExp(`\\b${escaped}\\b`, "i").test(value)
+function includesPattern(value: string, pattern: RegExp): boolean {
+  return pattern.test(value)
+}
+
+const DOCUMENTARY_PATTERN = /\b(?:documentary|documentaries|docuseries)\b/i
+const MOVIE_PATTERN = /\b(?:movie|movies|film|films)\b/i
+const SERIES_PATTERN = /\b(?:series|season|seasons|episode|episodes|show|shows)\b/i
+const SPECIAL_PATTERN = /\b(?:special|specials|reality)\b/i
+
+function normalizedSourceContentType(value: string): string {
+  return cleanPlatformText(value)?.toLowerCase() ?? ""
 }
 
 function classifyCandidate(candidate: PlatformReleaseCandidate): PlatformClassification | null {
@@ -102,28 +110,23 @@ function classifyCandidate(candidate: PlatformReleaseCandidate): PlatformClassif
     .join(" ")
     .toLowerCase()
 
-  if (includesKeyword(combined, "documentary") || includesKeyword(combined, "docuseries")) {
-    if (includesKeyword(combined, "film") || includesKeyword(combined, "movie")) {
+  if (includesPattern(combined, DOCUMENTARY_PATTERN)) {
+    if (includesPattern(combined, MOVIE_PATTERN)) {
       return { mediaType: "documentary", releaseForm: "documentary_film" }
     }
 
     return { mediaType: "documentary", releaseForm: "documentary_series" }
   }
 
-  if (includesKeyword(combined, "movie") || includesKeyword(combined, "film")) {
+  if (includesPattern(combined, MOVIE_PATTERN)) {
     return { mediaType: "movie", releaseForm: "streaming_movie" }
   }
 
-  if (
-    includesKeyword(combined, "series") ||
-    includesKeyword(combined, "season") ||
-    includesKeyword(combined, "episode") ||
-    includesKeyword(combined, "show")
-  ) {
+  if (includesPattern(combined, SERIES_PATTERN)) {
     return { mediaType: "series", releaseForm: "tv_series" }
   }
 
-  if (includesKeyword(combined, "special") || includesKeyword(combined, "reality")) {
+  if (includesPattern(combined, SPECIAL_PATTERN)) {
     return { mediaType: "variety", releaseForm: "variety_season" }
   }
 
@@ -156,7 +159,10 @@ export function candidateToAdapterItem(
   const sourceId = `${config.source}-${stableHash([
     title,
     candidate.releaseDate,
-    candidate.sourceUrl
+    candidate.sourceUrl,
+    classification.mediaType,
+    classification.releaseForm,
+    normalizedSourceContentType(candidate.sourceContentType)
   ].join("|"))}`
   const status = mediaStatus(candidate.releaseDate, today)
 

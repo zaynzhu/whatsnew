@@ -57,6 +57,77 @@ describe("platformPageUtils", () => {
     expect(item?.popularitySignals).toEqual([])
   })
 
+  it("keeps sourceId distinct when title and date match but media type differs", () => {
+    const movie = candidateToAdapterItem(config, {
+      title: "Twin Release",
+      sourceContentType: "movie",
+      releaseDate: "2026-07-01",
+      description: "Original movie event",
+      labels: ["Movie"],
+      sourceUrl: "https://press.hulu.com/schedule/twin-release"
+    }, "2026-07-01")
+
+    const series = candidateToAdapterItem(config, {
+      title: "Twin Release",
+      sourceContentType: "series",
+      releaseDate: "2026-07-01",
+      description: "Original series event",
+      labels: ["Series"],
+      sourceUrl: "https://press.hulu.com/schedule/twin-release"
+    }, "2026-07-01")
+
+    expect(movie?.media.mediaType).toBe("movie")
+    expect(series?.media.mediaType).toBe("series")
+    expect(movie?.media.sourceId).not.toBe(series?.media.sourceId)
+  })
+
+  it("classifies plural labels without misreading showcase as show", () => {
+    expect(candidateToAdapterItem(config, {
+      title: "Planet Earth Collection",
+      sourceContentType: "collection",
+      releaseDate: "2026-07-01",
+      description: null,
+      labels: ["Documentaries"],
+      sourceUrl: "https://press.hulu.com/schedule/docs"
+    }, "2026-07-01")?.media).toMatchObject({
+      mediaType: "documentary",
+      releaseForm: "documentary_series"
+    })
+
+    expect(candidateToAdapterItem(config, {
+      title: "Live Night",
+      sourceContentType: "event",
+      releaseDate: "2026-07-01",
+      description: null,
+      labels: ["Specials"],
+      sourceUrl: "https://press.hulu.com/schedule/specials"
+    }, "2026-07-01")?.media).toMatchObject({
+      mediaType: "variety",
+      releaseForm: "variety_season"
+    })
+
+    expect(candidateToAdapterItem(config, {
+      title: "Spotlight Slate",
+      sourceContentType: "editorial",
+      releaseDate: "2026-07-01",
+      description: null,
+      labels: ["Shows"],
+      sourceUrl: "https://press.hulu.com/schedule/shows"
+    }, "2026-07-01")?.media).toMatchObject({
+      mediaType: "series",
+      releaseForm: "tv_series"
+    })
+
+    expect(candidateToAdapterItem(config, {
+      title: "Summer Showcase",
+      sourceContentType: "collection",
+      releaseDate: "2026-07-01",
+      description: null,
+      labels: [],
+      sourceUrl: "https://press.hulu.com/schedule/showcase"
+    }, "2026-07-01")).toBeNull()
+  })
+
   it("skips candidates without a concrete date or media type", () => {
     expect(candidateToAdapterItem(config, {
       title: "Ambiguous Showcase",
