@@ -1,0 +1,109 @@
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { createMaxAdapter } from "../src/adapters/maxAdapter.js"
+import { parseMaxWhatsNew } from "../src/adapters/maxPressParser.js"
+import { EnvFileStore } from "../src/settings/envFileStore.js"
+import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
+import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
+
+function fakeSettings(values: Record<string, string>): RuntimeSettingsService {
+  return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-max-env"), values)
+}
+
+const maxHtml = `
+  <article>
+    <h1>What's New On HBO Max This July</h1>
+    <p>July 1</p>
+    <ul>
+      <li>Sinners, 2025 (HBO)</li>
+      <li>Rage: Season 1 (HBO Original)</li>
+    </ul>
+    <p>July 15, 2026</p>
+    <p>Feature Film: Opus</p>
+    <p>Coming later this month</p>
+    <p>Last Chance</p>
+    <p>Movie Leaving Soon</p>
+    <p>Undated Promo</p>
+  </article>
+`
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+describe("Max press parser", () => {
+  it("parses dated WBD press sections into platform candidates", () => {
+    const rows = parseMaxWhatsNew(
+      maxHtml,
+      "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july",
+      2026
+    )
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "Sinners",
+        sourceContentType: "movie",
+        releaseDate: "2026-07-01"
+      }),
+      expect.objectContaining({
+        title: "Rage: Season 1",
+        sourceContentType: "series",
+        releaseDate: "2026-07-01"
+      }),
+      expect.objectContaining({
+        title: "Opus",
+        sourceContentType: "movie",
+        releaseDate: "2026-07-15"
+      })
+    ])
+  })
+
+  it("throws when the press page has no dated titles", () => {
+    expect(() =>
+      parseMaxWhatsNew("<article><p>Only marketing copy</p></article>", "https://example.test", 2026)
+    ).toThrow("Max press 页面没有可解析条目")
+  })
+})
+
+describe("Max adapter", () => {
+  it("fetches the configured WBD press page and maps dated titles", async () => {
+    const fetchText = vi.fn(async () => maxHtml)
+    const adapter = createMaxAdapter({
+      httpClient: { fetchText } as unknown as SourceHttpClient,
+      settings: fakeSettings({ HTTPS_PROXY: "http://proxy.test:7890" }),
+      minIntervalMs: 0,
+      today: () => "2026-07-01"
+    })
+
+    const items = await adapter.fetchItems()
+
+    expect(fetchText).toHaveBeenCalledWith(
+      "max",
+      "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july",
+      expect.objectContaining({
+        timeoutMs: 30000,
+        settingsOverride: expect.objectContaining({
+          HTTPS_PROXY: "http://proxy.test:7890",
+          SOURCE_MAX_PROXY_MODE: "inherit"
+        })
+      })
+    )
+    expect(items).toHaveLength(3)
+    expect(items[0].popularitySignals).toEqual([])
+    expect(items[0].media).toMatchObject({
+      source: "max",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      titleDisplay: "Sinners"
+    })
+    expect(items[1].media).toMatchObject({
+      mediaType: "series",
+      releaseForm: "tv_series",
+      titleDisplay: "Rage: Season 1"
+    })
+    expect(items[0].releases[0]).toMatchObject({
+      platform: "Max",
+      region: "US",
+      releaseDate: "2026-07-01"
+    })
+  })
+})
