@@ -63,6 +63,22 @@ describe("Max press parser", () => {
     ).toThrow("Max press 页面没有可解析条目")
   })
 
+  it("rejects synopsis-sized lines as title candidates", () => {
+    const longSynopsis = [
+      "A team investigates a remote coastline and follows multiple witnesses across several towns",
+      "collecting interviews, archival footage and expert commentary that should remain overview copy",
+      "instead of becoming a media title in the database."
+    ].join(" ")
+
+    expect(() =>
+      parseMaxWhatsNew(
+        `<article><p>July 1</p><p>${longSynopsis}</p></article>`,
+        "https://example.test/max",
+        2026
+      )
+    ).toThrow("Max press 页面没有可解析条目")
+  })
+
   it("prefers article content over dated rows elsewhere in the body", () => {
     const html = `
       <html>
@@ -158,6 +174,51 @@ describe("Max press parser", () => {
         releaseDate: "2026-08-01"
       })
     )
+  })
+
+  it("parses rich WBD pressroom paragraphs split by br tags", () => {
+    const html = `
+      <main>
+        <article class="o-article-header__item">
+          <h2>Hero only</h2>
+        </article>
+        <article class="p-media-release__content">
+          <div class="pressroom-content">
+            <p>
+              <strong>Series</strong><br>
+              <em>Debuts July 23</em><br>
+              Max Original Comedy Series<br>
+              <strong>STUART FAILS TO SAVE THE UNIVERSE</strong><br>
+              A multiverse comedy follows a team of unlikely heroes across several timelines and should be treated as synopsis copy rather than a title candidate.<br>
+              10 Episodes<br>
+              <strong>Logline:</strong> A multiverse comedy.
+            </p>
+            <p>
+              <strong>Films</strong><br>
+              <em>Debuts July 10</em><br>
+              Lionsgate Film<br>
+              <strong>The Long Walk&nbsp;</strong><br>
+              <strong>Cast:</strong> Cooper Hoffman.
+            </p>
+          </div>
+        </article>
+      </main>
+    `
+
+    const rows = parseMaxWhatsNew(html, "https://example.test/max", 2026)
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "STUART FAILS TO SAVE THE UNIVERSE",
+        sourceContentType: "series",
+        releaseDate: "2026-07-23"
+      }),
+      expect.objectContaining({
+        title: "The Long Walk",
+        sourceContentType: "movie",
+        releaseDate: "2026-07-10"
+      })
+    ])
   })
 
   it("ignores category headings as candidates within an active date section", () => {
