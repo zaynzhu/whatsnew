@@ -32,6 +32,7 @@ This file is the short operational handoff for the current branch.
 | Youku | China platform catalog/rank page. |
 | iQIYI | China platform new-online page. |
 | MangoTV | China TV channel hot drama ranking and new drama catalog. |
+| Bilibili | China pgc bangumi/guochuang/documentary rankings (3-day composite). |
 | IMDb | Manual local datasets enrichment only. |
 
 ## Known Constraints

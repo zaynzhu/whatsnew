@@ -40,7 +40,7 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
 | International platforms | Netflix, Hulu, Disney+, Max |
-| China platforms | Youku, iQIYI, MangoTV |
+| China platforms | Youku, iQIYI, MangoTV, Bilibili |
 | Local enrichment | IMDb datasets cache, manual only |
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.

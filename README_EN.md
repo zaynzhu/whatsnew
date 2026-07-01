@@ -75,6 +75,7 @@ npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
 npm run sync:mango-tv --workspace backend
+npm run sync:bilibili --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
@@ -91,7 +92,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI, MangoTV; IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI, MangoTV, Bilibili; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
@@ -161,6 +162,16 @@ The MangoTV source reads `__NUXT__` embedded data from the TV channel page (`htt
 - "New Dramas" is a platform catalog written as dateless releases; the page provides no specific launch dates
 - Reservation and follow-along calendars are not included in this version, as the page exposes no structured date data
 - Manual sync: `npm run sync:mango-tv --workspace backend`
+
+### Bilibili
+
+The Bilibili source reads the pgc season ranking API (`api.bilibili.com/pgc/season/rank/web/list`) and syncs three complete rankings: bangumi, guochuang (Chinese originals) and documentaries (3-day composite score).
+
+- The ranking endpoint requires no WBI signature — plain HTTP JSON; fields include rank, title, poster, view count, follow count, rating and update progress
+- "Updated to ep N" maps to `ongoing`/`available`; "Complete / N eps" maps to `ended`; rankings carry no launch date, so releases have no `releaseDate`
+- The three rankings are complete snapshots; signals missing from the next sync become historical
+- The pgc ranking endpoint may gain signature requirements or go offline at any time; parse failures surface visibly and never fake success
+- Manual sync: `npm run sync:bilibili --workspace backend`
 
 ## ✅ Validation
 
