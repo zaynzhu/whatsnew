@@ -66,6 +66,40 @@ describe("Hulu schedule parser", () => {
     ])
   })
 
+  it("ignores dated rows from unrelated tables", () => {
+    const rows = parseHuluSchedule(`
+      <html>
+        <body>
+          <table>
+            <tr><th>Foo</th><th>Bar</th></tr>
+            <tr>
+              <td>July 9</td>
+              <td>Random Movie</td>
+            </tr>
+          </table>
+          <table>
+            <tr><th>Date</th><th>Title</th><th>Network</th><th>Status</th></tr>
+            <tr>
+              <td>July 10</td>
+              <td>Only Murders in the Building: Season 5 Premiere</td>
+              <td>Hulu Original</td>
+              <td>Premiere</td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `, "https://press.hulu.com/schedule/", 2026)
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "Only Murders in the Building: Season 5 Premiere",
+        sourceContentType: "series",
+        releaseDate: "2026-07-10",
+        labels: ["Hulu Original", "Premiere"]
+      })
+    ])
+  })
+
   it("throws when the schedule page contains no usable dated rows", () => {
     expect(() => parseHuluSchedule("<html><table></table></html>", "https://press.hulu.com/schedule/", 2026))
       .toThrow("Hulu schedule 没有可解析条目")

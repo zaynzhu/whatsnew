@@ -25,6 +25,21 @@ function cellTexts(htmlRow: Cheerio<AnyNode>, $: CheerioAPI): string[] {
     .filter((value): value is string => value != null)
 }
 
+function headerTexts(table: Cheerio<AnyNode>, $: CheerioAPI): string[] {
+  return table
+    .find("tr")
+    .first()
+    .find("th")
+    .map((_index, cell) => cleanPlatformText($(cell).text())?.toLowerCase())
+    .get()
+    .filter((value): value is string => value != null)
+}
+
+function isScheduleTable(table: Cheerio<AnyNode>, $: CheerioAPI): boolean {
+  const headers = headerTexts(table, $)
+  return headers.includes("date") && headers.includes("title")
+}
+
 export function parseHuluSchedule(
   html: string,
   sourceUrl: string,
@@ -33,22 +48,27 @@ export function parseHuluSchedule(
   const $ = load(html)
   const candidates: PlatformReleaseCandidate[] = []
 
-  $("tr").each((_index, row) => {
-    const cells = cellTexts($(row), $)
-    if (cells.length < 2) return
+  $("table").each((_index, table) => {
+    const htmlTable = $(table)
+    if (!isScheduleTable(htmlTable, $)) return
 
-    const releaseDate = parseEnglishReleaseDate(cells[0], fallbackYear)
-    const title = cleanPlatformText(cells[1])
-    if (!releaseDate || !title) return
+    htmlTable.find("tr").each((_rowIndex, row) => {
+      const cells = cellTexts($(row), $)
+      if (cells.length < 2) return
 
-    const labels = cells.slice(2)
-    candidates.push({
-      title,
-      sourceContentType: inferContentType(title, labels),
-      releaseDate,
-      description: labels.length > 0 ? labels.join(" · ") : null,
-      labels,
-      sourceUrl
+      const releaseDate = parseEnglishReleaseDate(cells[0], fallbackYear)
+      const title = cleanPlatformText(cells[1])
+      if (!releaseDate || !title) return
+
+      const labels = cells.slice(2)
+      candidates.push({
+        title,
+        sourceContentType: inferContentType(title, labels),
+        releaseDate,
+        description: labels.length > 0 ? labels.join(" · ") : null,
+        labels,
+        sourceUrl
+      })
     })
   })
 
