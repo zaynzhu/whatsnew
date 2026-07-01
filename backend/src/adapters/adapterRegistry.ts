@@ -1,7 +1,10 @@
 import type { SourceAdapter, SourceFetchResult } from "../domain/types.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import type { ScheduleGroup } from "../settings/sourceCatalog.js"
+import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
+import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
+import { maxAdapter } from "./maxAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
 import { theTvdbAdapter } from "./theTvdbAdapter.js"
 import { tmdbAdapter } from "./tmdbAdapter.js"
@@ -22,6 +25,9 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "trakt", scheduleGroup: "daily", adapter: traktCalendarAdapter },
   { sourceId: "thetvdb", scheduleGroup: "daily", adapter: theTvdbAdapter },
   { sourceId: "netflix", scheduleGroup: "daily", adapter: netflixTop10Adapter },
+  { sourceId: "hulu", scheduleGroup: "daily", adapter: huluAdapter },
+  { sourceId: "disney_plus", scheduleGroup: "daily", adapter: disneyPlusAdapter },
+  { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter }
 ]

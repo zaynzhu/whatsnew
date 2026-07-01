@@ -89,6 +89,23 @@ describe("api routes", () => {
         signalKinds: expect.arrayContaining(["metadata", "community_trend"])
       })
     })
+    expect(sourcesResponse.body.items.find((source: any) => source.id === "hulu")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      enabled: false,
+      runnable: false,
+      semantics: expect.objectContaining({
+        signalKinds: ["platform_catalog", "release_calendar"],
+        access: "public_page"
+      })
+    })
+    expect(sourcesResponse.body.items.find((source: any) => source.id === "prime_video")).toMatchObject({
+      implementationStatus: "planned",
+      supportsSync: false,
+      semantics: expect.objectContaining({
+        signalKinds: ["platform_catalog"]
+      })
+    })
   })
 
   it("filters current trending signals by movement and source", async () => {

@@ -145,44 +145,44 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "XLSX 文件结构变化会影响解析"
   },
   prime_video: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "Prime Video 片库、趋势和新内容候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["platform_catalog"],
+    coverage: "Prime Video 新内容集合候选",
+    cadence: "待验证客户端集合页稳定性",
     access: "public_page",
     freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "地区、登录态和页面结构可能限制采集"
+    riskNote: "页面参数、分页 token、地区和客户端渲染会影响采集"
   },
   hulu: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "Hulu 上新、合集和平台榜候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["platform_catalog", "release_calendar"],
+    coverage: "Hulu 美国官方上新与排期",
+    cadence: "日级检查官方 Press Schedule",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "地区和登录态限制可能影响可达性"
+    freshnessNote: "只代表 Hulu 官方 schedule 页面，不代表全网热度",
+    riskNote: "Hulu hub 页面可能地区跳转，首版只使用 Press Schedule"
   },
   disney_plus: {
     signalKinds: ["platform_catalog", "release_calendar"],
-    coverage: "Disney+ 上新文章和平台日历候选",
-    cadence: "待核对公开页面",
+    coverage: "Disney+ 官方月度上新文章",
+    cadence: "日级检查当前 New to Disney+ 页面",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "公开文章不是结构化 API，需要单独验证"
+    freshnessNote: "只代表 Disney+ 官方文章中的上线信息",
+    riskNote: "文章结构和地区语言可能变化，解析失败不得伪装成功"
   },
   max: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "Max 即将上线、下架和平台榜候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["platform_catalog", "release_calendar"],
+    coverage: "Max / HBO Max 官方 Pressroom 月度上新",
+    cadence: "日级检查已验证 WBD Pressroom 页面",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "帮助页或专题页结构变化会影响采集"
+    freshnessNote: "只代表 WBD Pressroom 发布的 Max 上新信息",
+    riskNote: "月度 press URL 可能变化，可通过 SOURCE_MAX_BASE_URL 覆盖"
   },
   apple_tv_plus: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "Apple TV+ 新片和热门榜候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["news_signal"],
+    coverage: "Apple TV Press 资讯候选",
+    cadence: "待验证 press-only 方案",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "地区化页面和客户端渲染可能限制采集"
+    freshnessNote: "首版不采集 tv.apple.com collection",
+    riskNote: "当前本地 HTTP 访问 tv.apple.com collection 返回 404，不硬接平台片库"
   },
   youku: {
     signalKinds: ["platform_catalog", "platform_rank"],
@@ -280,11 +280,11 @@ export const SOURCE_CATALOG = [
   source("justwatch", "JustWatch", "可看性与 Streaming Charts", "cross_platform", "commercial", "inherit", false, false, "https://www.justwatch.com/us/streaming-charts"),
   source("flixpatrol", "FlixPatrol", "多平台地区 Top 10", "cross_platform", "commercial", "inherit", false, false, "https://flixpatrol.com/calendar/upcoming/"),
   source("netflix", "Netflix", "官方全球周榜与观看次数", "international_platform", "active", "inherit", true, true, "https://www.netflix.com/tudum/top10/data/all-weeks-global.xlsx", [], ["daily"], true),
-  source("prime_video", "Prime Video", "Top 10、趋势与新内容", "international_platform", "planned", "inherit", false, false, "https://www.primevideo.com/collection/IncludedwithPrime"),
-  source("hulu", "Hulu", "Top 15 与上新", "international_platform", "planned", "inherit", false, false, "https://www.hulu.com/hub/tv/collections/9979"),
-  source("disney_plus", "Disney+", "官方上新日历", "international_platform", "planned", "inherit", false, false, "https://www.disneyplus.com/explore/articles/new-to-disney-plus"),
-  source("max", "Max", "Top 10、即将上线与下架", "international_platform", "planned", "inherit", false, false, "https://help.max.com/us/Answer/Detail/000002558"),
-  source("apple_tv_plus", "Apple TV+", "新片与热门榜", "international_platform", "planned", "inherit", false, false, "https://tv.apple.com/us/collection/new-releases/uts.col.tv-plus-newest-releases"),
+  source("prime_video", "Prime Video", "新内容集合候选", "international_platform", "planned", "inherit", false, false, "https://www.primevideo.com/collection/newandupcoming"),
+  source("hulu", "Hulu", "官方排期与上新", "international_platform", "active", "inherit", true, true, "https://press.hulu.com/schedule/", [], ["daily"], false),
+  source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
+  source("max", "Max", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
+  source("apple_tv_plus", "Apple TV+", "Apple TV Press 资讯候选", "international_platform", "planned", "inherit", false, false, "https://www.apple.com/tv-pr/news/"),
   source("youku", "优酷", "电影、长剧、独播与热度", "china_platform", "active", "direct", true, true, "https://tv.youku.com/", [], ["hourly"], true),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),

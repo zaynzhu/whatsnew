@@ -10,6 +10,9 @@ describe("source catalog", () => {
       "trakt",
       "thetvdb",
       "netflix",
+      "hulu",
+      "disney_plus",
+      "max",
       "youku",
       "iqiyi"
     ])
@@ -49,6 +52,37 @@ describe("source catalog", () => {
     expect(getSourceDefinition("tmdb").manualCommands).toEqual([])
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
+    expect(getSourceDefinition("hulu")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["daily"],
+      testUrl: "https://press.hulu.com/schedule/"
+    })
+    expect(getSourceDefinition("hulu").semantics).toMatchObject({
+      signalKinds: ["platform_catalog", "release_calendar"],
+      access: "public_page"
+    })
+    expect(getSourceDefinition("disney_plus")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["daily"],
+      testUrl: "https://www.disneyplus.com/explore/articles/new-to-disney-plus"
+    })
+    expect(getSourceDefinition("max")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["daily"],
+      testUrl: "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july"
+    })
+    expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog"])
+    expect(getSourceDefinition("apple_tv_plus").semantics.signalKinds).toEqual(["news_signal"])
+    expect(getSourceDefinition("apple_tv_plus").supportsSync).toBe(false)
   })
 
   it("describes source semantics without implying a fake global ranking", () => {
