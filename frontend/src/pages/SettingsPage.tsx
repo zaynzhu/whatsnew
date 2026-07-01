@@ -58,6 +58,7 @@ const PROXY_MODE_LABELS: Record<ProxyMode, string> = {
   direct: "直连",
   custom: "自定义"
 }
+const SOURCE_STATUS_REFETCH_MS = 5000
 
 type SourceTestResponse = {
   sourceId: string
@@ -80,7 +81,8 @@ export function SettingsPage() {
 
   const settingsQuery = useQuery({
     queryKey: ["settings"],
-    queryFn: () => apiGet<SettingsResponse>("/api/settings")
+    queryFn: () => apiGet<SettingsResponse>("/api/settings"),
+    refetchInterval: SOURCE_STATUS_REFETCH_MS
   })
 
   const saveMutation = useMutation({

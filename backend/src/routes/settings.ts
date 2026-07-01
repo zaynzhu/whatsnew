@@ -15,6 +15,7 @@ import {
 } from "../settings/settingsFields.js"
 import { redactStoredError } from "../settings/settingsRedaction.js"
 import { getImdbCacheStatus } from "../services/imdbCacheStatusService.js"
+import { aggregateLatestSourceRuns } from "./sourceRunView.js"
 
 const updateSchema = z.object({
   values: z.record(z.string()),
@@ -76,45 +77,10 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
       orderBy: { startedAt: "desc" },
       take: 200
     })
-    const latestScopeRuns = new Map<string, (typeof runs)[number]>()
-    for (const run of runs) {
-      const key = `${run.source}:${run.scope ?? "all"}`
-      if (!latestScopeRuns.has(key)) latestScopeRuns.set(key, run)
-    }
-    const runsBySource = new Map<string, Array<(typeof runs)[number]>>()
-    for (const run of latestScopeRuns.values()) {
-      const sourceRuns = runsBySource.get(run.source) ?? []
-      sourceRuns.push(run)
-      runsBySource.set(run.source, sourceRuns)
-    }
+    const latestRuns = aggregateLatestSourceRuns(runs)
 
     const sources = await Promise.all(SOURCE_CATALOG.map(async (source) => {
-      const sourceRuns = runsBySource.get(source.id) ?? []
-      const statusPriority = new Map([
-        ["success", 1],
-        ["warning", 2],
-        ["failed", 3],
-        ["running", 4]
-      ])
-      const latestRun = sourceRuns.length > 0 ? {
-        status: sourceRuns.reduce((selected, run) => (
-          (statusPriority.get(run.status) ?? 0) > (statusPriority.get(selected) ?? 0)
-            ? run.status
-            : selected
-        ), "success"),
-        startedAt: new Date(Math.max(...sourceRuns.map((run) => run.startedAt.getTime()))),
-        finishedAt: sourceRuns.some((run) => run.finishedAt == null)
-          ? null
-          : new Date(Math.max(...sourceRuns.map((run) => run.finishedAt?.getTime() ?? 0))),
-        itemCount: sourceRuns.reduce((total, run) => total + run.itemCount, 0),
-        durationMs: sourceRuns.every((run) => run.durationMs == null)
-          ? null
-          : sourceRuns.reduce((total, run) => total + (run.durationMs ?? 0), 0),
-        errorMessage: sourceRuns
-          .filter((run) => run.errorMessage)
-          .map((run) => `[${run.scope ?? "all"}] ${run.errorMessage}`)
-          .join("；") || null
-      } : null
+      const latestRun = latestRuns.get(source.id)
       const missingCredentials = settings.missingCredentials(source.id)
       const fields = [
         settings.fieldView(source.baseUrlKey, `${source.name} Base URL`),

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
 import type { SourceAdapter, SourceFetchBatch } from "../src/domain/types.js"
 import { PopularitySnapshotService } from "../src/services/popularitySnapshotService.js"
-import { runSourceSync } from "../src/services/sourceSyncService.js"
+import { recoverInterruptedSourceRuns, runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 const prisma: PrismaClient = testPrisma
@@ -124,6 +124,48 @@ function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
 }
 
 describe("runSourceSync", () => {
+  it("marks interrupted running source runs as failed on recovery", async () => {
+    const now = new Date("2026-07-01T12:20:00Z")
+    const interrupted = await prisma.sourceSyncRun.create({
+      data: {
+        source: "hulu",
+        scope: "all",
+        status: "running",
+        startedAt: new Date("2026-07-01T12:09:00Z")
+      }
+    })
+    const completed = await prisma.sourceSyncRun.create({
+      data: {
+        source: "trakt",
+        scope: "calendar",
+        status: "success",
+        startedAt: new Date("2026-07-01T12:05:00Z"),
+        finishedAt: new Date("2026-07-01T12:06:00Z"),
+        durationMs: 60000,
+        itemCount: 151
+      }
+    })
+
+    const count = await recoverInterruptedSourceRuns(prisma, now)
+
+    expect(count).toBe(1)
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: interrupted.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      finishedAt: now,
+      durationMs: 660000,
+      errorMessage: "同步进程中断，已自动收尾；请重新触发同步"
+    })
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: completed.id }
+    })).resolves.toMatchObject({
+      status: "success",
+      finishedAt: new Date("2026-07-01T12:06:00Z"),
+      itemCount: 151
+    })
+  })
+
   it("serializes concurrent runs for the same source", async () => {
     let activeFetches = 0
     let maxActiveFetches = 0

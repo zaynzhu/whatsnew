@@ -354,7 +354,9 @@ function renderRoute(route: string) {
 
 describe("frontend pages", () => {
   afterEach(() => {
+    cleanup()
     vi.restoreAllMocks()
+    vi.useRealTimers()
   })
 
   it("renders dashboard sections from API data", async () => {
@@ -422,6 +424,16 @@ describe("frontend pages", () => {
     expect(screen.getByText("FlixPatrol")).toBeInTheDocument()
     expect(screen.getByText("商业授权")).toBeInTheDocument()
     expect(screen.getByText("当前不能作为免费来源启用")).toBeInTheDocument()
+  })
+
+  it("polls source catalog status while the page is open", async () => {
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval")
+    mockFetch()
+
+    renderRoute("/sources")
+
+    expect(await screen.findByText("TMDb")).toBeInTheDocument()
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 5000)
   })
 
   it("writes movement and source filters to the API request", async () => {

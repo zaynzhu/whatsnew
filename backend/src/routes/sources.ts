@@ -16,6 +16,7 @@ import type { RuntimeSettingsService } from "../settings/runtimeSettingsService.
 import { SOURCE_CATALOG, getSourceDefinition } from "../settings/sourceCatalog.js"
 import { redactStoredError } from "../settings/settingsRedaction.js"
 import { getImdbCacheStatus } from "../services/imdbCacheStatusService.js"
+import { aggregateLatestSourceRuns } from "./sourceRunView.js"
 
 type SourcesRouterDependencies = {
   connectionTester?: ConnectionTestService
@@ -43,10 +44,7 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
       orderBy: { startedAt: "desc" },
       take: 200
     })
-    const latestRuns = new Map<string, (typeof runs)[number]>()
-    for (const run of runs) {
-      if (!latestRuns.has(run.source)) latestRuns.set(run.source, run)
-    }
+    const latestRuns = aggregateLatestSourceRuns(runs)
 
     const items = await Promise.all(SOURCE_CATALOG.map(async (source) => {
       const missingCredentials = settings.missingCredentials(source.id)

@@ -15,6 +15,7 @@ import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 const POPULARITY_HISTORY_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
 const TITLE_ALIASES_STORAGE_LIMIT = 191
+const INTERRUPTED_SYNC_ERROR = "同步进程中断，已自动收尾；请重新触发同步"
 const sourceSyncTails = new Map<string, Promise<void>>()
 
 function uniqueValues(values: string[]): string[] {
@@ -323,4 +324,31 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
     releaseLock()
     if (sourceSyncTails.get(adapter.source) === tail) sourceSyncTails.delete(adapter.source)
   }
+}
+
+export async function recoverInterruptedSourceRuns(prisma: PrismaClient, now = new Date()) {
+  const interruptedRuns = await prisma.sourceSyncRun.findMany({
+    where: {
+      status: "running",
+      finishedAt: null
+    },
+    select: {
+      id: true,
+      startedAt: true
+    }
+  })
+
+  await prisma.$transaction(interruptedRuns.map((run) => (
+    prisma.sourceSyncRun.update({
+      where: { id: run.id },
+      data: {
+        status: "failed",
+        finishedAt: now,
+        durationMs: now.getTime() - run.startedAt.getTime(),
+        errorMessage: INTERRUPTED_SYNC_ERROR
+      }
+    })
+  )))
+
+  return interruptedRuns.length
 }

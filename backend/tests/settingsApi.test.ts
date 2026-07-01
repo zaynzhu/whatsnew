@@ -294,11 +294,16 @@ describe("settings API", () => {
     ] as never)
 
     const response = await request(testApp()).get("/api/settings")
+    const sourcesResponse = await request(testApp()).get("/api/sources")
     const trakt = response.body.sources.find((source: any) => source.id === "trakt")
+    const sourceCatalogTrakt = sourcesResponse.body.items.find((source: any) => source.id === "trakt")
 
     expect(trakt.latestRun.status).toBe("failed")
     expect(trakt.latestRun.itemCount).toBe(160)
     expect(trakt.latestRun.errorMessage).toContain("popularity failed")
+    expect(sourceCatalogTrakt.latestRun.status).toBe("failed")
+    expect(sourceCatalogTrakt.latestRun.itemCount).toBe(160)
+    expect(sourceCatalogTrakt.latestRun.errorMessage).toContain("popularity failed")
   })
 
   it("updates settings immediately without accepting unknown keys", async () => {

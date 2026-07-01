@@ -19,11 +19,13 @@ const SOURCE_STATUS_LABELS = {
   planned: "规划中",
   commercial: "商业接口"
 }
+const SOURCE_STATUS_REFETCH_MS = 5000
 
 export function SourcesPage() {
   const { data, isError, isLoading } = useQuery({
     queryKey: ["sources"],
-    queryFn: () => apiGet<SourcesResponse>("/api/sources")
+    queryFn: () => apiGet<SourcesResponse>("/api/sources"),
+    refetchInterval: SOURCE_STATUS_REFETCH_MS
   })
 
   if (isLoading) return <main className="page">加载中...</main>
