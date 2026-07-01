@@ -425,4 +425,27 @@ describe("runSourceSync", () => {
     expect(result.errorMessage).toContain("api_key=[REDACTED]")
     expect(result.errorMessage).not.toContain("secret-key")
   })
+
+  it("records a source_failed change event when a sync fails", async () => {
+    const result = await runSourceSync(prisma, {
+      source: "broken",
+      async fetchItems() {
+        throw new Error("HTTP 503 for https://api.example.test?api_key=secret-key")
+      }
+    })
+
+    expect(result.status).toBe("failed")
+    const events = await prisma.changeEvent.findMany({ where: { eventType: "source_failed" } })
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      mediaItemId: null,
+      source: "broken"
+    })
+    expect(events[0].eventAt).toBeInstanceOf(Date)
+    expect(events[0].description).toContain("api_key=[REDACTED]")
+    expect(events[0].description).not.toContain("secret-key")
+    const payload = JSON.parse(events[0].payload)
+    expect(payload.runId).toBe(result.id)
+    expect(payload.source).toBe("broken")
+  })
 })

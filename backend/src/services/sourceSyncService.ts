@@ -8,7 +8,7 @@ import type {
   SourceFetchBatch,
   SourceFetchResult
 } from "../domain/types.js"
-import { createMediaDetectedEvent } from "./eventService.js"
+import { createMediaDetectedEvent, createSourceFailedEvent } from "./eventService.js"
 import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
 import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
@@ -295,16 +295,27 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     })
   } catch (error) {
     const finishedAt = new Date()
+    const errorMessage = errorMessageFrom(error)
 
-    return prisma.sourceSyncRun.update({
+    const updated = await prisma.sourceSyncRun.update({
       where: { id: run.id },
       data: {
         status: "failed",
         finishedAt,
         durationMs: finishedAt.getTime() - startedAt.getTime(),
-        errorMessage: errorMessageFrom(error)
+        errorMessage
       }
     })
+
+    // 同步失败单独记录一条 source_failed 事件，便于首页"最新变化"展示
+    // 事件写入失败不应影响已记录的同步失败状态
+    try {
+      await createSourceFailedEvent(prisma, adapter.source, errorMessage, run.id, finishedAt)
+    } catch {
+      // 忽略事件写入失败，避免掩盖原始同步失败状态
+    }
+
+    return updated
   }
 }
 

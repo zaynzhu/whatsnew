@@ -11,6 +11,29 @@ export type PopularityEventPayload = {
   capturedAt: string
 }
 
+export async function createSourceFailedEvent(
+  prisma: PrismaClient,
+  source: string,
+  errorMessage: string,
+  runId: string,
+  failedAt: Date
+): Promise<void> {
+  // 数据源失败不关联具体作品；errorMessage 已在 sourceSyncService 中脱敏，这里只截断长度
+  const truncated = errorMessage.slice(0, 500)
+  await prisma.changeEvent.create({
+    data: {
+      mediaItemId: null,
+      eventType: "source_failed",
+      title: `${source} 数据源同步失败`,
+      description: truncated,
+      source,
+      sourceUrl: null,
+      eventAt: failedAt,
+      payload: JSON.stringify({ source, runId, errorMessage: truncated })
+    }
+  })
+}
+
 export async function createMediaDetectedEvent(
   prisma: PrismaClient,
   mediaItemId: string,
