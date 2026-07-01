@@ -11,6 +11,7 @@ import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 let createApp: typeof import("../src/app.js").createApp
 let createSourcesRouter: typeof import("../src/routes/sources.js").createSourcesRouter
+let createSyncRouter: typeof import("../src/routes/sources.js").createSyncRouter
 const prisma: PrismaClient = testPrisma
 
 function emptySettings(): RuntimeSettingsService {
@@ -24,6 +25,7 @@ beforeAll(async () => {
   ])
   createApp = appModule.createApp
   createSourcesRouter = sourcesModule.createSourcesRouter
+  createSyncRouter = sourcesModule.createSyncRouter
 })
 
 beforeEach(async () => {
@@ -358,5 +360,37 @@ describe("api routes", () => {
       "success"
     ])
     expect(executionOrder).toEqual(["popularity:start", "popularity:end", "calendar"])
+  })
+
+  it("runs every enabled adapter with credentials via POST /api/sync", async () => {
+    vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue([])
+    const mockAdapter = { source: "tmdb", scope: "all", async fetchItems() { return [] } }
+    const response = await request(createApp({
+      syncRouter: createSyncRouter({
+        database: prisma,
+        settings: runtimeSettings,
+        enabledAdapters: [{ sourceId: "tmdb", scheduleGroup: "hourly", adapter: mockAdapter as never }]
+      })
+    })).post("/api/sync")
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toHaveLength(1)
+    expect(response.body.items[0].source).toBe("tmdb")
+    expect(response.body.items[0].status).toBe("success")
+  })
+
+  it("skips adapters missing credentials in POST /api/sync", async () => {
+    vi.spyOn(runtimeSettings, "missingCredentials").mockReturnValue(["TMDB_API_KEY"])
+    const mockAdapter = { source: "tmdb", scope: "all", async fetchItems() { return [] } }
+    const response = await request(createApp({
+      syncRouter: createSyncRouter({
+        database: prisma,
+        settings: runtimeSettings,
+        enabledAdapters: [{ sourceId: "tmdb", scheduleGroup: "hourly", adapter: mockAdapter as never }]
+      })
+    })).post("/api/sync")
+
+    expect(response.status).toBe(200)
+    expect(response.body.items).toHaveLength(0)
   })
 })

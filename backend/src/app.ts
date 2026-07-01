@@ -5,12 +5,13 @@ import { calendarRouter } from "./routes/calendar.js"
 import { dashboardRouter } from "./routes/dashboard.js"
 import { mediaRouter } from "./routes/media.js"
 import { settingsRouter } from "./routes/settings.js"
-import { sourcesRouter } from "./routes/sources.js"
+import { sourcesRouter, syncRouter } from "./routes/sources.js"
 import { trendingRouter } from "./routes/trending.js"
 
 type AppDependencies = {
   settingsRouter?: Router
   sourcesRouter?: Router
+  syncRouter?: Router
 }
 
 export function createApp(dependencies: AppDependencies = {}) {
@@ -29,6 +30,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use("/api/calendar", calendarRouter)
   app.use("/api/settings", dependencies.settingsRouter ?? settingsRouter)
   app.use("/api/sources", dependencies.sourcesRouter ?? sourcesRouter)
+  app.use("/api/sync", dependencies.syncRouter ?? syncRouter)
 
   return app
 }

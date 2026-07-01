@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client"
 import type { SourceLocalStateView } from "@whatsnew/shared/settings"
 import { Router } from "express"
 import {
+  getEnabledAdapters,
   getEnabledAdaptersForSource,
   getImplementedAdaptersForSource
 } from "../adapters/adapterRegistry.js"
@@ -132,3 +133,31 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
 }
 
 export const sourcesRouter = createSourcesRouter()
+
+type SyncRouterDependencies = {
+  database?: PrismaClient
+  settings?: RuntimeSettingsService
+  enabledAdapters?: ReturnType<typeof getEnabledAdapters>
+}
+
+// POST /api/sync 手动触发全量同步：跑所有已启用且有凭据的 adapter，串行执行
+export function createSyncRouter(dependencies: SyncRouterDependencies = {}): Router {
+  const router = Router()
+  const database = dependencies.database ?? db
+  const settings = dependencies.settings ?? runtimeSettings
+
+  router.post("/", async (_req, res) => {
+    const entries = dependencies.enabledAdapters ?? getEnabledAdapters()
+    const runs = []
+    for (const entry of entries) {
+      if (settings.missingCredentials(entry.sourceId).length > 0) continue
+      runs.push(await runSourceSync(database, entry.adapter))
+    }
+
+    res.json({ items: runs })
+  })
+
+  return router
+}
+
+export const syncRouter = createSyncRouter()
