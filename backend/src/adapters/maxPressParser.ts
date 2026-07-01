@@ -7,6 +7,18 @@ import {
 
 const SKIP_ENTRY_PATTERN = /\b(?:coming later|check back|streaming now|last chance|leaving|expires?)\b/i
 const RESET_SECTION_PATTERN = /\b(?:coming later|last chance|leaving this month|leaving in)\b/i
+const BLOCKED_SECTION_PATTERN = /\b(?:last chance|leaving(?: this month)?|coming later|worth the wait)\b/i
+const RELEASE_SECTION_PATTERN = /\b(?:what'?s new|available|premieres?)\b/i
+
+function pickContentRoot(html: ReturnType<typeof load>) {
+  const article = html("article").first()
+  if (article.length > 0) return article
+
+  const main = html("main").first()
+  if (main.length > 0) return main
+
+  return html("body").first()
+}
 
 function titleFromRaw(value: string): string {
   return value
@@ -40,16 +52,35 @@ export function parseMaxWhatsNew(
   fallbackYear: number
 ): PlatformReleaseCandidate[] {
   const $ = load(html)
-  const root = $("article, main, body").first()
+  const root = pickContentRoot($)
   const candidates: PlatformReleaseCandidate[] = []
   let currentDate: string | null = null
+  let blockedSection = false
 
   root.find("p, li, h2, h3, h4").each((_index, element) => {
+    const tagName = element.tagName?.toLowerCase()
     const raw = cleanPlatformText($(element).text())
     if (!raw) return
 
+    if (tagName === "h2" || tagName === "h3" || tagName === "h4") {
+      if (BLOCKED_SECTION_PATTERN.test(raw)) {
+        blockedSection = true
+        currentDate = null
+        return
+      }
+
+      if (RELEASE_SECTION_PATTERN.test(raw)) {
+        blockedSection = false
+        currentDate = null
+        return
+      }
+
+      return
+    }
+
     const parsedDate = parseEnglishReleaseDate(raw, fallbackYear)
     if (parsedDate) {
+      if (blockedSection) return
       currentDate = parsedDate
       return
     }
@@ -59,7 +90,7 @@ export function parseMaxWhatsNew(
       return
     }
 
-    if (!currentDate || SKIP_ENTRY_PATTERN.test(raw)) return
+    if (blockedSection || !currentDate || SKIP_ENTRY_PATTERN.test(raw)) return
 
     const title = cleanPlatformText(titleFromRaw(raw))
     if (!title) return

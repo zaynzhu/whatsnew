@@ -62,6 +62,90 @@ describe("Max press parser", () => {
       parseMaxWhatsNew("<article><p>Only marketing copy</p></article>", "https://example.test", 2026)
     ).toThrow("Max press 页面没有可解析条目")
   })
+
+  it("prefers article content over dated rows elsewhere in the body", () => {
+    const html = `
+      <html>
+        <body>
+          <nav>
+            <p>July 30</p>
+            <ul>
+              <li>Nav Promo Title</li>
+            </ul>
+          </nav>
+          <article>
+            <h1>What's New On Max</h1>
+            <p>July 1</p>
+            <ul>
+              <li>Article Release, 2025 (HBO)</li>
+            </ul>
+          </article>
+          <footer>
+            <p>August 2</p>
+            <p>Footer Promo Title</p>
+          </footer>
+        </body>
+      </html>
+    `
+
+    const rows = parseMaxWhatsNew(html, "https://example.test/max", 2026)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        title: "Article Release",
+        releaseDate: "2026-07-01"
+      })
+    )
+  })
+
+  it("does not resume collection from leaving sections until a new release heading appears", () => {
+    const html = `
+      <article>
+        <h1>What's New On Max</h1>
+        <h2>Last Chance</h2>
+        <p>July 31</p>
+        <ul>
+          <li>Leaving Soon Movie</li>
+        </ul>
+        <h2>What's New This Month</h2>
+        <p>August 1</p>
+        <ul>
+          <li>Fresh Drop, 2025 (HBO)</li>
+        </ul>
+      </article>
+    `
+
+    const rows = parseMaxWhatsNew(html, "https://example.test/max", 2026)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        title: "Fresh Drop",
+        releaseDate: "2026-08-01"
+      })
+    )
+  })
+
+  it("ignores category headings as candidates within an active date section", () => {
+    const html = `
+      <article>
+        <h1>What's New On Max</h1>
+        <p>July 1</p>
+        <h2>Comedy</h2>
+        <p>Feature Film: The Great Feature</p>
+      </article>
+    `
+
+    const rows = parseMaxWhatsNew(html, "https://example.test/max", 2026)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        title: "The Great Feature"
+      })
+    )
+  })
 })
 
 describe("Max adapter", () => {
