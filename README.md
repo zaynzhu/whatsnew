@@ -48,8 +48,17 @@ whatsnew/
 ├── backend/      # Express + Prisma + MySQL，数据源适配与同步调度
 ├── frontend/     # React + Vite 前端，端口 19992
 ├── shared/      # 前后端共享类型
-└── docs/        # 设计与实现计划
+└── docs/        # 架构、接入、运维、交接与设计归档
 ```
+
+## 📚 文档入口
+
+| 文档 | 内容 |
+|------|------|
+| [Architecture](docs/architecture.md) | 数据模型、同步流、来源状态聚合和 API 路由 |
+| [Integration Guide](docs/integration-guide.md) | 私有 JSON API、curl 示例和错误语义 |
+| [Operator Runbook](docs/operator-runbook.md) | 环境变量、运行命令、定时任务和排障 |
+| [Handoff](docs/handoff.md) | 当前分支、已接入来源、约束和交接清单 |
 
 ## 🚀 Quick Start
 
@@ -61,14 +70,17 @@ npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
 npm run sync:tvmaze --workspace backend
 npm run sync:tmdb --workspace backend
+npm run sync:trakt --workspace backend
+npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
-npm run sync:netflix --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
+
+Hulu、Disney+、Max 和 TheTVDB 默认关闭，可在设置页启用后手动同步；IMDb 需要先配置本地 datasets 缓存目录。
 
 ## ⚙️ 系统设置
 
@@ -80,6 +92,7 @@ npm run dev:frontend
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
 - 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、优酷和爱奇艺；IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
+- 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
 
 > [!WARNING]
 > 设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。

@@ -16,7 +16,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 </div>
 
 > [!TIP]
-> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Youku and iQIYI, keeping per-source popularity history scoped by `title + source + platform + region + window`. Designed for self-hosting on a home LAN or private NAS.
+> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku and iQIYI, keeping per-source popularity history scoped by `title + source + platform + region + window`. Designed for self-hosting on a home LAN or private NAS.
 
 ---
 
@@ -48,8 +48,17 @@ whatsnew/
 ├── backend/      # Express + Prisma + MySQL, source adapters and sync scheduling
 ├── frontend/     # React + Vite frontend, port 19992
 ├── shared/      # Shared types across frontend & backend
-└── docs/        # Design and implementation plans
+└── docs/        # Architecture, integration, operations, handoff and design archives
 ```
+
+## 📚 Docs
+
+| Document | Contents |
+|----------|----------|
+| [Architecture](docs/architecture.md) | Data model, sync flow, source status aggregation and API routes |
+| [Integration Guide](docs/integration-guide.md) | Private JSON API, curl examples and error semantics |
+| [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
+| [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
 
 ## 🚀 Quick Start
 
@@ -61,14 +70,17 @@ npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
 npm run sync:tvmaze --workspace backend
 npm run sync:tmdb --workspace backend
+npm run sync:trakt --workspace backend
+npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
-npm run sync:netflix --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
+
+Hulu, Disney+, Max and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
 
 ## ⚙️ System Settings
 
@@ -78,8 +90,9 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Youku, iQIYI
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
+- Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
 > [!WARNING]
 > The settings endpoint has no authentication — it is meant only for trusted home LANs or private NAS networks. Do not expose port `19992`, `19993` or the settings endpoint to the public internet.
@@ -104,6 +117,19 @@ The Netflix source reads the official global weekly XLSX and syncs only the late
 - Repeated syncs within the same week stay idempotent by source identity and week
 - Downloads use the unified proxy settings, a 10-second timeout and a per-source 2-second rate limit
 - Manual sync: `npm run sync:netflix --workspace backend`
+
+### Hulu / Disney+ / Max Official New Releases
+
+Hulu, Disney+ and Max sources sync official platform pages for release calendars and catalog additions. They do not create popularity rankings.
+
+- Hulu uses `https://press.hulu.com/schedule/`
+- Disney+ uses `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
+- Max uses the WBD Pressroom What's New page; override it with `SOURCE_MAX_BASE_URL`
+- All three sources are daily schedule sources and disabled by default
+- Manual sync:
+  - `npm run sync:hulu --workspace backend`
+  - `npm run sync:disney-plus --workspace backend`
+  - `npm run sync:max --workspace backend`
 
 ### Trakt
 

@@ -9,6 +9,10 @@ WhatsNew 是独立的全球与中国电影、剧集上新及热度监控项目�
 - `backend/`：Express、Prisma、来源适配器、同步任务与设置 API
 - `frontend/`：React 管理界面，默认端口 `19992`
 - `shared/`：前后端共享类型
+- `docs/architecture.md`：数据模型、同步流、状态聚合和 API 路由
+- `docs/operator-runbook.md`：环境变量、运行命令、调度和排障
+- `docs/integration-guide.md`：私有 API 接入示例和错误语义
+- `docs/handoff.md`：当前分支、已接入来源和交接清单
 - `docs/superpowers/specs/`：已确认的设计规格
 - `docs/superpowers/plans/`：历史实施计划，不作为当前运行状态来源
 
@@ -37,6 +41,8 @@ npm run prisma:push --workspace backend
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
+- 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
+- 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 
 ## 安全红线
 
