@@ -100,6 +100,14 @@ Manual sync:
 curl -X POST http://127.0.0.1:19993/api/sources/trakt/sync
 ```
 
+Full sync — run every enabled adapter with complete credentials, serially:
+
+```bash
+curl -X POST http://127.0.0.1:19993/api/sync
+```
+
+Returns `{ "items": [SourceSyncRun, ...] }`. Adapters with missing credentials are skipped.
+
 Possible sync errors:
 
 | Error | Meaning |
