@@ -78,7 +78,7 @@ npm run dev:frontend
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷和爱奇艺
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、优酷和爱奇艺；IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 
 > [!WARNING]
@@ -104,6 +104,19 @@ Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜�
 - 同一周重复同步按来源身份和周次保持幂等
 - 下载沿用统一代理设置、10 秒超时和来源级 2 秒限频
 - 手动同步：`npm run sync:netflix --workspace backend`
+
+### Hulu / Disney+ / Max 官方上新
+
+Hulu、Disney+ 和 Max 来源只同步官方页面中的平台上新和排期，不生成热度排名。
+
+- Hulu 使用 `https://press.hulu.com/schedule/`
+- Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
+- Max 使用 WBD Pressroom 的 What's New 页面，默认 URL 可通过 `SOURCE_MAX_BASE_URL` 覆盖
+- 三个来源均为 daily schedule，默认关闭，需在设置页显式启用
+- 手动同步：
+  - `npm run sync:hulu --workspace backend`
+  - `npm run sync:disney-plus --workspace backend`
+  - `npm run sync:max --workspace backend`
 
 ### Trakt
 
