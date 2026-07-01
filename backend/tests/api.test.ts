@@ -3,16 +3,27 @@ import request from "supertest"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
 import { traktCalendarAdapter, traktPopularityAdapter } from "../src/adapters/traktAdapter.js"
+import { EnvFileStore } from "../src/settings/envFileStore.js"
 import { runtimeSettings } from "../src/settings/runtimeSettingsService.js"
+import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
 import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 let createApp: typeof import("../src/app.js").createApp
+let createSourcesRouter: typeof import("../src/routes/sources.js").createSourcesRouter
 const prisma: PrismaClient = testPrisma
 
+function emptySettings(): RuntimeSettingsService {
+  return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-api-env"))
+}
+
 beforeAll(async () => {
-  const appModule = await import("../src/app.js")
+  const [appModule, sourcesModule] = await Promise.all([
+    import("../src/app.js"),
+    import("../src/routes/sources.js")
+  ])
   createApp = appModule.createApp
+  createSourcesRouter = sourcesModule.createSourcesRouter
 })
 
 beforeEach(async () => {
@@ -73,7 +84,9 @@ describe("api routes", () => {
       data: { source: "tmdb", status: "success", itemCount: 10 }
     })
     const trendingResponse = await request(createApp()).get("/api/trending?window=week")
-    const sourcesResponse = await request(createApp()).get("/api/sources")
+    const sourcesResponse = await request(createApp({
+      sourcesRouter: createSourcesRouter({ database: prisma, settings: emptySettings() })
+    })).get("/api/sources")
 
     expect(trendingResponse.status).toBe(200)
     expect(trendingResponse.body.items.length).toBeGreaterThan(0)
