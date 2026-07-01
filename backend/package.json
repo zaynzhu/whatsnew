@@ -19,6 +19,7 @@
     "sync:hulu": "tsx src/scripts/syncHulu.ts",
     "sync:disney-plus": "tsx src/scripts/syncDisneyPlus.ts",
     "sync:max": "tsx src/scripts/syncMax.ts",
+    "sync:apple-tv-plus": "tsx src/scripts/syncAppleTvPlus.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",
     "test": "tsx src/scripts/prepareTestDatabase.ts && vitest run",

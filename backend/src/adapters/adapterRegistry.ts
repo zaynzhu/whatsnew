@@ -1,6 +1,7 @@
 import type { SourceAdapter, SourceFetchResult } from "../domain/types.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import type { ScheduleGroup } from "../settings/sourceCatalog.js"
+import { appleTvPlusAdapter } from "./appleTvPlusAdapter.js"
 import { bilibiliAdapter } from "./bilibiliAdapter.js"
 import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
 import { huluAdapter } from "./huluAdapter.js"
@@ -30,6 +31,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "hulu", scheduleGroup: "daily", adapter: huluAdapter },
   { sourceId: "disney_plus", scheduleGroup: "daily", adapter: disneyPlusAdapter },
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter },
+  { sourceId: "apple_tv_plus", scheduleGroup: "daily", adapter: appleTvPlusAdapter },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter },
   { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter },

@@ -13,6 +13,7 @@ describe("source catalog", () => {
       "hulu",
       "disney_plus",
       "max",
+      "apple_tv_plus",
       "youku",
       "iqiyi",
       "mango_tv",
@@ -84,7 +85,7 @@ describe("source catalog", () => {
     })
     expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog"])
     expect(getSourceDefinition("apple_tv_plus").semantics.signalKinds).toEqual(["news_signal"])
-    expect(getSourceDefinition("apple_tv_plus").supportsSync).toBe(false)
+    expect(getSourceDefinition("apple_tv_plus").supportsSync).toBe(true)
   })
 
   it("describes source semantics without implying a fake global ranking", () => {

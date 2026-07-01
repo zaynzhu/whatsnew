@@ -12,8 +12,8 @@ export type PlatformReleaseCandidate = {
 }
 
 export type PlatformAdapterConfig = {
-  source: "hulu" | "disney_plus" | "max"
-  platform: "Hulu" | "Disney+" | "Max"
+  source: "hulu" | "disney_plus" | "max" | "apple_tv_plus"
+  platform: "Hulu" | "Disney+" | "Max" | "Apple TV+"
   region: string
   defaultLanguage: string | null
   defaultGenres: string[]

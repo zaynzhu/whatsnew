@@ -178,11 +178,11 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   },
   apple_tv_plus: {
     signalKinds: ["news_signal"],
-    coverage: "Apple TV Press 资讯候选",
-    cadence: "待验证 press-only 方案",
+    coverage: "Apple TV+ Press 官方 RSS 上新资讯",
+    cadence: "日级检查官方 news-feed.xml",
     access: "public_page",
-    freshnessNote: "首版不采集 tv.apple.com collection",
-    riskNote: "当前本地 HTTP 访问 tv.apple.com collection 返回 404，不硬接平台片库"
+    freshnessNote: "只代表 Apple TV Press 发布的上新资讯，<updated> 是发布日期非精确上线日",
+    riskNote: "tv.apple.com collection 本地 404，不硬接平台片库；RSS 仅近 10 条无分页"
   },
   youku: {
     signalKinds: ["platform_catalog", "platform_rank"],
@@ -284,7 +284,7 @@ export const SOURCE_CATALOG = [
   source("hulu", "Hulu", "官方排期与上新", "international_platform", "active", "inherit", true, true, "https://press.hulu.com/schedule/", [], ["daily"], false),
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
   source("max", "Max", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
-  source("apple_tv_plus", "Apple TV+", "Apple TV Press 资讯候选", "international_platform", "planned", "inherit", false, false, "https://www.apple.com/tv-pr/news/"),
+  source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
   source("youku", "优酷", "电影、长剧、独播与热度", "china_platform", "active", "direct", true, true, "https://tv.youku.com/", [], ["hourly"], true),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
