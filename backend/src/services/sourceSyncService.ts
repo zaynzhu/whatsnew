@@ -8,7 +8,7 @@ import type {
   SourceFetchBatch,
   SourceFetchResult
 } from "../domain/types.js"
-import { createMediaDetectedEvent, createSourceFailedEvent } from "./eventService.js"
+import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
 import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
 import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
@@ -183,6 +183,22 @@ async function upsertItem(
 
   const releaseSources = uniqueValues(item.releases.map((release) => release.source))
   if (releaseSources.length > 0) {
+    // 在全量替换前读出旧 release 作为对比基线，用于生成定档 / 改档事件
+    const previousReleases = await prisma.release.findMany({
+      where: {
+        mediaItemId: mediaItem.id,
+        source: { in: releaseSources }
+      },
+      select: {
+        source: true,
+        platform: true,
+        region: true,
+        releaseDate: true,
+        seasonNumber: true,
+        episodeNumber: true
+      }
+    })
+
     await prisma.release.deleteMany({
       where: {
         mediaItemId: mediaItem.id,
@@ -197,6 +213,15 @@ async function upsertItem(
         episodeTitle: release.episodeTitle ?? null
       }))
     })
+
+    await generateReleaseEvents(
+      prisma,
+      mediaItem.id,
+      mediaItem.titleDisplay,
+      item.releases,
+      previousReleases,
+      startedAt
+    )
   }
 
   const persistedSignals = await snapshotService.persistSignals(item.popularitySignals.map((signal) => ({

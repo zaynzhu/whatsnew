@@ -123,6 +123,41 @@ function adapterWithUnmatchableLanguage(titles: string[]): SourceAdapter {
   }
 }
 
+function adapterWithFutureRelease(releaseDate: string): SourceAdapter {
+  return {
+    source: "schedule_test",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+      return [{
+        ...base,
+        media: {
+          ...base.media,
+          source: "schedule_test",
+          sourceId: "stable-schedule-1",
+          tmdbId: null,
+          tvmazeId: null,
+          imdbId: null,
+          traktId: null,
+          tvdbId: null
+        },
+        releases: [{
+          platform: "hbo",
+          region: "US",
+          releaseDate,
+          releaseTime: null,
+          releasePattern: "streaming_drop",
+          releaseStatus: "upcoming",
+          seasonNumber: null,
+          episodeNumber: null,
+          source: "schedule_test",
+          sourceUrl: "https://example.test/schedule"
+        }],
+        popularitySignals: []
+      }]
+    }
+  }
+}
+
 describe("runSourceSync", () => {
   it("marks interrupted running source runs as failed on recovery", async () => {
     const now = new Date("2026-07-01T12:20:00Z")
@@ -447,5 +482,53 @@ describe("runSourceSync", () => {
     const payload = JSON.parse(events[0].payload)
     expect(payload.runId).toBe(result.id)
     expect(payload.source).toBe("broken")
+  })
+
+  it("records a release_announced event for a new future-dated release and does not repeat", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-08-01"))
+    const announced = await prisma.changeEvent.findMany({ where: { eventType: "release_announced" } })
+    expect(announced).toHaveLength(1)
+    expect(announced[0].title).toContain("2026-08-01")
+    expect(announced[0].source).toBe("schedule_test")
+    expect(announced[0].mediaItemId).not.toBeNull()
+
+    // 第二次同步相同档期，槽位已存在，不再重复生成定档事件
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-08-01"))
+    const announcedAfter = await prisma.changeEvent.findMany({ where: { eventType: "release_announced" } })
+    expect(announcedAfter).toHaveLength(1)
+  })
+
+  it("records a delayed event when a release date moves later and does not repeat", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-08-01"))
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-09-01"))
+
+    const delayed = await prisma.changeEvent.findMany({ where: { eventType: "delayed" } })
+    expect(delayed).toHaveLength(1)
+    expect(delayed[0].title).toContain("2026-08-01")
+    expect(delayed[0].title).toContain("2026-09-01")
+
+    const delayedPayload = JSON.parse(delayed[0].payload)
+    expect(delayedPayload.previousDate).toBe("2026-08-01")
+    expect(delayedPayload.releaseDate).toBe("2026-09-01")
+
+    // 第三次同步档期不变，不再重复生成改档事件
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-09-01"))
+    const delayedAfter = await prisma.changeEvent.findMany({ where: { eventType: "delayed" } })
+    expect(delayedAfter).toHaveLength(1)
+  })
+
+  it("does not record release_announced for a past release date", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-01T12:00:00Z"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-06-01"))
+    const announced = await prisma.changeEvent.findMany({ where: { eventType: "release_announced" } })
+    expect(announced).toHaveLength(0)
   })
 })
