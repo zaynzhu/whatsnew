@@ -77,13 +77,14 @@ npm run sync:iqiyi --workspace backend
 npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
+npm run sync:douban --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 
-Hulu、Disney+、Max、Apple TV+ 和 TheTVDB 默认关闭，可在设置页启用后手动同步；IMDb 需要先配置本地 datasets 缓存目录。
+Hulu、Disney+、Max、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；IMDb 需要先配置本地 datasets 缓存目录。
 
 ## ⚙️ 系统设置
 
@@ -93,7 +94,7 @@ Hulu、Disney+、Max、Apple TV+ 和 TheTVDB 默认关闭，可在设置页启�
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、Apple TV+、优酷、爱奇艺、芒果TV 和哔哩哔哩；IMDb 使用本地 datasets 手动导入
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、Apple TV+、优酷、爱奇艺、芒果TV、哔哩哔哩和豆瓣；IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
 
@@ -182,6 +183,15 @@ Apple TV+ 来源读取官方 Press RSS feed（`https://www.apple.com/tv-pr/news-
 - `<updated>` 是新闻发布日期，首版作为 `releaseDate`（非精确上线日）；非影视类新闻（无 series/movie/documentary/special 关键词）会被过滤
 - 来源默认关闭，需在设置页启用后手动同步
 - 手动同步：`npm run sync:apple-tv-plus --workspace backend`
+
+### 豆瓣
+
+豆瓣来源读取电影 TOP250 chart 接口（`movie.douban.com/j/chart/top_list`），同步高分段前 20 条作为口碑评分信号。
+
+- 只输出 media 与评分 popularity signal（`sourceCategory: chinese_reputation`），不输出 release；TOP250 不提供上线日期
+- TOP250 是静态榜单，rank 长期稳定；低频日级同步，仅取前 20 条控制反爬风险
+- 来源默认关闭，需在设置页启用后手动同步；不得高频爬取或绕过登录/验证码
+- 手动同步：`npm run sync:douban --workspace backend`
 
 ## ✅ 验证
 

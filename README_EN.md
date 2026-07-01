@@ -77,13 +77,14 @@ npm run sync:iqiyi --workspace backend
 npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
+npm run sync:douban --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
 
-Hulu, Disney+, Max, Apple TV+ and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
+Hulu, Disney+, Max, Apple TV+, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
 
 ## ⚙️ System Settings
 
@@ -93,7 +94,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Youku, iQIYI, MangoTV, Bilibili; IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Youku, iQIYI, MangoTV, Bilibili, Douban; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
@@ -182,6 +183,15 @@ The Apple TV+ source reads the official Press RSS feed (`https://www.apple.com/t
 - `<updated>` is the press release date and is used as `releaseDate` (not the exact streaming debut); non-film/TV news (no series/movie/documentary/special keyword) is filtered out
 - The source is disabled by default and must be enabled from the settings page before manual sync
 - Manual sync: `npm run sync:apple-tv-plus --workspace backend`
+
+### Douban
+
+The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/top_list`) and syncs the top 20 high-score entries as reputation rating signals.
+
+- Emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`); no releases — TOP250 carries no launch dates
+- TOP250 is a static chart with stable ranks; low-frequency daily sync takes only the top 20 to control anti-scraping risk
+- Disabled by default; enable from the settings page before manual sync. Do not scrape at high frequency or bypass login/captcha
+- Manual sync: `npm run sync:douban --workspace backend`
 
 ## ✅ Validation
 

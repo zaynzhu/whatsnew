@@ -34,6 +34,7 @@ This file is the short operational handoff for the current branch.
 | iQIYI | China platform new-online page. |
 | MangoTV | China TV channel hot drama ranking and new drama catalog. |
 | Bilibili | China pgc bangumi/guochuang/documentary rankings (3-day composite). |
+| Douban | China movie TOP250 reputation rating signal (top 20, static). |
 | IMDb | Manual local datasets enrichment only. |
 
 ## Known Constraints
