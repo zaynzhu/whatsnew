@@ -16,6 +16,7 @@ import {
   type RegisteredHealthScope
 } from "../adapters/adapterRegistry.js"
 import { db } from "../config/db.js"
+import { createSourceHealthSampleReader } from "./sourceHealthSamples.js"
 import { getImdbCacheStatus } from "./imdbCacheStatusService.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { SOURCE_CATALOG, getSourceDefinition, type SourceDefinition } from "../settings/sourceCatalog.js"
@@ -32,7 +33,7 @@ type SourceRunRecord = {
   errorMessage: string | null
 }
 
-type SourceHealthDatabase = Pick<PrismaClient, "sourceSyncRun">
+type SourceHealthDatabase = Pick<PrismaClient, "sourceSyncRun" | "release" | "popularitySignal">
 
 type SourceHealthServiceDependencies = {
   database?: SourceHealthDatabase
@@ -374,7 +375,10 @@ function summary(items: SourceHealthRow[]): SourceHealthResponse["summary"] {
 export function createSourceHealthService(dependencies: SourceHealthServiceDependencies = {}) {
   const database = dependencies.database ?? db
   const settings = dependencies.settings ?? runtimeSettings
-  const samples = dependencies.samples ?? (async () => [])
+  const sampleReader = createSourceHealthSampleReader(database)
+  const samples = dependencies.samples ?? ((scope: RegisteredHealthScope, limit: number) => {
+    return sampleReader.samplesForScope(scope, limit)
+  })
 
   return {
     async getSourceHealth(now = new Date()): Promise<SourceHealthResponse> {

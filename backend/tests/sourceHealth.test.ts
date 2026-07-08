@@ -190,4 +190,64 @@ describe("source health service", () => {
     expect(response.summary.failed).toBeGreaterThan(0)
     expect(response.summary.blocked).toBeGreaterThan(0)
   })
+
+  it("returns persisted acceptance samples without calling adapters", async () => {
+    const now = new Date("2026-07-08T04:00:00Z")
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "movie",
+        titleDisplay: "Sample Movie",
+        titleOriginal: "Sample Movie",
+        firstReleaseDate: "2026-07-08",
+        status: "upcoming",
+        sourceContentType: "movie"
+      }
+    })
+    await prisma.sourceSyncRun.create({
+      data: {
+        source: "trakt",
+        scope: "popularity",
+        status: "success",
+        startedAt: new Date("2026-07-08T03:00:00Z"),
+        finishedAt: new Date("2026-07-08T03:01:00Z"),
+        itemCount: 1
+      }
+    })
+    await prisma.popularitySignal.create({
+      data: {
+        mediaItemId: media.id,
+        source: "trakt_trending",
+        sourceCategory: "community_trend",
+        platform: "Trakt",
+        region: "GLOBAL",
+        window: "week",
+        rank: 1,
+        capturedAt: new Date("2026-07-08T03:01:00Z"),
+        isCurrent: true,
+        sourceUrl: "https://trakt.tv/movies/sample-movie-2026"
+      }
+    })
+
+    const settings = settingsWith({
+      TRAKT_CLIENT_ID: "client-id",
+      SOURCE_TRAKT_ENABLED: "true"
+    })
+    const service = createSourceHealthService({ database: prisma, settings })
+    const response = await service.getSourceHealth(now)
+    const row = response.items.find((item) => `${item.sourceId}:${item.scope}` === "trakt:popularity")
+
+    expect(row?.samples).toEqual([
+      {
+        title: "Sample Movie",
+        mediaType: "movie",
+        signalKind: "community_trend",
+        source: "trakt_trending",
+        platform: "Trakt",
+        region: "GLOBAL",
+        sourceUrl: "https://trakt.tv/movies/sample-movie-2026",
+        capturedAtOrFetchedAt: "2026-07-08T03:01:00.000Z"
+      }
+    ])
+  })
 })
