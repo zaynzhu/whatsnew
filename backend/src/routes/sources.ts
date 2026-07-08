@@ -137,7 +137,7 @@ export const sourcesRouter = createSourcesRouter()
 type SyncRouterDependencies = {
   database?: PrismaClient
   settings?: RuntimeSettingsService
-  enabledAdapters?: ReturnType<typeof getEnabledAdapters>
+  enabledAdapters?: Array<Pick<ReturnType<typeof getEnabledAdapters>[number], "sourceId" | "scheduleGroup" | "adapter">>
 }
 
 // POST /api/sync 手动触发全量同步：跑所有已启用且有凭据的 adapter，串行执行

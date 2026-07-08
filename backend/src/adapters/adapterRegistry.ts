@@ -83,9 +83,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating"], "daily", "popularity") }
 ]
 
-export function healthScopeKey(entry: Pick<RegisteredHealthScope, "sourceId" | "scope">): string
-export function healthScopeKey(entry: RegisteredAdapter): string
-export function healthScopeKey(entry: RegisteredHealthScope | RegisteredAdapter): string {
+export function healthScopeKey(entry: RegisteredAdapter | Pick<RegisteredHealthScope, "sourceId" | "scope">): string {
   const scope = "scope" in entry ? entry.scope : entry.adapter.scope ?? "all"
   return `${entry.sourceId}:${scope}`
 }
