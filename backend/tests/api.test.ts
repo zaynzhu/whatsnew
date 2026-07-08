@@ -10,6 +10,7 @@ import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 let createApp: typeof import("../src/app.js").createApp
+let createMediaRouter: typeof import("../src/routes/media.js").createMediaRouter
 let createSourceHealthRouter: typeof import("../src/routes/sourceHealth.js").createSourceHealthRouter
 let createSourceHealthService: typeof import("../src/services/sourceHealthService.js").createSourceHealthService
 let createSourcesRouter: typeof import("../src/routes/sources.js").createSourcesRouter
@@ -25,13 +26,15 @@ function emptySettings(): RuntimeSettingsService {
 }
 
 beforeAll(async () => {
-  const [appModule, sourceHealthModule, sourceHealthServiceModule, sourcesModule] = await Promise.all([
+  const [appModule, mediaModule, sourceHealthModule, sourceHealthServiceModule, sourcesModule] = await Promise.all([
     import("../src/app.js"),
+    import("../src/routes/media.js"),
     import("../src/routes/sourceHealth.js"),
     import("../src/services/sourceHealthService.js"),
     import("../src/routes/sources.js")
   ])
   createApp = appModule.createApp
+  createMediaRouter = mediaModule.createMediaRouter
   createSourceHealthRouter = sourceHealthModule.createSourceHealthRouter
   createSourceHealthService = sourceHealthServiceModule.createSourceHealthService
   createSourcesRouter = sourcesModule.createSourcesRouter
@@ -76,6 +79,41 @@ describe("api routes", () => {
     expect(response.status).toBe(200)
     expect(response.body.items.every((item: any) => item.mediaType === "movie")).toBe(true)
     expect(response.body.items[0].dataSources).toEqual(expect.arrayContaining(["demo", "demo_trending"]))
+  })
+
+  it("proxies stored media posters through the backend", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "streaming_movie",
+        titleDisplay: "Poster Sample",
+        titleOriginal: "Poster Sample",
+        posterUrl: "https://img.example.test/poster.jpg",
+        firstReleaseDate: "2026-07-08",
+        status: "released",
+        sourceContentType: "movie"
+      }
+    })
+    const posterService = {
+      getPoster: vi.fn(async () => ({
+        body: Buffer.from("poster-bytes"),
+        contentType: "image/png",
+        cacheHit: true
+      }))
+    }
+
+    const response = await request(createApp({
+      mediaRouter: createMediaRouter({
+        database: prisma,
+        posterService
+      })
+    })).get(`/api/media/${media.id}/poster`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers["content-type"]).toContain("image/png")
+    expect(response.headers["x-poster-cache"]).toBe("hit")
+    expect(response.body.toString()).toBe("poster-bytes")
+    expect(posterService.getPoster).toHaveBeenCalledWith("https://img.example.test/poster.jpg")
   })
 
   it("returns calendar releases", async () => {

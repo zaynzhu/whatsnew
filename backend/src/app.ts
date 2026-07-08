@@ -10,6 +10,7 @@ import { sourcesRouter, syncRouter } from "./routes/sources.js"
 import { trendingRouter } from "./routes/trending.js"
 
 type AppDependencies = {
+  mediaRouter?: Router
   settingsRouter?: Router
   sourceHealthRouter?: Router
   sourcesRouter?: Router
@@ -27,7 +28,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   })
 
   app.use("/api/dashboard", dashboardRouter)
-  app.use("/api/media", mediaRouter)
+  app.use("/api/media", dependencies.mediaRouter ?? mediaRouter)
   app.use("/api/trending", trendingRouter)
   app.use("/api/calendar", calendarRouter)
   app.use("/api/settings", dependencies.settingsRouter ?? settingsRouter)

@@ -1,5 +1,6 @@
 import type { MediaSummary } from "@whatsnew/shared/media"
 import { Link } from "react-router-dom"
+import { MediaPoster } from "./MediaPoster"
 import { StatusBadge } from "./StatusBadge"
 
 type MediaCardItem = MediaSummary & {
@@ -11,7 +12,12 @@ export function MediaCard({ item }: { item: MediaCardItem }) {
     <article className="mediaCard">
       <Link to={`/media/${item.id}`} className="mediaCardLink">
         <div className="poster">
-          {item.posterUrl ? <img src={item.posterUrl} alt="" /> : <span>{item.mediaType}</span>}
+          <MediaPoster
+            mediaId={item.id}
+            posterUrl={item.posterUrl}
+            title={item.titleDisplay}
+            fallbackLabel={item.mediaType}
+          />
         </div>
         <div className="mediaCardBody">
           <p className="kicker">{item.mediaType}</p>

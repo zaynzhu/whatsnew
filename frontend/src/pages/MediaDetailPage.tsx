@@ -7,6 +7,7 @@ import type {
   PopularitySignal
 } from "../api/types"
 import { SourceLink } from "../components/SourceLink"
+import { MediaPoster } from "../components/MediaPoster"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
 import { eventStyle } from "../utils/eventStyle"
@@ -72,7 +73,12 @@ export function MediaDetailPage() {
           </div>
         </div>
         <div className="poster detailPoster">
-          {data.posterUrl ? <img src={data.posterUrl} alt="" /> : <span>{data.mediaType}</span>}
+          <MediaPoster
+            mediaId={data.id}
+            posterUrl={data.posterUrl}
+            title={data.titleDisplay}
+            fallbackLabel={data.mediaType}
+          />
         </div>
       </section>
 
