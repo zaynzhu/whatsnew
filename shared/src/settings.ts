@@ -130,3 +130,94 @@ export type ConnectionTestResult = {
   errorType: string | null
   message: string
 }
+
+export const SOURCE_HEALTH_RUN_STATUSES = ["none", "running", "success", "warning", "failed"] as const
+export type SourceHealthRunStatus = (typeof SOURCE_HEALTH_RUN_STATUSES)[number]
+
+export const SOURCE_HEALTH_ACCEPTANCE_STATUSES = ["passed", "degraded", "failed", "blocked"] as const
+export type SourceHealthAcceptanceStatus = (typeof SOURCE_HEALTH_ACCEPTANCE_STATUSES)[number]
+
+export const SOURCE_HEALTH_FRESHNESS_STATUSES = ["fresh", "stale", "never_succeeded", "manual", "blocked"] as const
+export type SourceHealthFreshnessStatus = (typeof SOURCE_HEALTH_FRESHNESS_STATUSES)[number]
+
+export const SOURCE_HEALTH_REASON_CODES = [
+  "passed",
+  "disabled",
+  "missing_credentials",
+  "not_implemented",
+  "commercial",
+  "restricted",
+  "never_succeeded",
+  "stale_success",
+  "latest_failed_no_fresh_success",
+  "latest_failed_with_fresh_success",
+  "latest_running_no_fresh_success",
+  "latest_running_with_fresh_success",
+  "latest_warning",
+  "empty_result",
+  "manual_cache_missing",
+  "manual_cache_ready"
+] as const
+export type SourceHealthReasonCode = (typeof SOURCE_HEALTH_REASON_CODES)[number]
+
+export type SourceHealthScheduleGroup = "hourly" | "daily" | "manual" | "none"
+
+export type SourceHealthLatestRun = {
+  status: SourceHealthRunStatus
+  startedAt: string
+  finishedAt: string | null
+  itemCount: number
+  durationMs: number | null
+  errorMessage: string | null
+}
+
+export type SourceHealthSample = {
+  title: string
+  mediaType: string
+  signalKind: SourceSignalKind
+  source: string
+  platform: string | null
+  region: string | null
+  sourceUrl: string | null
+  capturedAtOrFetchedAt: string
+}
+
+export type SourceHealthRow = {
+  sourceId: string
+  sourceName: string
+  scope: string
+  scheduleGroup: SourceHealthScheduleGroup
+  group: SourceGroup
+  implementationStatus: SourceImplementationStatus
+  enabled: boolean
+  runnable: boolean
+  credentialsComplete: boolean
+  missingCredentials: string[]
+  signalKinds: SourceSignalKind[]
+  runStatus: SourceHealthRunStatus
+  acceptanceStatus: SourceHealthAcceptanceStatus
+  freshnessStatus: SourceHealthFreshnessStatus
+  reasonCode: SourceHealthReasonCode
+  reason: string
+  latestRun: SourceHealthLatestRun | null
+  lastSuccessAt: string | null
+  staleAfterHours: number | null
+  itemCount: number
+  samples: SourceHealthSample[]
+}
+
+export type SourceHealthSummary = {
+  total: number
+  passed: number
+  degraded: number
+  failed: number
+  blocked: number
+  runnable: number
+  stale: number
+}
+
+export type SourceHealthResponse = {
+  generatedAt: string
+  summary: SourceHealthSummary
+  items: SourceHealthRow[]
+}
