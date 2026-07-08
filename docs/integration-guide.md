@@ -94,6 +94,34 @@ curl -s http://127.0.0.1:19993/api/sources
 
 Returns the source catalog, implementation state, enablement, local state, manual commands and aggregated latest run.
 
+## Source Health
+
+```bash
+curl -s http://127.0.0.1:19993/api/source-health
+```
+
+Returns a read-only source health matrix by adapter scope. It does not trigger sync. Use `POST /api/sync` or `POST /api/sources/:source/sync` before reading this endpoint when you want a fresh run.
+
+Top-level shape:
+
+```json
+{
+  "generatedAt": "2026-07-08T04:00:00.000Z",
+  "summary": {
+    "total": 23,
+    "passed": 8,
+    "degraded": 1,
+    "failed": 2,
+    "blocked": 12,
+    "runnable": 10,
+    "stale": 2
+  },
+  "items": []
+}
+```
+
+Each item is keyed by `sourceId + scope` and includes `runStatus`, `acceptanceStatus`, `freshnessStatus`, `reasonCode`, `reason`, `latestRun`, `lastSuccessAt`, `staleAfterHours` and up to 3 persisted `samples`.
+
 Manual sync:
 
 ```bash

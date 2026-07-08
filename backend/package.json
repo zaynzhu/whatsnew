@@ -23,7 +23,7 @@
     "sync:douban": "tsx src/scripts/syncDouban.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",
-    "test": "tsx src/scripts/prepareTestDatabase.ts && vitest run",
+    "test": "npm run build --workspace @whatsnew/shared && tsx src/scripts/prepareTestDatabase.ts && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"

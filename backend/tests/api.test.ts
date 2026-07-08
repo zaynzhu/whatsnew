@@ -10,20 +10,30 @@ import { runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 let createApp: typeof import("../src/app.js").createApp
+let createSourceHealthRouter: typeof import("../src/routes/sourceHealth.js").createSourceHealthRouter
+let createSourceHealthService: typeof import("../src/services/sourceHealthService.js").createSourceHealthService
 let createSourcesRouter: typeof import("../src/routes/sources.js").createSourcesRouter
 let createSyncRouter: typeof import("../src/routes/sources.js").createSyncRouter
 const prisma: PrismaClient = testPrisma
 
+function testSettings(values: Record<string, string> = {}): RuntimeSettingsService {
+  return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-api-env"), values)
+}
+
 function emptySettings(): RuntimeSettingsService {
-  return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-api-env"))
+  return testSettings()
 }
 
 beforeAll(async () => {
-  const [appModule, sourcesModule] = await Promise.all([
+  const [appModule, sourceHealthModule, sourceHealthServiceModule, sourcesModule] = await Promise.all([
     import("../src/app.js"),
+    import("../src/routes/sourceHealth.js"),
+    import("../src/services/sourceHealthService.js"),
     import("../src/routes/sources.js")
   ])
   createApp = appModule.createApp
+  createSourceHealthRouter = sourceHealthModule.createSourceHealthRouter
+  createSourceHealthService = sourceHealthServiceModule.createSourceHealthService
   createSourcesRouter = sourcesModule.createSourcesRouter
   createSyncRouter = sourcesModule.createSyncRouter
 })
@@ -140,6 +150,50 @@ describe("api routes", () => {
       semantics: expect.objectContaining({
         signalKinds: ["platform_catalog"]
       })
+    })
+  })
+
+  it("returns source health summary and scope rows", async () => {
+    await prisma.sourceSyncRun.create({
+      data: {
+        source: "trakt",
+        scope: "popularity",
+        status: "success",
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        itemCount: 3
+      }
+    })
+    const settings = testSettings({
+      TRAKT_CLIENT_ID: "client-id",
+      SOURCE_TRAKT_ENABLED: "true"
+    })
+    const response = await request(createApp({
+      sourceHealthRouter: createSourceHealthRouter({
+        service: createSourceHealthService({ database: prisma, settings })
+      })
+    })).get("/api/source-health")
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({
+      generatedAt: expect.any(String),
+      summary: expect.objectContaining({
+        total: expect.any(Number),
+        passed: expect.any(Number),
+        degraded: expect.any(Number),
+        failed: expect.any(Number),
+        blocked: expect.any(Number),
+        runnable: expect.any(Number),
+        stale: expect.any(Number)
+      })
+    })
+    expect(response.body.items.find((item: any) => item.sourceId === "trakt" && item.scope === "popularity")).toMatchObject({
+      sourceName: "Trakt",
+      scheduleGroup: "hourly",
+      runStatus: "success",
+      acceptanceStatus: "passed",
+      reasonCode: "passed",
+      samples: expect.any(Array)
     })
   })
 

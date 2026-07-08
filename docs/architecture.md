@@ -49,6 +49,8 @@ Planned, restricted or commercial entries remain visible in the source catalog b
 
 Source status is aggregated by latest `source + scope` rows, then grouped by source. This matters for Trakt because `popularity` and `calendar` run separately. Both `/api/sources` and `/api/settings` must use `aggregateLatestSourceRuns()` so the UI stays consistent.
 
+`GET /api/source-health` separates run status from acceptance status, applies stale thresholds by schedule group, and returns blocked coverage rows for unavailable sources. It is read-only and does not trigger adapter sync.
+
 Status priority is:
 
 1. `running`
@@ -73,6 +75,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `PUT /api/settings` | Persist allowed settings into `backend/.env`, effective immediately. |
 | `POST /api/settings/proxy/test` | Test direct, HTTP proxy and HTTPS proxy paths. |
 | `GET /api/sources` | Source catalog with semantic metadata, local state and latest runs. |
+| `GET /api/source-health` | Read-only source health matrix by adapter scope; does not trigger sync. |
 | `POST /api/sources/:source/test` | Test one source's configured connectivity. |
 | `POST /api/sources/:source/sync` | Run enabled adapters for one source. |
 
