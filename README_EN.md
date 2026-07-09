@@ -186,11 +186,12 @@ The Apple TV+ source reads the official Press RSS feed (`https://www.apple.com/t
 
 ### Douban
 
-The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/top_list`) and syncs the top 20 high-score entries as reputation rating signals.
+The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/top_list`) as a reputation rating signal, and also reads low-frequency mobile Rexxar modules for movie coming-soon and TV coming-soon calendars.
 
-- Emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`); no releases — TOP250 carries no launch dates
-- TOP250 is a static chart with stable ranks; low-frequency daily sync takes only the top 20 to control anti-scraping risk
-- Disabled by default; enable from the settings page before manual sync. Do not scrape at high frequency or bypass login/captcha
+- TOP250 emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`)
+- Mobile modules emit release calendar rows and record the module order as the `douban_upcoming` interest signal
+- Sync endpoints: `m.douban.com/rexxar/api/v2/movie/modules`, `m.douban.com/rexxar/api/v2/tv/modules`
+- Disabled by default; enable from the settings page before manual sync. `DOUBAN_COOKIE` is optional. Do not scrape at high frequency or bypass login/captcha
 - Manual sync: `npm run sync:douban --workspace backend`
 
 ## ✅ Validation

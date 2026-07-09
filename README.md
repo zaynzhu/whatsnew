@@ -186,11 +186,12 @@ Apple TV+ 来源读取官方 Press RSS feed（`https://www.apple.com/tv-pr/news-
 
 ### 豆瓣
 
-豆瓣来源读取电影 TOP250 chart 接口（`movie.douban.com/j/chart/top_list`），同步高分段前 20 条作为口碑评分信号。
+豆瓣来源读取电影 TOP250 chart 接口（`movie.douban.com/j/chart/top_list`）作为口碑评分信号，同时低频读取移动端 Rexxar modules，同步电影“即将上映”和剧集“即将播出”。
 
-- 只输出 media 与评分 popularity signal（`sourceCategory: chinese_reputation`），不输出 release；TOP250 不提供上线日期
-- TOP250 是静态榜单，rank 长期稳定；低频日级同步，仅取前 20 条控制反爬风险
-- 来源默认关闭，需在设置页启用后手动同步；不得高频爬取或绕过登录/验证码
+- TOP250 只输出 media 与评分 popularity signal（`sourceCategory: chinese_reputation`）
+- 移动端模块输出 release calendar，并把豆瓣模块排序记录为 `douban_upcoming` 期待信号
+- 同步入口：`m.douban.com/rexxar/api/v2/movie/modules`、`m.douban.com/rexxar/api/v2/tv/modules`
+- 来源默认关闭，需在设置页启用后手动同步；`DOUBAN_COOKIE` 可选，不得高频爬取或绕过登录/验证码
 - 手动同步：`npm run sync:douban --workspace backend`
 
 ## ✅ 验证

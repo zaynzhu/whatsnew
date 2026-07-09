@@ -80,7 +80,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "release") },
   { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "popularity") },
   { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
-  { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating"], "daily", "popularity") }
+  { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating", "release_calendar"], "daily", "release") }
 ]
 
 export function healthScopeKey(entry: RegisteredAdapter | Pick<RegisteredHealthScope, "sourceId" | "scope">): string {

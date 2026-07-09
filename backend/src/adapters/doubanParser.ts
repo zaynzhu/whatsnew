@@ -1,5 +1,5 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
-import type { AdapterItem, PopularitySignalInput } from "../domain/types.js"
+import type { AdapterItem, PopularitySignalInput, ReleaseInput } from "../domain/types.js"
 
 type DoubanChartItem = {
   rating?: [string, string] | null
@@ -13,9 +13,212 @@ type DoubanChartItem = {
   url?: string
 }
 
+type DoubanMobilePerson = {
+  name?: string
+}
+
+type DoubanMobileSubject = {
+  id?: string
+  title?: string
+  type?: string
+  subtype?: string
+  cover_url?: string
+  card_subtitle?: string | null
+  directors?: DoubanMobilePerson[]
+  actors?: DoubanMobilePerson[]
+  genres?: string[]
+  pic?: {
+    large?: string
+    normal?: string
+  }
+  pubdate?: string[]
+  release_date?: string | null
+  rating?: {
+    value?: number
+    count?: number
+  } | null
+  url?: string
+  year?: string
+}
+
+type DoubanMobileComingGroup = {
+  items?: DoubanMobileSubject[]
+  title?: string
+  type?: string
+  total?: number
+  total_hot?: number
+  uri?: string
+}
+
+type DoubanMobileModule = {
+  key?: string
+  module_name?: string
+  data?: unknown
+}
+
+type DoubanMobileModulesResponse = {
+  modules?: DoubanMobileModule[]
+}
+
 function absoluteUrl(value: string | null | undefined): string | null {
   const text = (value ?? "").trim()
   return text || null
+}
+
+function compactTexts(values: (string | null | undefined)[]): string[] {
+  return [...new Set(values
+    .map((value) => (value ?? "").trim())
+    .filter(Boolean))]
+}
+
+function normalizeDate(value: string | null | undefined): string | null {
+  const match = (value ?? "").match(/(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (!match) return null
+
+  return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`
+}
+
+function releaseDateFromSubject(item: DoubanMobileSubject, today: string): string | null {
+  const direct = normalizeDate(item.release_date)
+  if (direct) return direct
+
+  for (const pubdate of item.pubdate ?? []) {
+    const parsed = normalizeDate(pubdate)
+    if (parsed && parsed >= today) return parsed
+  }
+
+  return null
+}
+
+function regionFromPubdate(pubdate: string | null | undefined): string | null {
+  const match = (pubdate ?? "").match(/\(([^)]+)\)/)
+  const region = match?.[1]?.trim()
+  if (!region || /电影节|影展/.test(region)) return null
+  return region
+}
+
+function regionsFromSubject(item: DoubanMobileSubject, groupTitle: string): string[] {
+  const pubdateRegions = compactTexts((item.pubdate ?? []).map(regionFromPubdate))
+  if (pubdateRegions.length > 0) return pubdateRegions
+
+  const subtitleParts = compactTexts((item.card_subtitle ?? "").split("/"))
+  if (subtitleParts.length >= 2) return compactTexts(subtitleParts[1].split(/\s+/))
+
+  if (groupTitle.includes("国内")) return ["中国大陆"]
+  return []
+}
+
+function primaryRegion(item: DoubanMobileSubject, groupTitle: string): string {
+  return regionsFromSubject(item, groupTitle)[0] ?? (groupTitle.includes("国内") ? "中国大陆" : "GLOBAL")
+}
+
+function releaseStatus(releaseDate: string | null, today: string): string {
+  if (!releaseDate) return "announced"
+  if (releaseDate > today) return "upcoming"
+  if (releaseDate === today) return "airing_today"
+  return "available"
+}
+
+function mediaStatus(releaseDate: string | null, today: string): "upcoming" | "released" | "unknown" {
+  if (!releaseDate) return "upcoming"
+  return releaseDate > today ? "upcoming" : "released"
+}
+
+function sourceContentType(item: DoubanMobileSubject): string {
+  if (item.subtype === "tv" || item.type === "tv") return "剧集"
+  return "电影"
+}
+
+function posterUrlFromSubject(item: DoubanMobileSubject): string | null {
+  return absoluteUrl(item.cover_url) ?? absoluteUrl(item.pic?.large) ?? absoluteUrl(item.pic?.normal)
+}
+
+function releaseFromSubject(
+  item: DoubanMobileSubject,
+  groupTitle: string,
+  releaseDate: string | null,
+  today: string
+): ReleaseInput {
+  return {
+    platform: "豆瓣",
+    region: primaryRegion(item, groupTitle),
+    releaseDate,
+    releaseTime: null,
+    releasePattern: item.subtype === "tv" || item.type === "tv" ? "tv_coming_soon" : "theatrical_coming_soon",
+    releaseStatus: releaseStatus(releaseDate, today),
+    seasonNumber: null,
+    episodeNumber: null,
+    source: "douban",
+    sourceUrl: absoluteUrl(item.url)
+  }
+}
+
+function upcomingSignalFromSubject(
+  item: DoubanMobileSubject,
+  index: number,
+  groupTitle: string
+): PopularitySignalInput {
+  const ratingCount = typeof item.rating?.count === "number" && item.rating.count > 0 ? item.rating.count : null
+
+  return {
+    source: "douban_upcoming",
+    sourceCategory: "chinese_interest",
+    platform: "豆瓣",
+    region: primaryRegion(item, groupTitle),
+    window: groupTitle,
+    rank: index + 1,
+    rankDelta: null,
+    value: ratingCount,
+    valueLabel: ratingCount != null ? "豆瓣评分人数" : "豆瓣即将播出排序",
+    sourceUrl: absoluteUrl(item.url)
+  }
+}
+
+function mobileSubjectToAdapterItem(
+  item: DoubanMobileSubject,
+  groupTitle: string,
+  index: number,
+  today: string
+): AdapterItem | null {
+  const title = item.title?.trim()
+  const doubanId = item.id?.trim()
+  if (!title || !doubanId) return null
+
+  const contentType = sourceContentType(item)
+  const genres = item.genres ?? []
+  const classification = classifyMedia({
+    source: "douban",
+    sourceContentType: contentType,
+    genres
+  })
+  const releaseDate = releaseDateFromSubject(item, today)
+
+  return {
+    media: {
+      source: "douban",
+      sourceId: `douban-${doubanId}`,
+      mediaType: classification.mediaType,
+      releaseForm: classification.releaseForm,
+      sourceContentType: contentType,
+      titleDisplay: title,
+      titleOriginal: title,
+      titleAliases: [],
+      overview: null,
+      posterUrl: posterUrlFromSubject(item),
+      productionCountries: regionsFromSubject(item, groupTitle),
+      originalLanguage: null,
+      genres,
+      firstReleaseDate: releaseDate,
+      status: mediaStatus(releaseDate, today),
+      tmdbId: null,
+      tvmazeId: null,
+      imdbId: null,
+      traktId: null,
+      tvdbId: null
+    },
+    releases: [releaseFromSubject(item, groupTitle, releaseDate, today)],
+    popularitySignals: [upcomingSignalFromSubject(item, index, groupTitle)]
+  }
 }
 
 function toAdapterItem(item: DoubanChartItem): AdapterItem {
@@ -88,4 +291,51 @@ export function parseDoubanChart(json: string): AdapterItem[] {
   return list
     .filter((item) => item.title && item.id)
     .map((item) => toAdapterItem(item))
+}
+
+function modulesFromJson(json: string): DoubanMobileModule[] {
+  try {
+    const data = JSON.parse(json) as DoubanMobileModulesResponse
+    return Array.isArray(data.modules) ? data.modules : []
+  } catch {
+    return []
+  }
+}
+
+function movieComingGroups(data: unknown): DoubanMobileComingGroup[] {
+  if (!Array.isArray(data)) return []
+
+  return data.filter((group): group is DoubanMobileComingGroup => {
+    return Boolean(group && typeof group === "object" && Array.isArray((group as DoubanMobileComingGroup).items))
+  })
+}
+
+function tvComingGroups(data: unknown): DoubanMobileComingGroup[] {
+  if (!data || typeof data !== "object") return []
+  const group = data as DoubanMobileComingGroup
+  return Array.isArray(group.items) ? [group] : []
+}
+
+export function parseDoubanMovieComingSoon(json: string, today: string): AdapterItem[] {
+  const module = modulesFromJson(json).find((item) => item.key === "movie_coming_soon")
+  if (!module) return []
+
+  return movieComingGroups(module.data).flatMap((group) => {
+    const groupTitle = group.title ?? "豆瓣电影即将上映"
+    return (group.items ?? [])
+      .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, index, today))
+      .filter((item): item is AdapterItem => Boolean(item))
+  })
+}
+
+export function parseDoubanTvComingSoon(json: string, today: string): AdapterItem[] {
+  const module = modulesFromJson(json).find((item) => item.key === "coming_soon" || item.module_name === "tv_coming_soon")
+  if (!module) return []
+
+  return tvComingGroups(module.data).flatMap((group) => {
+    const groupTitle = group.title ?? "豆瓣剧集即将播出"
+    return (group.items ?? [])
+      .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, index, today))
+      .filter((item): item is AdapterItem => Boolean(item))
+  })
 }
