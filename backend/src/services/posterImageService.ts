@@ -120,34 +120,36 @@ export class PosterImageService {
   }
 
   private async fetchAndCache(url: string): Promise<PosterImage> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => {
-      controller.abort(new DOMException(`图片请求超时（${this.timeoutMs}ms）`, "TimeoutError"))
-    }, this.timeoutMs)
+    return this.limiterFor(url).run(async () => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => {
+        controller.abort(new DOMException(`图片请求超时（${this.timeoutMs}ms）`, "TimeoutError"))
+      }, this.timeoutMs)
 
-    try {
-      const dispatcher = this.dispatcherFor(url)
-      const response = await this.limiterFor(url).run(() => this.transport(url, {
-        headers: {
-          accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-          referer: originReferer(url),
-          "user-agent": "Mozilla/5.0 WhatsNewBot/0.1"
-        },
-        redirect: "follow",
-        signal: controller.signal,
-        ...(dispatcher ? { dispatcher } : {})
-      }))
-      if (!response.ok) throw new Error(`图片请求失败: HTTP ${response.status}`)
+      try {
+        const dispatcher = this.dispatcherFor(url)
+        const response = await this.transport(url, {
+          headers: {
+            accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            referer: originReferer(url),
+            "user-agent": "Mozilla/5.0 WhatsNewBot/0.1"
+          },
+          redirect: "follow",
+          signal: controller.signal,
+          ...(dispatcher ? { dispatcher } : {})
+        })
+        if (!response.ok) throw new Error(`图片请求失败: HTTP ${response.status}`)
 
-      const body = Buffer.from(await response.arrayBuffer())
-      if (body.length > this.maxBytes) throw new Error(`图片过大: ${body.length} bytes`)
-      const contentType = assertImageResponse(response.headers.get("content-type"), body.length)
+        const body = Buffer.from(await response.arrayBuffer())
+        if (body.length > this.maxBytes) throw new Error(`图片过大: ${body.length} bytes`)
+        const contentType = assertImageResponse(response.headers.get("content-type"), body.length)
 
-      await this.writeCached(url, contentType, body)
-      return { body, contentType, cacheHit: false }
-    } finally {
-      clearTimeout(timer)
-    }
+        await this.writeCached(url, contentType, body)
+        return { body, contentType, cacheHit: false }
+      } finally {
+        clearTimeout(timer)
+      }
+    })
   }
 
   private async writeCached(url: string, contentType: string, body: Buffer): Promise<void> {
