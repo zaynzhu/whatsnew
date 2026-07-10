@@ -18,6 +18,7 @@ This file is the short operational handoff for the current branch.
 - Backend startup recovers interrupted `running` source runs.
 - Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
 - Frontend artwork is proxy-first through `/api/media/:id/poster`, with an on-demand disk cache under `backend/.cache/posters/`.
+- The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 
 ## Syncable Sources
 

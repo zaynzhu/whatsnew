@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import userEvent from "@testing-library/user-event"
@@ -57,6 +57,7 @@ const traktRelease = {
 const movieRelease = {
   ...traktRelease,
   id: "release-trakt-movie",
+  mediaItemId: "media-movie-1",
   seasonNumber: null,
   episodeNumber: null,
   episodeTitle: null,
@@ -277,7 +278,12 @@ const responses: Record<string, unknown> = {
     items: [signal, risingSignal, newSignal]
   },
   "/api/calendar": {
-    items: [traktRelease, movieRelease]
+    items: [traktRelease, movieRelease],
+    days: [{
+      date: "2026-06-18",
+      count: 2,
+      items: [traktRelease, movieRelease]
+    }]
   },
   "/api/sources": {
     items: sourceCatalogItems
@@ -313,9 +319,20 @@ function mockFetch() {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const path = input instanceof Request ? input.url : String(input)
     const pathname = path.startsWith("http") ? new URL(path).pathname + new URL(path).search : path
-    const body = responses[pathname] ?? (pathname.startsWith("/api/trending?")
-      ? responses["/api/trending"]
-      : undefined)
+    let body = responses[pathname]
+    if (pathname.startsWith("/api/trending?")) body = responses["/api/trending"]
+    if (pathname.startsWith("/api/calendar?")) {
+      const params = new URL(`http://local${pathname}`).searchParams
+      const calendar = responses["/api/calendar"] as {
+        items: unknown[]
+        days: unknown[]
+      }
+      body = params.get("summary") === "true"
+        ? { items: [], days: calendar.days }
+        : params.get("from") === "2026-06-18"
+          ? calendar
+          : { items: [], days: [] }
+    }
 
     if (!body) {
       return {
@@ -397,19 +414,23 @@ describe("frontend pages", () => {
     expect(screen.getByRole("option", { name: "Trakt 期待榜" })).toBeInTheDocument()
     expect(screen.getByRole("option", { name: "Trakt" })).toBeInTheDocument()
 
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date("2026-06-17T12:00:00.000Z"))
     renderRoute("/calendar")
-    const movieRow = (await screen.findByText("午夜档案")).closest("article")
-    const seriesRow = screen.getByText("星际回声").closest("article")
-    expect(seriesRow).toHaveTextContent("平台未提供 · GLOBAL")
+    expect(await screen.findByRole("heading", { name: "海报日历" })).toBeInTheDocument()
+    expect(screen.getByText("2026年6月")).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole("button", { name: "6月18日，2部影视" }))
+    const movieRow = (await screen.findByText("午夜档案", { selector: "h3" })).closest("article")
+    const seriesRow = screen.getByText("星际回声", { selector: "h3" }).closest("article")
+    expect(seriesRow).toHaveTextContent("平台待确认")
     expect(seriesRow).toHaveTextContent("S2 E3 · 新的开始")
     expect(seriesRow).toHaveTextContent("来源 Trakt")
     expect(screen.getAllByRole("link", { name: "打开 Trakt 来源" })[0]).toHaveAttribute(
       "href",
       "https://example.com"
     )
-    const movieEpisode = movieRow?.querySelector(".calendarEpisode")
-    expect(movieEpisode).not.toBeNull()
-    expect(movieEpisode).toBeEmptyDOMElement()
+    const movieEpisode = movieRow?.querySelector(".calendarPremiereEpisode")
+    expect(movieEpisode).toBeNull()
     expect(movieRow).not.toHaveTextContent(/S\d+ E\d+/)
 
     renderRoute("/sources")
@@ -425,6 +446,25 @@ describe("frontend pages", () => {
     expect(screen.getByText("FlixPatrol")).toBeInTheDocument()
     expect(screen.getByText("商业授权")).toBeInTheDocument()
     expect(screen.getByText("当前不能作为免费来源启用")).toBeInTheDocument()
+  })
+
+  it("navigates calendar months and filters poster days by media type", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date("2026-06-17T12:00:00.000Z"))
+    const fetchMock = mockFetch()
+    renderRoute("/calendar")
+
+    expect(await screen.findByText("2026年6月")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "后一个月" }))
+    expect(screen.getByText("2026年7月")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/calendar?from=2026-07-01&to=2026-07-31&summary=true"
+    )
+
+    fireEvent.click(screen.getByRole("tab", { name: "电影" }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/calendar?from=2026-07-01&to=2026-07-31&summary=true&mediaType=movie"
+    )
   })
 
   it("polls source catalog status while the page is open", async () => {

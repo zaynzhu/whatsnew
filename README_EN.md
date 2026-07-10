@@ -24,6 +24,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 
 - **Browse by category** —— Movies, series, anime, variety, short drama, documentaries
 - **Today / This week** —— Aggregated new releases and broadcasts across all sources
+- **Poster calendar** —— Browse a monthly poster wall and open image-first film and series lineups by date
 - **Popularity tracking** —— Rising, new entries, falling, with a 90-day rank timeline
 - **Source status** —— Real-time view of each source's sync state and connectivity
 - **Independent per-source scope** —— No mixing platforms into one "true combined chart"; each signal is stored separately

@@ -127,6 +127,12 @@ describe("api routes", () => {
 
     expect(response.status).toBe(200)
     expect(response.body.items.every((release: any) => release.releaseDate >= todayDate)).toBe(true)
+    expect(Array.isArray(response.body.days)).toBe(true)
+    expect(response.body.days.every((day: any) => (
+      day.date >= todayDate
+      && day.count > 0
+      && day.items.length <= 3
+    ))).toBe(true)
   })
 
   it("returns trending and source status routes", async () => {

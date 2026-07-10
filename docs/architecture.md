@@ -85,7 +85,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster through the backend image proxy. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
 | `GET /api/trending` | Current popularity signals with movement and source filters. |
-| `GET /api/calendar` | Release calendar by date window and optional filters. |
+| `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |
 | `GET /api/settings` | Runtime settings fields, source state and latest runs. |
 | `PUT /api/settings` | Persist allowed settings into `backend/.env`, effective immediately. |
 | `POST /api/settings/proxy/test` | Test direct, HTTP proxy and HTTPS proxy paths. |

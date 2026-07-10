@@ -93,6 +93,9 @@ curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trendi
 
 ```bash
 curl -s "http://127.0.0.1:19993/api/calendar?from=2026-07-01&to=2026-07-07&region=US"
+
+# Month overview only: items stays empty and days contains up to three featured releases per date.
+curl -s "http://127.0.0.1:19993/api/calendar?from=2026-07-01&to=2026-07-31&summary=true"
 ```
 
 | Query | Meaning |
@@ -102,6 +105,9 @@ curl -s "http://127.0.0.1:19993/api/calendar?from=2026-07-01&to=2026-07-07&regio
 | `region` | Region code. |
 | `mediaType` | Media type filter. |
 | `releaseForm` | Release form filter. |
+| `summary` | Set to `true` for the lightweight month overview used by the poster calendar. |
+
+The response contains `items` for the requested date window and `days` with each date's total release count and up to three poster-first featured releases. With `summary=true`, `items` is empty.
 
 ## Sources
 

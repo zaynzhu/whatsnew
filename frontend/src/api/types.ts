@@ -123,6 +123,11 @@ export type TrendingResponse = {
 
 export type CalendarResponse = {
   items: ReleaseRow[]
+  days: Array<{
+    date: string
+    count: number
+    items: ReleaseRow[]
+  }>
 }
 
 export type SourcesResponse = {
