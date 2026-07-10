@@ -1,6 +1,7 @@
 import dotenv from "dotenv"
 import { z } from "zod"
 import { deriveTestDatabaseUrl } from "./databaseUrl.js"
+import { parseEnvBoolean } from "./envValue.js"
 
 dotenv.config()
 
@@ -16,7 +17,7 @@ const envSchema = z.object({
   TMDB_BASE_URL: z.string().default("https://api.themoviedb.org/3"),
   TMDB_IMAGE_BASE_URL: z.string().default("https://image.tmdb.org/t/p/w500"),
   TRAKT_CLIENT_ID: z.string().optional().default(""),
-  SYNC_ON_START: z.coerce.boolean().default(false)
+  SYNC_ON_START: z.preprocess(parseEnvBoolean, z.boolean()).default(false)
 })
 
 export const env = envSchema.parse(process.env)
