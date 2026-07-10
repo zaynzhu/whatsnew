@@ -267,6 +267,7 @@ describe("Max adapter", () => {
       })
     )
     expect(batch.completeReleaseSources).toEqual(["max"])
+    expect(batch.completeMediaSources).toEqual(["max"])
     expect(items).toHaveLength(3)
     expect(items[0].popularitySignals).toEqual([])
     expect(items[0].media).toMatchObject({

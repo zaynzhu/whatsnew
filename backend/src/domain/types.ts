@@ -72,6 +72,7 @@ export interface SourceRefRetirement {
 export interface SourceFetchBatch {
   items: AdapterItem[]
   retiredSourceRefs?: SourceRefRetirement[]
+  completeMediaSources?: string[]
   completePopularitySources?: string[]
   completeReleaseSources?: string[]
 }

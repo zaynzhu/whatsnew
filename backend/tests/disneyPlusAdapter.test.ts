@@ -141,6 +141,7 @@ describe("Disney+ adapter", () => {
       })
     )
     expect(batch.completeReleaseSources).toEqual(["disney_plus"])
+    expect(batch.completeMediaSources).toEqual(["disney_plus"])
     expect(items).toHaveLength(2)
     expect(items[0].popularitySignals).toEqual([])
     expect(items[0].media).toMatchObject({

@@ -379,6 +379,41 @@ describe("runSourceSync", () => {
     expect(await prisma.mediaItem.count()).toBe(1)
   })
 
+  it("retires source refs missing from an explicitly complete media snapshot", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    await runSourceSync(prisma, {
+      source: "platform_snapshot",
+      async fetchItems() {
+        return {
+          items: [
+            { ...base, media: { ...base.media, source: "platform_snapshot", sourceId: "keep" } },
+            { ...base, media: { ...base.media, source: "platform_snapshot", sourceId: "retire", titleDisplay: "Retire" } }
+          ],
+          completeMediaSources: ["platform_snapshot"]
+        }
+      }
+    })
+
+    await runSourceSync(prisma, {
+      source: "platform_snapshot",
+      async fetchItems() {
+        return {
+          items: [{ ...base, media: { ...base.media, source: "platform_snapshot", sourceId: "keep" } }],
+          completeMediaSources: ["platform_snapshot"]
+        }
+      }
+    })
+
+    const refs = await prisma.mediaSourceRef.findMany({
+      where: { source: "platform_snapshot" },
+      orderBy: { sourceId: "asc" }
+    })
+    expect(refs.map((ref) => ({ sourceId: ref.sourceId, isActive: ref.isActive }))).toEqual([
+      { sourceId: "keep", isActive: true },
+      { sourceId: "retire", isActive: false }
+    ])
+  })
+
   it("does not create an unmatched enrichment-only item", async () => {
     const [base] = await demoSeedAdapter.fetchItems()
     await runSourceSync(prisma, {

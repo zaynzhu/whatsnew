@@ -70,6 +70,7 @@ export function createMaxAdapter(options: MaxAdapterOptions = {}): SourceAdapter
 
       return {
         items,
+        completeMediaSources: ["max"],
         completeReleaseSources: ["max"]
       }
     }

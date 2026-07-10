@@ -70,6 +70,7 @@ export function createHuluAdapter(options: HuluAdapterOptions = {}): SourceAdapt
 
       return {
         items,
+        completeMediaSources: ["hulu"],
         completeReleaseSources: ["hulu"]
       }
     }

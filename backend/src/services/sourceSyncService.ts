@@ -37,12 +37,19 @@ function compactTitleAliases(values: string[]): string[] {
 
 function normalizeFetchResult(result: SourceFetchResult): Required<SourceFetchBatch> {
   if (Array.isArray(result)) {
-    return { items: result, retiredSourceRefs: [], completePopularitySources: [], completeReleaseSources: [] }
+    return {
+      items: result,
+      retiredSourceRefs: [],
+      completeMediaSources: [],
+      completePopularitySources: [],
+      completeReleaseSources: []
+    }
   }
 
   return {
     items: result.items,
     retiredSourceRefs: result.retiredSourceRefs ?? [],
+    completeMediaSources: result.completeMediaSources ?? [],
     completePopularitySources: result.completePopularitySources ?? [],
     completeReleaseSources: result.completeReleaseSources ?? []
   }
@@ -260,7 +267,13 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
 
   try {
     const batch = normalizeFetchResult(await adapter.fetchItems())
-    const { items, retiredSourceRefs, completePopularitySources, completeReleaseSources } = batch
+    const {
+      items,
+      retiredSourceRefs,
+      completeMediaSources,
+      completePopularitySources,
+      completeReleaseSources
+    } = batch
 
     if (retiredSourceRefs.length > 0) {
       await prisma.mediaSourceRef.updateMany({
@@ -296,6 +309,21 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
           releaseMediaIds.get(source)?.add(result.mediaItem.id)
         }
       }
+    }
+
+    for (const source of completeMediaSources) {
+      const currentSourceIds = uniqueValues(
+        items
+          .filter((item) => item.media.source === source)
+          .map((item) => item.media.sourceId)
+      )
+      await prisma.mediaSourceRef.updateMany({
+        where: {
+          source,
+          ...(currentSourceIds.length > 0 ? { sourceId: { notIn: currentSourceIds } } : {})
+        },
+        data: { isActive: false }
+      })
     }
 
     for (const source of completeReleaseSources) {

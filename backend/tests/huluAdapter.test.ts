@@ -185,6 +185,7 @@ describe("Hulu adapter", () => {
       })
     )
     expect(batch.completeReleaseSources).toEqual(["hulu"])
+    expect(batch.completeMediaSources).toEqual(["hulu"])
     expect(items).toHaveLength(2)
     expect(items[0].media).toMatchObject({
       source: "hulu",

@@ -70,6 +70,7 @@ export function createDisneyPlusAdapter(options: DisneyPlusAdapterOptions = {}):
 
       return {
         items,
+        completeMediaSources: ["disney_plus"],
         completeReleaseSources: ["disney_plus"]
       }
     }
