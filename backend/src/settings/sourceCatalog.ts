@@ -170,11 +170,11 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   },
   max: {
     signalKinds: ["platform_catalog", "release_calendar"],
-    coverage: "Max / HBO Max 官方 Pressroom 月度上新",
-    cadence: "日级检查已验证 WBD Pressroom 页面",
-    access: "public_page",
-    freshnessNote: "只代表 WBD Pressroom 发布的 Max 上新信息",
-    riskNote: "月度 press URL 可能变化，可通过 SOURCE_MAX_BASE_URL 覆盖"
+    coverage: "Max / HBO Max 官方 Pressroom 月度上新（当前受限）",
+    cadence: "WBD Pressroom 恢复公开访问后再启用日级检查",
+    access: "restricted_page",
+    freshnessNote: "WBD Pressroom 当前要求登录或返回 403，暂不产生新的 Max 数据",
+    riskNote: "保留解析器和 SOURCE_MAX_BASE_URL 覆盖能力，确认公开访问恢复后再重新启用"
   },
   apple_tv_plus: {
     signalKinds: ["news_signal"],
@@ -291,7 +291,7 @@ export const SOURCE_CATALOG = [
   source("prime_video", "Prime Video", "新内容集合候选", "international_platform", "planned", "inherit", false, false, "https://www.primevideo.com/collection/newandupcoming"),
   source("hulu", "Hulu", "官方排期与上新", "international_platform", "active", "inherit", true, true, "https://press.hulu.com/schedule/", [], ["daily"], false),
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
-  source("max", "Max", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
+  source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
   source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
   source("youku", "优酷", "电影、长剧、独播与热度", "china_platform", "active", "direct", true, true, "https://tv.youku.com/", [], ["hourly"], true),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),

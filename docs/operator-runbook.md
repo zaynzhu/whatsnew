@@ -93,9 +93,11 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 | Group | Cron | Sources |
 |---|---|---|
 | Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI, MangoTV |
-| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Bilibili, Douban |
+| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
+
+Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
 
 When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Failed or ambiguous lookups wait 7 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
 
@@ -118,7 +120,8 @@ Inspect `X-Poster-Cache: hit|miss`, `Content-Type` and the HTTP status. The serv
 | Source stays `running` after restart | Backend startup should mark interrupted runs as `failed`. Refresh `/sources` after 5 seconds. |
 | `/api/settings` and `/api/sources` disagree | Both must use `aggregateLatestSourceRuns()`; rerun tests if this regresses. |
 | Trakt fails with network errors | Verify `TRAKT_CLIENT_ID` and proxy settings. Trakt only needs the public client ID. |
-| Hulu / Disney+ / Max parse zero items | Check source page structure and base URL overrides. These are official pages, not APIs. |
+| Hulu / Disney+ parse zero items | Check source page structure and base URL overrides. These are official pages, not APIs. |
+| Max cannot be enabled | Expected while WBD Pressroom remains login/403 restricted. Verify public access before changing the catalog status. |
 | IMDb says missing cache dir | Set `IMDB_DATASET_CACHE_DIR`, run `download:imdb`, then `sync:imdb`. |
 | TheTVDB asks for paid access | Do not implement paid fallback. Only free project API Key is allowed. |
 | A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles wait 7 days and intentionally keep the placeholder. |
@@ -130,4 +133,13 @@ Useful status commands:
 curl -s http://127.0.0.1:19993/api/health
 curl -s http://127.0.0.1:19993/api/sources
 curl -s http://127.0.0.1:19993/api/settings
+```
+
+Preview data-quality maintenance before applying it manually:
+
+```bash
+npm run reconcile:duplicate-identities --workspace backend
+npm run cleanup:platform-orphans --workspace backend
+npm run reconcile:duplicate-identities --workspace backend -- --apply
+npm run cleanup:platform-orphans --workspace backend -- --apply
 ```

@@ -48,6 +48,7 @@ const traktRelease = {
   id: "release-trakt-1",
   platform: "Unspecified",
   region: "GLOBAL",
+  releasePattern: "episode_release",
   seasonNumber: 2,
   episodeNumber: 3,
   episodeTitle: "新的开始",
@@ -429,6 +430,7 @@ describe("frontend pages", () => {
     const movieRow = (await screen.findByText("午夜档案", { selector: "h3" })).closest("article")
     const seriesRow = screen.getByText("星际回声", { selector: "h3" }).closest("article")
     expect(seriesRow).toHaveTextContent("平台待确认")
+    expect(seriesRow).toHaveTextContent("剧集更新")
     expect(seriesRow).toHaveTextContent("S2 E3 · 新的开始")
     expect(seriesRow).toHaveTextContent("来源 Trakt")
     expect(screen.getAllByRole("link", { name: "打开 Trakt 来源" })[0]).toHaveAttribute(

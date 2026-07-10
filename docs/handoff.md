@@ -31,7 +31,7 @@ This file is the short operational handoff for the current branch.
 | Netflix | Official global weekly Top 10 XLSX. |
 | Hulu | Official press schedule. |
 | Disney+ | Official New to Disney+ article. |
-| Max | Official WBD Pressroom monthly What's New page. |
+| Max | Parser retained, but source is blocked while WBD Pressroom requires login or returns 403. |
 | Apple TV+ | Official Press RSS feed (news_signal, filtered to film/TV). |
 | Youku | China platform catalog/rank page. |
 | iQIYI | China platform new-online page. |
@@ -45,7 +45,10 @@ This file is the short operational handoff for the current branch.
 - Settings API has no authentication and must remain private.
 - TheTVDB must stay free-only.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
-- Hulu, Disney+ and Max are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
+- Hulu and Disney+ are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
+- Max is intentionally non-runnable while the official WBD page is access-restricted; do not re-enable it until a public request succeeds.
+- Platform catalog additions are not work premieres. The calendar exposes release-pattern labels and counts unique works per day.
+- Scheduled quality maintenance reconciles conflict-free duplicate TMDb identities; startup and daily runs also remove strict inactive platform orphans.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
 - Poster enrichment safely merges a unique recent local Netflix match or a compatible TMDb identity. External-ID conflicts and candidates without a clear confidence lead still retain placeholders until better metadata appears.
 - Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.

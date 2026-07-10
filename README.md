@@ -87,7 +87,7 @@ npm run dev:frontend
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 
-Hulu、Disney+、Max、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；IMDb 需要先配置本地 datasets 缓存目录。
+Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
 
 ## ⚙️ 系统设置
 
@@ -97,7 +97,7 @@ Hulu、Disney+、Max、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、Apple TV+、优酷、爱奇艺、芒果TV、哔哩哔哩和豆瓣；IMDb 使用本地 datasets 手动导入
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Apple TV+、优酷、爱奇艺、芒果TV、哔哩哔哩和豆瓣；Max 当前受 WBD 访问限制，IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
 
@@ -134,18 +134,24 @@ Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜�
 - 下载沿用统一代理设置、10 秒超时和来源级 2 秒限频
 - 手动同步：`npm run sync:netflix --workspace backend`
 
-### Hulu / Disney+ / Max 官方上新
+### Hulu / Disney+ 官方上新与 Max 受限状态
 
-Hulu、Disney+ 和 Max 来源只同步官方页面中的平台上新和排期，不生成热度排名。
+Hulu 和 Disney+ 只同步官方页面中的平台上新和排期，不生成热度排名。日历会区分“平台新增”“平台首发”“剧集更新”等语义，平台旧片上架不会被当成作品首次发行。
 
 - Hulu 使用 `https://press.hulu.com/schedule/`
 - Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
-- Max 使用 WBD Pressroom 的 What's New 页面，默认 URL 可通过 `SOURCE_MAX_BASE_URL` 覆盖
-- 三个来源均为 daily schedule，默认关闭，需在设置页显式启用
+- Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度
+- Hulu 和 Disney+ 均为 daily schedule，默认关闭，需在设置页显式启用
 - 手动同步：
   - `npm run sync:hulu --workspace backend`
   - `npm run sync:disney-plus --workspace backend`
-  - `npm run sync:max --workspace backend`
+  - Max 恢复公开访问前不要执行 `npm run sync:max --workspace backend`
+
+### 数据质量维护
+
+- 平台完整快照同步后，已不在最新快照中的来源关联会自动停用
+- 小时任务会按无冲突的 TMDb 外部身份合并重复作品；启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
+- 两项维护均可先预览再执行：`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
 
 ### Trakt
 

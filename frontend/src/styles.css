@@ -1275,6 +1275,14 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.calendarPremierePattern {
+  width: fit-content;
+  border: 1px solid rgba(236, 179, 74, 0.35);
+  padding: 3px 6px;
+  color: var(--calendar-gold) !important;
+  font-weight: 800;
+}
+
 .calendarPremiereMeta {
   display: flex;
   flex-wrap: wrap;

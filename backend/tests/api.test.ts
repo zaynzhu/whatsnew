@@ -215,13 +215,13 @@ describe("api routes", () => {
       })
     })
     expect(sourcesResponse.body.items.find((source: any) => source.id === "max")).toMatchObject({
-      implementationStatus: "active",
-      supportsSync: true,
+      implementationStatus: "blocked",
+      supportsSync: false,
       enabled: false,
       runnable: false,
       semantics: expect.objectContaining({
         signalKinds: ["platform_catalog", "release_calendar"],
-        access: "public_page"
+        access: "restricted_page"
       })
     })
     expect(sourcesResponse.body.items.find((source: any) => source.id === "prime_video")).toMatchObject({

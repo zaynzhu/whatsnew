@@ -87,7 +87,7 @@ npm run dev:frontend
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
 
-Hulu, Disney+, Max, Apple TV+, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. IMDb requires a local datasets cache directory first.
+Hulu, Disney+, Apple TV+, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. Max is currently restricted because WBD Pressroom requires login or returns 403. IMDb requires a local datasets cache directory first.
 
 ## ⚙️ System Settings
 
@@ -97,7 +97,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Youku, iQIYI, MangoTV, Bilibili, Douban; IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Youku, iQIYI, MangoTV, Bilibili, Douban; Max is currently WBD-restricted and IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 
@@ -134,18 +134,24 @@ The Netflix source reads the official global weekly XLSX and syncs only the late
 - Downloads use the unified proxy settings, a 10-second timeout and a per-source 2-second rate limit
 - Manual sync: `npm run sync:netflix --workspace backend`
 
-### Hulu / Disney+ / Max Official New Releases
+### Hulu / Disney+ Official Releases And Max Restriction
 
-Hulu, Disney+ and Max sources sync official platform pages for release calendars and catalog additions. They do not create popularity rankings.
+Hulu and Disney+ sync official platform pages for release calendars and catalog additions. They do not create popularity rankings. The calendar distinguishes catalog additions, platform premieres and episode updates, so an older title added to a service is not treated as the work's first release.
 
 - Hulu uses `https://press.hulu.com/schedule/`
 - Disney+ uses `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
-- Max uses the WBD Pressroom What's New page; override it with `SOURCE_MAX_BASE_URL`
-- All three sources are daily schedule sources and disabled by default
+- The Max parser remains available, but WBD Pressroom currently requires login or returns 403, so the source is restricted and excluded from scheduling
+- Hulu and Disney+ are daily schedule sources and disabled by default
 - Manual sync:
   - `npm run sync:hulu --workspace backend`
   - `npm run sync:disney-plus --workspace backend`
-  - `npm run sync:max --workspace backend`
+  - Do not run `npm run sync:max --workspace backend` until public WBD access returns
+
+### Data Quality Maintenance
+
+- Full platform snapshots deactivate source references missing from the newest snapshot
+- Hourly jobs merge non-conflicting duplicate TMDb identities; startup and daily jobs also remove strictly orphaned platform-only works with no releases or popularity
+- Preview both operations before applying: `npm run reconcile:duplicate-identities --workspace backend` and `npm run cleanup:platform-orphans --workspace backend`; append `-- --apply` after review
 
 ### Trakt
 

@@ -53,11 +53,19 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 | Group | Active syncable sources |
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
-| International platforms | Netflix, Hulu, Disney+, Max, Apple TV+ |
+| International platforms | Netflix, Hulu, Disney+, Apple TV+ |
 | China platforms | Youku, iQIYI, MangoTV, Bilibili, Douban |
 | Local enrichment | IMDb datasets cache, manual only |
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.
+
+Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure.
+
+## Identity And Release Semantics
+
+Platform catalog additions use `releasePattern=catalog_addition` and do not overwrite a work's `firstReleaseDate`. Calendar counts are unique works per day, while the selected-day response can retain multiple underlying release rows for provenance.
+
+`completeMediaSources` marks a source sync as a complete catalog snapshot. References absent from the next complete snapshot become inactive. After scheduled syncs, duplicate TMDb identities are reconciled when external IDs do not conflict; startup and daily maintenance additionally remove platform-only records only when every source reference is inactive and the work has neither releases nor popularity signals.
 
 ## Status Semantics
 

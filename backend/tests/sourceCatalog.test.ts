@@ -12,7 +12,6 @@ describe("source catalog", () => {
       "netflix",
       "hulu",
       "disney_plus",
-      "max",
       "apple_tv_plus",
       "youku",
       "iqiyi",
@@ -82,12 +81,15 @@ describe("source catalog", () => {
       testUrl: "https://www.disneyplus.com/explore/articles/new-to-disney-plus"
     })
     expect(getSourceDefinition("max")).toMatchObject({
-      implementationStatus: "active",
-      supportsSync: true,
-      supportsEnable: true,
+      implementationStatus: "blocked",
+      supportsSync: false,
+      supportsEnable: false,
       defaultEnabled: false,
       scheduleGroups: ["daily"],
       testUrl: "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july"
+    })
+    expect(getSourceDefinition("max").semantics).toMatchObject({
+      access: "restricted_page"
     })
     expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog"])
     expect(getSourceDefinition("apple_tv_plus").semantics.signalKinds).toEqual(["news_signal"])

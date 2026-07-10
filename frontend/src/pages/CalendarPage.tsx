@@ -78,6 +78,26 @@ function episodeLabel(release: ReleaseRow): string | null {
   return `S${release.seasonNumber} E${release.episodeNumber}${release.episodeTitle ? ` · ${release.episodeTitle}` : ""}`
 }
 
+function releasePatternLabel(value: string): string {
+  const labels: Record<string, string> = {
+    batch: "整季上线",
+    calendar_release: "排期上线",
+    catalog_addition: "平台新增",
+    episode_release: "剧集更新",
+    movie_release: "电影上线",
+    platform_premiere: "平台首发",
+    platform_schedule: "平台排期",
+    series_air_date: "剧集开播",
+    streaming_drop: "流媒体上线",
+    streaming_release: "流媒体上线",
+    theatrical_coming_soon: "即将上映",
+    theatrical_release: "院线上映",
+    tv_coming_soon: "即将开播",
+    weekly: "每周更新"
+  }
+  return labels[value] ?? "排期信息"
+}
+
 function mediaTypePath(value: MediaTypeFilter): string {
   return value ? `&mediaType=${value}` : ""
 }
@@ -311,6 +331,7 @@ export function CalendarPage() {
                       <Link to={`/media/${release.mediaItemId}`}>
                         <h3>{release.mediaItem.titleDisplay}</h3>
                       </Link>
+                      <p className="calendarPremierePattern">{releasePatternLabel(release.releasePattern)}</p>
                       {episode ? <p className="calendarPremiereEpisode">{episode}</p> : null}
                       {count > 1 ? <p className="calendarPremiereEpisode">当日 {count} 条更新</p> : null}
                       <div className="calendarPremiereMeta">
