@@ -414,6 +414,64 @@ describe("runSourceSync", () => {
     ])
   })
 
+  it("adopts cleaned platform titles only for source-owned records without external identity", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const dirtyItem = {
+      ...base,
+      media: {
+        ...base.media,
+        source: "hulu",
+        sourceId: "hulu-dirty",
+        mediaType: "series" as const,
+        releaseForm: "tv_series" as const,
+        titleDisplay: "The Bear: Complete Season 5",
+        titleAliases: [],
+        firstReleaseDate: "2026-07-01",
+        tmdbId: null,
+        tvmazeId: null,
+        imdbId: null,
+        traktId: null,
+        tvdbId: null
+      },
+      releases: [{
+        ...base.releases[0],
+        source: "hulu",
+        platform: "Hulu",
+        releaseDate: "2026-07-01",
+        releasePattern: "platform_schedule"
+      }]
+    }
+    await runSourceSync(prisma, { source: "hulu", async fetchItems() { return [dirtyItem] } })
+
+    const cleanItem = {
+      ...dirtyItem,
+      media: {
+        ...dirtyItem.media,
+        sourceId: "hulu-clean",
+        titleDisplay: "The Bear",
+        titleAliases: ["The Bear: Complete Season 5"],
+        firstReleaseDate: null
+      },
+      releases: [{ ...dirtyItem.releases[0], releasePattern: "catalog_addition" }]
+    }
+    await runSourceSync(prisma, {
+      source: "hulu",
+      async fetchItems() {
+        return { items: [cleanItem], completeMediaSources: ["hulu"], completeReleaseSources: ["hulu"] }
+      }
+    })
+
+    const media = await prisma.mediaItem.findFirstOrThrow({
+      where: { sourceRefs: { some: { source: "hulu", sourceId: "hulu-clean" } } },
+      include: { sourceRefs: { where: { source: "hulu" }, orderBy: { sourceId: "asc" } } }
+    })
+    expect(media).toMatchObject({ titleDisplay: "The Bear", firstReleaseDate: null })
+    expect(media.sourceRefs.map((ref) => ({ sourceId: ref.sourceId, isActive: ref.isActive }))).toEqual([
+      { sourceId: "hulu-clean", isActive: true },
+      { sourceId: "hulu-dirty", isActive: false }
+    ])
+  })
+
   it("does not create an unmatched enrichment-only item", async () => {
     const [base] = await demoSeedAdapter.fetchItems()
     await runSourceSync(prisma, {

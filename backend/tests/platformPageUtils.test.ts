@@ -3,6 +3,7 @@ import {
   candidateToAdapterItem,
   cleanPlatformText,
   parseEnglishReleaseDate,
+  stripSeasonQualifier,
   type PlatformAdapterConfig
 } from "../src/adapters/platformPageUtils.js"
 
@@ -25,6 +26,15 @@ describe("platformPageUtils", () => {
     expect(parseEnglishReleaseDate("July 1", 2026)).toBe("2026-07-01")
     expect(parseEnglishReleaseDate("Jul. 9, 2026", 2025)).toBe("2026-07-09")
     expect(parseEnglishReleaseDate("Coming soon", 2026)).toBeNull()
+  })
+
+  it("strips platform season qualifiers without truncating the base title", () => {
+    expect(stripSeasonQualifier("Project Runway Season 22")).toBe("Project Runway")
+    expect(stripSeasonQualifier("Dorohedoro: Complete Seasons 1 and 2 (SUBBED & DUBBED)")).toBe("Dorohedoro")
+    expect(stripSeasonQualifier("Mission: Yozakura Family: Season 2 Episodes 28-39 (DUBBED)"))
+      .toBe("Mission: Yozakura Family")
+    expect(stripSeasonQualifier("Pompeii: Out of Time with Tom Hiddleston: Docuseries Premiere"))
+      .toBe("Pompeii: Out of Time with Tom Hiddleston")
   })
 
   it("maps clear platform candidates to release-only adapter items", () => {

@@ -17,6 +17,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const TITLE_ALIASES_STORAGE_LIMIT = 191
 const INTERRUPTED_SYNC_ERROR = "同步进程中断，已自动收尾；请重新触发同步"
 const sourceSyncTails = new Map<string, Promise<void>>()
+const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max"])
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
@@ -33,6 +34,29 @@ function compactTitleAliases(values: string[]): string[] {
   }
 
   return aliases
+}
+
+function hasExternalIdentity(candidate: ExistingMediaCandidate): boolean {
+  return candidate.tmdbId != null
+    || candidate.tvmazeId != null
+    || candidate.imdbId != null
+    || candidate.traktId != null
+    || candidate.tvdbId != null
+}
+
+function shouldAdoptCleanPlatformTitle(item: AdapterItem, match: ExistingMediaCandidate): boolean {
+  return PLATFORM_SNAPSHOT_SOURCES.has(item.media.source)
+    && !hasExternalIdentity(match)
+    && item.media.titleDisplay !== match.titleDisplay
+    && item.media.titleAliases.includes(match.titleDisplay)
+}
+
+function shouldReplacePlatformFirstReleaseDate(item: AdapterItem, match: ExistingMediaCandidate): boolean {
+  if (!PLATFORM_SNAPSHOT_SOURCES.has(item.media.source) || hasExternalIdentity(match)) return false
+  if (!item.releases.some((release) => release.releasePattern === "catalog_addition")) return false
+
+  const platformDates = new Set(item.releases.map((release) => release.releaseDate).filter(Boolean))
+  return item.media.firstReleaseDate != null || (match.firstReleaseDate != null && platformDates.has(match.firstReleaseDate))
 }
 
 function normalizeFetchResult(result: SourceFetchResult): Required<SourceFetchBatch> {
@@ -89,11 +113,16 @@ async function upsertItem(
   const titleAliases = match
     ? compactTitleAliases([...match.titleAliases, ...item.media.titleAliases])
     : compactTitleAliases(item.media.titleAliases)
+  const adoptCleanPlatformTitle = match ? shouldAdoptCleanPlatformTitle(item, match) : false
+  const replacePlatformFirstReleaseDate = match
+    ? shouldReplacePlatformFirstReleaseDate(item, match)
+    : false
 
   const mediaItem = match
     ? await prisma.mediaItem.update({
         where: { id: match.id },
         data: {
+          titleDisplay: adoptCleanPlatformTitle ? item.media.titleDisplay : match.titleDisplay,
           sourceContentType: item.media.source === "tvmaze" || !match.sourceContentType
             ? item.media.sourceContentType
             : match.sourceContentType,
@@ -112,7 +141,9 @@ async function upsertItem(
             ...parseJsonArray(match.genres),
             ...item.media.genres
           ])),
-          firstReleaseDate: match.firstReleaseDate ?? item.media.firstReleaseDate,
+          firstReleaseDate: replacePlatformFirstReleaseDate
+            ? item.media.firstReleaseDate
+            : match.firstReleaseDate ?? item.media.firstReleaseDate,
           originalLanguage: match.originalLanguage ?? item.media.originalLanguage,
           status: match.status === "unknown" && item.media.status && item.media.status !== "unknown"
             ? item.media.status
@@ -149,6 +180,7 @@ async function upsertItem(
       })
 
   if (match) {
+    match.titleDisplay = mediaItem.titleDisplay
     match.titleAliases = titleAliases
     match.sourceContentType = mediaItem.sourceContentType
     match.overview = mediaItem.overview
