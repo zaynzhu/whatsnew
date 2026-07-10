@@ -141,9 +141,12 @@ describe("Hulu schedule parser", () => {
         releaseDate: "2026-07-01"
       }),
       expect.objectContaining({
-        title: "Bad Boys (1995)",
+        title: "Bad Boys",
+        titleAliases: ["Bad Boys (1995)"],
+        originalReleaseYear: 1995,
         sourceContentType: "movie",
-        releaseDate: "2026-07-01"
+        releaseDate: "2026-07-01",
+        releasePattern: "catalog_addition"
       })
     ])
   })

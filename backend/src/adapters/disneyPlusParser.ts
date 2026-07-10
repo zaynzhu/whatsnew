@@ -6,11 +6,11 @@ import {
 } from "./platformPageUtils.js"
 
 function pickContentRoot(html: ReturnType<typeof load>) {
-  const article = html("article").first()
-  if (article.length > 0) return article
-
   const main = html("main").first()
   if (main.length > 0) return main
+
+  const article = html("article").first()
+  if (article.length > 0) return article
 
   return html("body").first()
 }
@@ -26,6 +26,21 @@ function inferContentType(title: string, description: string | null): string {
   return "unknown"
 }
 
+function isEditorialCard(element: ReturnType<ReturnType<typeof load>>): boolean {
+  const listItem = element.closest("li")
+  if (listItem.length === 0) return false
+
+  return listItem.hasClass("grid-item") || listItem.find("article").length > 0
+}
+
+function cleanDisneyTitle(value: string): { title: string; titleAliases: string[] } {
+  const title = value
+    .replace(/,\s*(?:Disney\+\s*&\s*Hulu|Disney\+|Hulu)\s*$/i, "")
+    .trim()
+
+  return { title, titleAliases: title === value ? [] : [value] }
+}
+
 export function parseDisneyPlusNewReleases(
   html: string,
   sourceUrl: string,
@@ -37,8 +52,10 @@ export function parseDisneyPlusNewReleases(
   let currentDate: string | null = null
 
   root.find("h2, h3, h4, li").each((_index, element) => {
-    const text = cleanPlatformText($(element).text())
+    const htmlElement = $(element)
+    const text = cleanPlatformText(htmlElement.text())
     if (!text) return
+    if (isEditorialCard(htmlElement)) return
 
     const parsedDate = parseEnglishReleaseDate(text, fallbackYear)
     if (parsedDate) {
@@ -56,11 +73,14 @@ export function parseDisneyPlusNewReleases(
     if (/coming later|streaming now|also streaming/i.test(text)) return
     if (!["h3", "h4", "li"].includes(tagName)) return
 
-    const description = cleanPlatformText($(element).next("p").text())
+    const normalizedTitle = cleanDisneyTitle(text)
+    const description = cleanPlatformText(htmlElement.next("p").text())
     candidates.push({
-      title: text,
-      sourceContentType: inferContentType(text, description),
+      title: normalizedTitle.title,
+      titleAliases: normalizedTitle.titleAliases,
+      sourceContentType: inferContentType(normalizedTitle.title, description),
       releaseDate: currentDate,
+      releasePattern: "catalog_addition",
       description,
       labels: [],
       sourceUrl

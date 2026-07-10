@@ -34,6 +34,7 @@ describe("platformPageUtils", () => {
       releaseDate: "2026-07-01",
       description: "FX series returns",
       labels: ["Complete Season 5"],
+      releasePattern: "catalog_addition",
       sourceUrl: "https://press.hulu.com/schedule/"
     }, "2026-07-01")
 
@@ -50,11 +51,36 @@ describe("platformPageUtils", () => {
       platform: "Hulu",
       region: "US",
       releaseDate: "2026-07-01",
-      releasePattern: "platform_schedule",
+      releasePattern: "catalog_addition",
       releaseStatus: "airing_today",
       source: "hulu"
     })
     expect(item?.popularitySignals).toEqual([])
+  })
+
+  it("keeps platform availability separate from an older work's original year", () => {
+    const item = candidateToAdapterItem(config, {
+      title: "Bad Boys",
+      titleAliases: ["Bad Boys (1995)"],
+      sourceContentType: "movie",
+      releaseDate: "2026-07-01",
+      originalReleaseYear: 1995,
+      releasePattern: "catalog_addition",
+      description: "Added",
+      labels: ["Added"],
+      sourceUrl: "https://press.hulu.com/schedule/"
+    }, "2026-07-01")
+
+    expect(item?.media).toMatchObject({
+      titleDisplay: "Bad Boys",
+      titleAliases: ["Bad Boys (1995)"],
+      firstReleaseDate: "1995",
+      status: "released"
+    })
+    expect(item?.releases[0]).toMatchObject({
+      releaseDate: "2026-07-01",
+      releasePattern: "catalog_addition"
+    })
   })
 
   it("keeps sourceId distinct when title and date match but media type differs", () => {

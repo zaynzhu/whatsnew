@@ -4,8 +4,11 @@ import type { AdapterItem } from "../domain/types.js"
 
 export type PlatformReleaseCandidate = {
   title: string
+  titleAliases?: string[]
   sourceContentType: string
   releaseDate: string | null
+  originalReleaseYear?: number | null
+  releasePattern?: string
   description: string | null
   labels: string[]
   sourceUrl: string
@@ -164,7 +167,10 @@ export function candidateToAdapterItem(
     classification.releaseForm,
     normalizedSourceContentType(candidate.sourceContentType)
   ].join("|"))}`
-  const status = mediaStatus(candidate.releaseDate, today)
+  const firstReleaseDate = candidate.originalReleaseYear
+    ? String(candidate.originalReleaseYear)
+    : candidate.releaseDate
+  const status = mediaStatus(firstReleaseDate, today)
 
   return {
     media: {
@@ -175,13 +181,13 @@ export function candidateToAdapterItem(
       sourceContentType: candidate.sourceContentType,
       titleDisplay: title,
       titleOriginal: null,
-      titleAliases: [],
+      titleAliases: candidate.titleAliases ?? [],
       overview: description,
       posterUrl: null,
       productionCountries: [],
       originalLanguage: config.defaultLanguage,
       genres: [...config.defaultGenres],
-      firstReleaseDate: candidate.releaseDate,
+      firstReleaseDate,
       status,
       tmdbId: null,
       tvmazeId: null,
@@ -194,7 +200,7 @@ export function candidateToAdapterItem(
       region: config.region,
       releaseDate: candidate.releaseDate,
       releaseTime: null,
-      releasePattern: "platform_schedule",
+      releasePattern: candidate.releasePattern ?? "platform_schedule",
       releaseStatus: releaseStatus(candidate.releaseDate, today),
       seasonNumber: null,
       episodeNumber: null,

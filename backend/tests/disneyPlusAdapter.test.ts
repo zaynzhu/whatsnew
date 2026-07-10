@@ -86,6 +86,33 @@ describe("Disney+ parser", () => {
       })
     ])
   })
+
+  it("ignores editorial cards nested inside grid list items", () => {
+    const rows = parseDisneyPlusNewReleases(`
+      <main>
+        <h2>July 9</h2>
+        <ul><li>Project Runway Season 22, Disney+ &amp; Hulu</li></ul>
+        <ul>
+          <li class="grid-item">
+            <article>
+              <p>Movies &amp; Shows</p>
+              <h3>How To Watch Desperate Housewives</h3>
+              <time>July 9, 2026</time>
+            </article>
+          </li>
+        </ul>
+      </main>
+    `, "https://example.test/disney", 2026)
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "Project Runway Season 22",
+        titleAliases: ["Project Runway Season 22, Disney+ & Hulu"],
+        releaseDate: "2026-07-09",
+        releasePattern: "catalog_addition"
+      })
+    ])
+  })
 })
 
 describe("Disney+ adapter", () => {
@@ -130,7 +157,8 @@ describe("Disney+ adapter", () => {
       platform: "Disney+",
       region: "US",
       releaseDate: "2026-07-02",
-      releaseStatus: "upcoming"
+      releaseStatus: "upcoming",
+      releasePattern: "catalog_addition"
     })
   })
 })

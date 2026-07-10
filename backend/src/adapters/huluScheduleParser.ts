@@ -17,6 +17,27 @@ function inferContentType(title: string, labels: string[]): string {
   return "unknown"
 }
 
+function cleanHuluTitle(value: string): {
+  title: string
+  titleAliases: string[]
+  originalReleaseYear: number | null
+} {
+  const yearMatch = value.match(/\s*\(((?:19|20)\d{2})\)\s*$/)
+  if (!yearMatch) return { title: value, titleAliases: [], originalReleaseYear: null }
+
+  const title = value.slice(0, yearMatch.index).trim()
+  return {
+    title,
+    titleAliases: title === value ? [] : [value],
+    originalReleaseYear: Number(yearMatch[1])
+  }
+}
+
+function releasePattern(labels: string[]): string {
+  const status = labels.join(" ").toLowerCase()
+  return /\b(?:premiere|debut)\b/.test(status) ? "platform_premiere" : "catalog_addition"
+}
+
 function cellTexts(htmlRow: Cheerio<AnyNode>, $: CheerioAPI): string[] {
   return htmlRow
     .find("td")
@@ -57,14 +78,18 @@ export function parseHuluSchedule(
       if (cells.length < 2) return
 
       const releaseDate = parseEnglishReleaseDate(cells[0], fallbackYear)
-      const title = cleanPlatformText(cells[1])
-      if (!releaseDate || !title) return
+      const rawTitle = cleanPlatformText(cells[1])
+      if (!releaseDate || !rawTitle) return
 
       const labels = cells.slice(2)
+      const normalizedTitle = cleanHuluTitle(rawTitle)
       candidates.push({
-        title,
-        sourceContentType: inferContentType(title, labels),
+        title: normalizedTitle.title,
+        titleAliases: normalizedTitle.titleAliases,
+        sourceContentType: inferContentType(rawTitle, labels),
         releaseDate,
+        originalReleaseYear: normalizedTitle.originalReleaseYear,
+        releasePattern: releasePattern(labels),
         description: labels.length > 0 ? labels.join(" · ") : null,
         labels,
         sourceUrl
