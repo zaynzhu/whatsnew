@@ -186,4 +186,33 @@ describe("findBestMatch", () => {
 
     expect(findBestMatch(datedInput, candidates)?.id).toBe("same")
   })
+
+  it("normalizes language names before exact-title matching", () => {
+    const catalogInput: NormalizedMediaInput = {
+      ...input,
+      source: "disney_plus",
+      sourceId: "disney-project-runway",
+      titleDisplay: "Project Runway",
+      titleOriginal: null,
+      titleAliases: ["Project Runway Season 22, Disney+ & Hulu"],
+      firstReleaseDate: null,
+      originalLanguage: "en",
+      tmdbId: null
+    }
+    const candidates: ExistingMediaCandidate[] = [{
+      ...candidateMetadata,
+      id: "tvmaze-project-runway",
+      mediaType: "series",
+      titleDisplay: "Project Runway",
+      titleAliases: [],
+      firstReleaseDate: "2004-12-01",
+      originalLanguage: "English",
+      tmdbId: null,
+      tvmazeId: 123,
+      imdbId: null,
+      traktId: null
+    }]
+
+    expect(findBestMatch(catalogInput, candidates)?.id).toBe("tvmaze-project-runway")
+  })
 })

@@ -3,6 +3,7 @@ import type { AnyNode } from "domhandler"
 import {
   cleanPlatformText,
   parseEnglishReleaseDate,
+  stripSeasonQualifier,
   type PlatformReleaseCandidate
 } from "./platformPageUtils.js"
 
@@ -23,14 +24,17 @@ function cleanHuluTitle(value: string): {
   originalReleaseYear: number | null
 } {
   const yearMatch = value.match(/\s*\(((?:19|20)\d{2})\)\s*$/)
-  if (!yearMatch) return { title: value, titleAliases: [], originalReleaseYear: null }
-
-  const title = value.slice(0, yearMatch.index).trim()
-  return {
-    title,
-    titleAliases: title === value ? [] : [value],
-    originalReleaseYear: Number(yearMatch[1])
+  if (!yearMatch) {
+    const title = stripSeasonQualifier(value)
+    return {
+      title,
+      titleAliases: title === value ? [] : [value],
+      originalReleaseYear: null
+    }
   }
+
+  const title = stripSeasonQualifier(value.slice(0, yearMatch.index).trim())
+  return { title, titleAliases: [value], originalReleaseYear: Number(yearMatch[1]) }
 }
 
 function releasePattern(labels: string[]): string {

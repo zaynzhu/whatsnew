@@ -48,7 +48,8 @@ describe("Hulu schedule parser", () => {
 
     expect(rows).toEqual([
       expect.objectContaining({
-        title: "The Bear: Complete Season 5",
+        title: "The Bear",
+        titleAliases: ["The Bear: Complete Season 5"],
         sourceContentType: "series",
         releaseDate: "2026-07-01",
         labels: expect.arrayContaining(["FX", "Added"])
@@ -92,7 +93,8 @@ describe("Hulu schedule parser", () => {
 
     expect(rows).toEqual([
       expect.objectContaining({
-        title: "Only Murders in the Building: Season 5 Premiere",
+        title: "Only Murders in the Building",
+        titleAliases: ["Only Murders in the Building: Season 5 Premiere"],
         sourceContentType: "series",
         releaseDate: "2026-07-10",
         labels: ["Hulu Original", "Premiere"]
@@ -136,7 +138,8 @@ describe("Hulu schedule parser", () => {
 
     expect(rows).toEqual([
       expect.objectContaining({
-        title: "GMA First Listen: Complete Season 1",
+        title: "GMA First Listen",
+        titleAliases: ["GMA First Listen: Complete Season 1"],
         sourceContentType: "series",
         releaseDate: "2026-07-01"
       }),
@@ -187,8 +190,9 @@ describe("Hulu adapter", () => {
       source: "hulu",
       mediaType: "series",
       releaseForm: "tv_series",
-      titleDisplay: "The Bear: Complete Season 5",
-      firstReleaseDate: "2026-07-01"
+      titleDisplay: "The Bear",
+      titleAliases: ["The Bear: Complete Season 5"],
+      firstReleaseDate: null
     })
     expect(items[0].releases[0]).toMatchObject({
       platform: "Hulu",

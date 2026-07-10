@@ -43,7 +43,8 @@ describe("Disney+ parser", () => {
         description: "Original movie premiere."
       }),
       expect.objectContaining({
-        title: "Galaxy Adventures Season 2",
+        title: "Galaxy Adventures",
+        titleAliases: ["Galaxy Adventures Season 2"],
         sourceContentType: "series",
         releaseDate: "2026-07-09"
       })
@@ -106,7 +107,7 @@ describe("Disney+ parser", () => {
 
     expect(rows).toEqual([
       expect.objectContaining({
-        title: "Project Runway Season 22",
+        title: "Project Runway",
         titleAliases: ["Project Runway Season 22, Disney+ & Hulu"],
         releaseDate: "2026-07-09",
         releasePattern: "catalog_addition"
@@ -151,7 +152,9 @@ describe("Disney+ adapter", () => {
     expect(items[1].media).toMatchObject({
       mediaType: "series",
       releaseForm: "tv_series",
-      titleDisplay: "Galaxy Adventures Season 2"
+      titleDisplay: "Galaxy Adventures",
+      titleAliases: ["Galaxy Adventures Season 2"],
+      firstReleaseDate: null
     })
     expect(items[0].releases[0]).toMatchObject({
       platform: "Disney+",

@@ -65,6 +65,15 @@ export function cleanPlatformText(value: string | null | undefined): string | nu
   return cleaned || null
 }
 
+export function stripSeasonQualifier(value: string): string {
+  return value
+    .replace(
+      /\s*(?::\s*)?(?:\((?:subbed|dubbed)(?:\s*&\s*(?:subbed|dubbed))?\)\s*)?(?:complete\s+)?seasons?\s+\d+(?:\s*(?:-|–|—|and|&)\s*\d+)*(?:\s+premiere)?\s*$/i,
+      ""
+    )
+    .trim()
+}
+
 export function parseEnglishReleaseDate(text: string, fallbackYear: number): string | null {
   const normalized = text
     .replace(/,/g, " ")
@@ -167,10 +176,13 @@ export function candidateToAdapterItem(
     classification.releaseForm,
     normalizedSourceContentType(candidate.sourceContentType)
   ].join("|"))}`
+  const isCatalogAddition = candidate.releasePattern === "catalog_addition"
   const firstReleaseDate = candidate.originalReleaseYear
     ? String(candidate.originalReleaseYear)
-    : candidate.releaseDate
-  const status = mediaStatus(firstReleaseDate, today)
+    : isCatalogAddition
+      ? null
+      : candidate.releaseDate
+  const status = isCatalogAddition ? "released" : mediaStatus(firstReleaseDate ?? candidate.releaseDate, today)
 
   return {
     media: {

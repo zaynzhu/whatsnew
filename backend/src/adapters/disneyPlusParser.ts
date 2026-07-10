@@ -2,6 +2,7 @@ import { load } from "cheerio"
 import {
   cleanPlatformText,
   parseEnglishReleaseDate,
+  stripSeasonQualifier,
   type PlatformReleaseCandidate
 } from "./platformPageUtils.js"
 
@@ -34,9 +35,10 @@ function isEditorialCard(element: ReturnType<ReturnType<typeof load>>): boolean 
 }
 
 function cleanDisneyTitle(value: string): { title: string; titleAliases: string[] } {
-  const title = value
+  const withoutPlatform = value
     .replace(/,\s*(?:Disney\+\s*&\s*Hulu|Disney\+|Hulu)\s*$/i, "")
     .trim()
+  const title = stripSeasonQualifier(withoutPlatform)
 
   return { title, titleAliases: title === value ? [] : [value] }
 }
@@ -78,7 +80,7 @@ export function parseDisneyPlusNewReleases(
     candidates.push({
       title: normalizedTitle.title,
       titleAliases: normalizedTitle.titleAliases,
-      sourceContentType: inferContentType(normalizedTitle.title, description),
+      sourceContentType: inferContentType(text, description),
       releaseDate: currentDate,
       releasePattern: "catalog_addition",
       description,

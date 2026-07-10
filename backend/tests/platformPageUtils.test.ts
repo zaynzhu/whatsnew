@@ -43,7 +43,7 @@ describe("platformPageUtils", () => {
       mediaType: "series",
       releaseForm: "tv_series",
       titleDisplay: "The Bear: Complete Season 5",
-      firstReleaseDate: "2026-07-01",
+      firstReleaseDate: null,
       status: "released"
     })
     expect(item?.media.sourceId).toMatch(/^hulu-[a-f0-9]{12}$/)
