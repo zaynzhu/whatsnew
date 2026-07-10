@@ -135,6 +135,42 @@ describe("api routes", () => {
     ))).toBe(true)
   })
 
+  it("counts unique works instead of episode rows in calendar summaries", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        sourceContentType: "series",
+        titleDisplay: "Daily Series",
+        titleAliases: "[]",
+        productionCountries: "[]",
+        genres: "[]"
+      }
+    })
+    await prisma.release.createMany({
+      data: [1, 2, 3].map((episodeNumber) => ({
+        mediaItemId: media.id,
+        platform: "Network",
+        region: "US",
+        releaseDate: "2099-01-01",
+        releasePattern: "episode_release",
+        releaseStatus: "upcoming",
+        seasonNumber: 1,
+        episodeNumber,
+        source: "test"
+      }))
+    })
+
+    const response = await request(createApp()).get(
+      "/api/calendar?from=2099-01-01&to=2099-01-01&summary=true"
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.body.days).toEqual([
+      expect.objectContaining({ date: "2099-01-01", count: 1 })
+    ])
+  })
+
   it("returns trending and source status routes", async () => {
     await prisma.sourceSyncRun.create({
       data: { source: "tmdb", status: "success", itemCount: 10 }

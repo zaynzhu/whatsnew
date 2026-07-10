@@ -20,19 +20,25 @@ calendarRouter.get("/", async (req, res) => {
     }
   }
 
-  const dayRows = await db.release.groupBy({
-    by: ["releaseDate"],
+  const dayMediaRows = await db.release.groupBy({
+    by: ["releaseDate", "mediaItemId"],
     where,
-    _count: { _all: true },
     orderBy: { releaseDate: "asc" },
-    take: 62
+    take: 10000
   })
-  const days = await Promise.all(dayRows.flatMap((row) => row.releaseDate ? [row] : []).map(async (row) => {
+  const mediaIdsByDate = new Map<string, string[]>()
+  for (const row of dayMediaRows) {
+    if (!row.releaseDate) continue
+    const mediaIds = mediaIdsByDate.get(row.releaseDate) ?? []
+    mediaIds.push(row.mediaItemId)
+    mediaIdsByDate.set(row.releaseDate, mediaIds)
+  }
+  const days = await Promise.all([...mediaIdsByDate.entries()].slice(0, 62).map(async ([date, mediaItemIds]) => {
     const candidates = await db.release.findMany({
-      where: { ...where, releaseDate: row.releaseDate },
+      where: { ...where, releaseDate: date },
       include: { mediaItem: true },
       orderBy: { fetchedAt: "desc" },
-      take: 24
+      take: 100
     })
     const seen = new Set<string>()
     const featured = [...candidates]
@@ -48,8 +54,8 @@ calendarRouter.get("/", async (req, res) => {
       .slice(0, 3)
 
     return {
-      date: row.releaseDate as string,
-      count: row._count._all,
+      date,
+      count: mediaItemIds.length,
       items: featured
     }
   }))

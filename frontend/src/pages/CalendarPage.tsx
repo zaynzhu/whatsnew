@@ -115,6 +115,9 @@ export function CalendarPage() {
     }
     return [...groups.values()]
   }, [dayQuery.data])
+  const selectedWorkCount = selectedSummary?.count
+    ?? dayQuery.data?.days.find((day) => day.date === selectedDate)?.count
+    ?? selectedGroups.length
 
   useEffect(() => {
     if (!monthQuery.data || selectedDate !== range.from || dayMap.has(selectedDate)) return
@@ -147,7 +150,7 @@ export function CalendarPage() {
         <div className="calendarMonthIdentity" aria-live="polite">
           <span>当前月份</span>
           <strong>{monthLabel(month)}</strong>
-          <small>{monthQuery.data?.days.length ?? 0} 个播出日 · {totalReleases} 条排期</small>
+          <small>{monthQuery.data?.days.length ?? 0} 个播出日 · {totalReleases} 部作品</small>
         </div>
       </section>
 
@@ -280,7 +283,7 @@ export function CalendarPage() {
             <p className="eyebrow">当日片单</p>
             <h2 id="selected-date-title">{selectedDateLabel(selectedDate)}</h2>
           </div>
-          <p>{selectedSummary?.count ?? dayQuery.data?.items.length ?? 0} 条排期</p>
+          <p>{selectedWorkCount} 部作品</p>
         </header>
 
         {dayQuery.isLoading ? (
@@ -319,8 +322,8 @@ export function CalendarPage() {
                 )
               })}
             </div>
-            {selectedGroups.length > MAX_VISIBLE_RELEASES ? (
-              <p className="calendarOverflowNote">另有 {selectedGroups.length - MAX_VISIBLE_RELEASES} 部作品未展开</p>
+            {selectedWorkCount > MAX_VISIBLE_RELEASES ? (
+              <p className="calendarOverflowNote">另有 {selectedWorkCount - MAX_VISIBLE_RELEASES} 部作品未展开</p>
             ) : null}
           </>
         ) : (
