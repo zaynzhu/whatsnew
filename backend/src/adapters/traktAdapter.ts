@@ -5,6 +5,7 @@ import type {
   SourceAdapter,
   SourceFetchBatch
 } from "../domain/types.js"
+import type { MediaStatus } from "@whatsnew/shared/media"
 import { createTraktClient, type TraktClient } from "../clients/traktClient.js"
 
 type TraktIds = {
@@ -18,12 +19,24 @@ type TraktIds = {
 type TraktMovie = {
   title: string
   year: number | null
+  released?: string | null
+  status?: string | null
+  overview?: string | null
+  language?: string | null
+  country?: string | null
+  genres?: string[]
   ids: TraktIds
 }
 
 type TraktShow = {
   title: string
   year: number | null
+  first_aired?: string | null
+  status?: string | null
+  overview?: string | null
+  language?: string | null
+  country?: string | null
+  genres?: string[]
   ids: TraktIds
 }
 
@@ -103,7 +116,42 @@ function releaseStatus(releaseDate: string, today: string): string {
   return "available"
 }
 
-function itemFromMedia(kind: "movie" | "show", media: TraktMedia, firstReleaseDate: string | null): AdapterItem {
+function fullReleaseDate(kind: "movie" | "show", media: TraktMedia): string | null {
+  const value = kind === "movie"
+    ? (media as TraktMovie).released
+    : (media as TraktShow).first_aired
+  return value?.slice(0, 10) ?? null
+}
+
+function mediaStatus(
+  kind: "movie" | "show",
+  media: TraktMedia,
+  releaseDate: string | null,
+  today: string
+): MediaStatus {
+  const status = media.status?.toLowerCase() ?? ""
+  if (releaseDate && releaseDate > today) return "upcoming"
+
+  if (kind === "movie") {
+    if (status === "released" || (releaseDate && releaseDate <= today)) return "released"
+    if (status.includes("production") || status === "planned" || status === "rumored") return "upcoming"
+    return "unknown"
+  }
+
+  if (status.includes("returning")) return "returning"
+  if (status.includes("continuing") || status === "running") return "ongoing"
+  if (status === "ended" || status === "canceled" || status === "cancelled") return "ended"
+  if (status.includes("production") || status === "planned") return "upcoming"
+  if (releaseDate && releaseDate <= today) return "ongoing"
+  return "unknown"
+}
+
+function itemFromMedia(
+  kind: "movie" | "show",
+  media: TraktMedia,
+  firstReleaseDate: string | null,
+  today: string
+): AdapterItem {
   const isMovie = kind === "movie"
 
   return {
@@ -116,13 +164,13 @@ function itemFromMedia(kind: "movie" | "show", media: TraktMedia, firstReleaseDa
       titleDisplay: media.title,
       titleOriginal: media.title,
       titleAliases: [],
-      overview: null,
+      overview: media.overview ?? null,
       posterUrl: null,
-      productionCountries: [],
-      originalLanguage: null,
-      genres: [],
+      productionCountries: media.country ? [media.country.toUpperCase()] : [],
+      originalLanguage: media.language ?? null,
+      genres: media.genres ?? [],
       firstReleaseDate,
-      status: "unknown",
+      status: mediaStatus(kind, media, firstReleaseDate, today),
       tmdbId: media.ids.tmdb ?? null,
       tvmazeId: null,
       imdbId: media.ids.imdb ?? null,
@@ -161,11 +209,17 @@ function mergePopularity(
   items: Map<string, AdapterItem>,
   kind: PopularityKind,
   mediaKind: "movie" | "show",
-  rows: Array<{ media: TraktMedia, value: number }>
+  rows: Array<{ media: TraktMedia, value: number }>,
+  today: string
 ) {
   rows.forEach(({ media, value }, index) => {
     const key = `${mediaKind}:${media.ids.trakt}`
-    const item = items.get(key) ?? itemFromMedia(mediaKind, media, null)
+    const item = items.get(key) ?? itemFromMedia(
+      mediaKind,
+      media,
+      fullReleaseDate(mediaKind, media),
+      today
+    )
     item.popularitySignals.push(popularitySignal(kind, mediaKind, media, index + 1, value))
     items.set(key, item)
   })
@@ -229,18 +283,19 @@ export function createTraktPopularityAdapter(options: TraktAdapterOptions = {}):
     source: "trakt",
     scope: "popularity",
     async fetchItems() {
+      const currentDate = (options.today ?? todayLocalDate)()
       const [trendingMovies, trendingShows, anticipatedMovies, anticipatedShows] = await Promise.all([
-        client.get<TraktTrendingMovie[]>("/movies/trending?limit=50"),
-        client.get<TraktTrendingShow[]>("/shows/trending?limit=50"),
-        client.get<TraktAnticipatedMovie[]>("/movies/anticipated?limit=50"),
-        client.get<TraktAnticipatedShow[]>("/shows/anticipated?limit=50")
+        client.get<TraktTrendingMovie[]>("/movies/trending?limit=50&extended=full"),
+        client.get<TraktTrendingShow[]>("/shows/trending?limit=50&extended=full"),
+        client.get<TraktAnticipatedMovie[]>("/movies/anticipated?limit=50&extended=full"),
+        client.get<TraktAnticipatedShow[]>("/shows/anticipated?limit=50&extended=full")
       ])
       const items = new Map<string, AdapterItem>()
 
-      mergePopularity(items, "trending", "movie", trendingMovies.map((row) => ({ media: row.movie, value: row.watchers })))
-      mergePopularity(items, "trending", "show", trendingShows.map((row) => ({ media: row.show, value: row.watchers })))
-      mergePopularity(items, "anticipated", "movie", anticipatedMovies.map((row) => ({ media: row.movie, value: row.list_count })))
-      mergePopularity(items, "anticipated", "show", anticipatedShows.map((row) => ({ media: row.show, value: row.list_count })))
+      mergePopularity(items, "trending", "movie", trendingMovies.map((row) => ({ media: row.movie, value: row.watchers })), currentDate)
+      mergePopularity(items, "trending", "show", trendingShows.map((row) => ({ media: row.show, value: row.watchers })), currentDate)
+      mergePopularity(items, "anticipated", "movie", anticipatedMovies.map((row) => ({ media: row.movie, value: row.list_count })), currentDate)
+      mergePopularity(items, "anticipated", "show", anticipatedShows.map((row) => ({ media: row.show, value: row.list_count })), currentDate)
 
       return {
         items: Array.from(items.values()),
@@ -266,7 +321,7 @@ export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): S
       const items = new Map<string, AdapterItem>()
 
       for (const row of movies) {
-        const item = itemFromMedia("movie", row.movie, row.released)
+        const item = itemFromMedia("movie", row.movie, row.released, currentDate)
         item.media.status = statusForDate(row.released, currentDate)
         item.releases.push(movieRelease(row, currentDate))
         mergeCalendarItem(items, `movie:${row.movie.ids.trakt}`, item)
@@ -275,7 +330,7 @@ export function createTraktCalendarAdapter(options: TraktAdapterOptions = {}): S
       for (const row of shows) {
         const releaseDate = row.first_aired.slice(0, 10)
         const isPremiere = row.episode.season === 1 && row.episode.number === 1
-        const item = itemFromMedia("show", row.show, isPremiere ? releaseDate : null)
+        const item = itemFromMedia("show", row.show, isPremiere ? releaseDate : null, currentDate)
         item.media.status = releaseDate > currentDate ? "upcoming" : "ongoing"
         item.releases.push(showRelease(row, currentDate))
         mergeCalendarItem(items, `show:${row.show.ids.trakt}`, item)

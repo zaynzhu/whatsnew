@@ -107,6 +107,9 @@ async function upsertItem(
           ])),
           firstReleaseDate: match.firstReleaseDate ?? item.media.firstReleaseDate,
           originalLanguage: match.originalLanguage ?? item.media.originalLanguage,
+          status: match.status === "unknown" && item.media.status && item.media.status !== "unknown"
+            ? item.media.status
+            : match.status,
           tmdbId: match.tmdbId ?? item.media.tmdbId,
           tvmazeId: match.tvmazeId ?? item.media.tvmazeId,
           imdbId: match.imdbId ?? item.media.imdbId,
@@ -147,6 +150,7 @@ async function upsertItem(
     match.genres = mediaItem.genres
     match.firstReleaseDate = mediaItem.firstReleaseDate
     match.originalLanguage = mediaItem.originalLanguage
+    match.status = mediaItem.status
     match.tmdbId = mediaItem.tmdbId
     match.tvmazeId = mediaItem.tvmazeId
     match.imdbId = mediaItem.imdbId

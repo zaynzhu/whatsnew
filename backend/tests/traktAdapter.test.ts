@@ -9,12 +9,24 @@ import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 const movie = {
   title: "示例电影",
   year: 2026,
+  released: "2026-06-18",
+  status: "in production",
+  overview: "示例电影简介",
+  language: "zh",
+  country: "cn",
+  genres: ["drama"],
   ids: { trakt: 101, slug: "sample-movie-2026", imdb: "tt0000101", tmdb: 201 }
 }
 
 const show = {
   title: "示例剧集",
   year: 2025,
+  first_aired: "2025-08-01T00:00:00.000Z",
+  status: "returning series",
+  overview: "示例剧集简介",
+  language: "en",
+  country: "us",
+  genres: ["drama"],
   ids: { trakt: 102, slug: "sample-show", imdb: "tt0000102", tmdb: 202, tvdb: 302 }
 }
 
@@ -66,14 +78,17 @@ describe("traktAdapter", () => {
   it("maps trending and anticipated movie and show fixtures into separate signals", async () => {
     const get = vi.fn(async (path: string) => {
       const fixtures: Record<string, unknown> = {
-        "/movies/trending?limit=50": [{ watchers: 321, movie }],
-        "/shows/trending?limit=50": [{ watchers: 654, show }],
-        "/movies/anticipated?limit=50": [{ list_count: 88, movie }],
-        "/shows/anticipated?limit=50": [{ list_count: 99, show }]
+        "/movies/trending?limit=50&extended=full": [{ watchers: 321, movie }],
+        "/shows/trending?limit=50&extended=full": [{ watchers: 654, show }],
+        "/movies/anticipated?limit=50&extended=full": [{ list_count: 88, movie }],
+        "/shows/anticipated?limit=50&extended=full": [{ list_count: 99, show }]
       }
       return fixtures[path]
     })
-    const adapter = createTraktPopularityAdapter({ client: { get } as unknown as TraktClient })
+    const adapter = createTraktPopularityAdapter({
+      client: { get } as unknown as TraktClient,
+      today: () => "2026-06-17"
+    })
 
     const batch = await adapter.fetchItems()
     const movieItem = batch.items.find((item) => item.media.mediaType === "movie")!
@@ -86,6 +101,12 @@ describe("traktAdapter", () => {
       sourceId: "trakt:movie:101",
       mediaType: "movie",
       titleDisplay: "示例电影",
+      firstReleaseDate: "2026-06-18",
+      status: "upcoming",
+      overview: "示例电影简介",
+      productionCountries: ["CN"],
+      originalLanguage: "zh",
+      genres: ["drama"],
       imdbId: "tt0000101",
       tmdbId: 201,
       traktId: 101,
@@ -112,6 +133,12 @@ describe("traktAdapter", () => {
       sourceId: "trakt:show:102",
       mediaType: "series",
       titleDisplay: "示例剧集",
+      firstReleaseDate: "2025-08-01",
+      status: "returning",
+      overview: "示例剧集简介",
+      productionCountries: ["US"],
+      originalLanguage: "en",
+      genres: ["drama"],
       imdbId: "tt0000102",
       tmdbId: 202,
       traktId: 102,

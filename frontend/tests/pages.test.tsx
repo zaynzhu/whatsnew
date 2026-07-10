@@ -473,7 +473,7 @@ describe("frontend pages", () => {
     expect(screen.getByRole("link", { name: "打开 Trakt 来源" })).toHaveAttribute("href", "https://example.com")
     expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute("href", "https://example.com/trending")
     expect(screen.getByRole("link", { name: "打开 TVmaze 来源" })).toHaveAttribute("href", "https://example.com")
-    expect(screen.getByText("即将上线")).toBeInTheDocument()
+    expect(screen.getAllByText("即将上线").length).toBeGreaterThan(0)
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/media/media-1/popularity-history?days=30"
     )
