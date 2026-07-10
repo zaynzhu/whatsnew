@@ -1166,6 +1166,7 @@ h1 {
   margin-top: 42px;
   border-top: 1px solid var(--line-strong);
   padding-top: 26px;
+  scroll-margin-top: 84px;
 }
 
 .calendarShelfHeader {

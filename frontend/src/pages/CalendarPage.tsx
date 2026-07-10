@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { CalendarDays, ChevronLeft, ChevronRight, Film, Tv } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -84,6 +84,7 @@ function mediaTypePath(value: MediaTypeFilter): string {
 
 export function CalendarPage() {
   const today = useMemo(() => new Date(), [])
+  const dayShelfRef = useRef<HTMLElement>(null)
   const todayKey = localDateKey(today)
   const [month, setMonth] = useState(() => startOfMonth(today))
   const [selectedDate, setSelectedDate] = useState(todayKey)
@@ -132,6 +133,7 @@ export function CalendarPage() {
   function selectCell(cell: CalendarCell) {
     if (!cell.inCurrentMonth) setMonth(startOfMonth(cell.date))
     setSelectedDate(cell.dateKey)
+    dayShelfRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   return (
@@ -268,7 +270,11 @@ export function CalendarPage() {
         )}
       </section>
 
-      <section className="calendarDayShelf" aria-labelledby="selected-date-title">
+      <section
+        className="calendarDayShelf"
+        aria-labelledby="selected-date-title"
+        ref={dayShelfRef}
+      >
         <header className="calendarShelfHeader">
           <div>
             <p className="eyebrow">当日片单</p>

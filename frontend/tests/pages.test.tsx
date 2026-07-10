@@ -398,6 +398,11 @@ describe("frontend pages", () => {
   })
 
   it("renders trending, calendar, and sources rows from API data", async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView
+    })
     mockFetch()
     renderRoute("/trending")
 
@@ -420,6 +425,7 @@ describe("frontend pages", () => {
     expect(await screen.findByRole("heading", { name: "海报日历" })).toBeInTheDocument()
     expect(screen.getByText("2026年6月")).toBeInTheDocument()
     fireEvent.click(await screen.findByRole("button", { name: "6月18日，2部影视" }))
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" })
     const movieRow = (await screen.findByText("午夜档案", { selector: "h3" })).closest("article")
     const seriesRow = screen.getByText("星际回声", { selector: "h3" }).closest("article")
     expect(seriesRow).toHaveTextContent("平台待确认")
