@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   env: { SYNC_ON_START: false },
   settings: { sourceRunnable: vi.fn((_sourceId: string) => true) },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
+  reconcileDuplicateTmdbIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
+  cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   schedule: vi.fn()
 }))
@@ -103,6 +105,14 @@ vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
 
+vi.mock("../src/services/duplicateIdentityService.js", () => ({
+  reconcileDuplicateTmdbIdentities: mocks.reconcileDuplicateTmdbIdentities
+}))
+
+vi.mock("../src/services/orphanedMediaCleanupService.js", () => ({
+  cleanupOrphanedMedia: mocks.cleanupOrphanedMedia
+}))
+
 vi.mock("../src/services/tmdbPosterEnrichmentService.js", () => ({
   enrichMissingPosters: mocks.enrichMissingPosters
 }))
@@ -132,6 +142,11 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
+    expect(mocks.reconcileDuplicateTmdbIdentities).toHaveBeenCalledWith({
+      database: mocks.db,
+      apply: true
+    })
+    expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
@@ -143,6 +158,7 @@ describe("scheduler", () => {
       database: mocks.db,
       limit: 40
     })
+    expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
   })
 
   it("runs only enabled daily adapters on the daily schedule", async () => {
@@ -172,6 +188,11 @@ describe("scheduler", () => {
     expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
       database: mocks.db,
       limit: 40
+    })
+    expect(mocks.cleanupOrphanedMedia).toHaveBeenCalledWith({
+      database: mocks.db,
+      sources: ["disney_plus", "hulu", "max"],
+      apply: true
     })
 
     mocks.runSourceSync.mockClear()
@@ -213,6 +234,15 @@ describe("scheduler", () => {
       expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
         database: mocks.db,
         limit: 40
+      })
+      expect(mocks.reconcileDuplicateTmdbIdentities).toHaveBeenCalledWith({
+        database: mocks.db,
+        apply: true
+      })
+      expect(mocks.cleanupOrphanedMedia).toHaveBeenCalledWith({
+        database: mocks.db,
+        sources: ["disney_plus", "hulu", "max"],
+        apply: true
       })
     })
   })

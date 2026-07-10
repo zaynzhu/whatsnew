@@ -2,11 +2,29 @@ import cron from "node-cron"
 import { getEnabledAdapters } from "./adapters/adapterRegistry.js"
 import { db } from "./config/db.js"
 import { env } from "./config/env.js"
+import { reconcileDuplicateTmdbIdentities } from "./services/duplicateIdentityService.js"
+import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
 
 const AUTOMATIC_POSTER_LIMIT = 40
+const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max"]
+
+async function maintainDataQuality(cleanPlatformOrphans: boolean) {
+  try {
+    await reconcileDuplicateTmdbIdentities({ database: db, apply: true })
+    if (cleanPlatformOrphans) {
+      await cleanupOrphanedMedia({
+        database: db,
+        sources: PLATFORM_SNAPSHOT_SOURCES,
+        apply: true
+      })
+    }
+  } catch (error) {
+    console.error("Automatic data quality maintenance failed", error)
+  }
+}
 
 async function enrichPostersAfterSync() {
   if (!runtimeSettings.sourceRunnable("tmdb")) return
@@ -25,6 +43,7 @@ export async function runInitialSync() {
   for (const entry of getEnabledAdapters()) {
     await runSourceSync(db, entry.adapter)
   }
+  await maintainDataQuality(true)
   await enrichPostersAfterSync()
 }
 
@@ -33,6 +52,7 @@ export function registerScheduler() {
     for (const entry of getEnabledAdapters("hourly")) {
       await runSourceSync(db, entry.adapter)
     }
+    await maintainDataQuality(false)
     await enrichPostersAfterSync()
   })
 
@@ -40,6 +60,7 @@ export function registerScheduler() {
     for (const entry of getEnabledAdapters("daily")) {
       await runSourceSync(db, entry.adapter)
     }
+    await maintainDataQuality(true)
     await enrichPostersAfterSync()
   }, { timezone: "Asia/Shanghai" })
 
