@@ -22,6 +22,7 @@
     "sync:apple-tv-plus": "tsx src/scripts/syncAppleTvPlus.ts",
     "sync:douban": "tsx src/scripts/syncDouban.ts",
     "enrich:posters": "tsx src/scripts/enrichPosters.ts",
+    "cleanup:platform-orphans": "tsx src/scripts/cleanupPlatformOrphans.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",
     "test": "npm run build --workspace @whatsnew/shared && tsx src/scripts/prepareTestDatabase.ts && vitest run",
