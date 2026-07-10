@@ -74,6 +74,26 @@ export type SettingsFieldView = {
   options?: string[]
 }
 
+export const CONTENT_ATTENTION_CATEGORIES = [
+  "scripted",
+  "animation",
+  "documentary",
+  "reality_variety",
+  "talk_game",
+  "news",
+  "sports"
+] as const
+export type ContentAttentionCategory = (typeof CONTENT_ATTENTION_CATEGORIES)[number]
+
+export type ContentWeightView = {
+  category: ContentAttentionCategory
+  key: string
+  label: string
+  description: string
+  value: number
+  defaultValue: number
+}
+
 export type SourceSettingsView = {
   id: string
   name: string
@@ -103,6 +123,7 @@ export type SourceSettingsView = {
 
 export type SettingsResponse = {
   proxyFields: SettingsFieldView[]
+  contentWeights: ContentWeightView[]
   sources: SourceSettingsView[]
 }
 

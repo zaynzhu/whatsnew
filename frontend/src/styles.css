@@ -1546,6 +1546,104 @@ h1 {
   font-size: 11px;
 }
 
+.attentionSettings {
+  margin-top: 24px;
+  border: 1px solid rgba(59, 73, 84, 0.74);
+  border-top: 3px solid var(--blue);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(11, 17, 22, 0.74);
+}
+
+.attentionHeader {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.attentionLegend {
+  display: grid;
+  grid-template-columns: repeat(3, 68px);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.attentionLegend span:last-child {
+  color: var(--amber);
+}
+
+.attentionWeightList {
+  display: grid;
+}
+
+.attentionWeightRow {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.8fr) minmax(260px, 1.2fr) 58px 76px;
+  gap: 18px;
+  align-items: center;
+  min-height: 76px;
+  border-bottom: 1px solid var(--line);
+}
+
+.attentionWeightIdentity {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.attentionWeightIdentity strong {
+  color: var(--mist);
+  font-size: 14px;
+}
+
+.attentionWeightIdentity span,
+.attentionDefault,
+.attentionActions p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.attentionWeightRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.attentionWeightRow output {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border: 1px solid rgba(241, 184, 77, 0.38);
+  border-radius: 6px;
+  background: rgba(241, 184, 77, 0.08);
+  color: var(--amber);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.attentionDefault {
+  text-align: right;
+}
+
+.attentionActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.attentionActions p {
+  margin: 0;
+}
+
+.attentionActions > div {
+  display: flex;
+  gap: 10px;
+}
+
 .sourceTable {
   width: 100%;
   min-width: 0;
@@ -2159,6 +2257,44 @@ select:focus-visible {
 
   .settingsActions button {
     width: 100%;
+  }
+
+  .attentionLegend {
+    grid-template-columns: repeat(3, 56px);
+  }
+
+  .attentionWeightRow {
+    grid-template-columns: minmax(0, 1fr) 58px;
+    gap: 10px 14px;
+    padding: 14px 0;
+  }
+
+  .attentionWeightIdentity,
+  .attentionWeightRow input[type="range"] {
+    grid-column: 1;
+  }
+
+  .attentionWeightRow output,
+  .attentionDefault {
+    grid-column: 2;
+  }
+
+  .attentionWeightRow output {
+    grid-row: 1;
+  }
+
+  .attentionDefault {
+    grid-row: 2;
+  }
+
+  .attentionActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .attentionActions > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .settingsFeedback {

@@ -106,6 +106,7 @@ export type ChangeEvent = {
 export type DashboardResponse = {
   today: ReleaseRow[]
   week: ReleaseRow[]
+  featured: ApiMediaItem[]
   trending: ApiMediaItem[]
   events: ChangeEvent[]
   sources: SourceSyncRun[]

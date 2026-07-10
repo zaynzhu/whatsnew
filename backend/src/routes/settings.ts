@@ -8,6 +8,7 @@ import {
   connectionTestService
 } from "../services/connectionTestService.js"
 import { SOURCE_CATALOG } from "../settings/sourceCatalog.js"
+import { contentWeightViews } from "../settings/contentAttentionSettings.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import {
   GLOBAL_PROXY_FIELDS,
@@ -49,7 +50,7 @@ type SettingsRouterDependencies = {
 
 function validationError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : ""
-  return ["未知配置项", "配置值不能包含换行", "代理模式无效", "启用状态无效"]
+  return ["未知配置项", "配置值不能包含换行", "代理模式无效", "启用状态无效", "关注权重无效"]
     .some((text) => message.includes(text))
 }
 
@@ -121,6 +122,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
 
     res.json({
       proxyFields: GLOBAL_PROXY_FIELDS.map((field) => settings.fieldView(field.key, field.label)),
+      contentWeights: contentWeightViews(settings),
       sources
     })
   })

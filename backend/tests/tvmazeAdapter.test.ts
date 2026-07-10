@@ -20,7 +20,10 @@ const scheduleEpisode = {
     status: "Running",
     premiered: "2026-06-17",
     summary: "<p>A rainy mystery.</p>",
-    image: { medium: "https://example.com/poster.jpg" },
+    image: {
+      medium: "https://example.com/poster-medium.jpg",
+      original: "https://example.com/poster-original.jpg"
+    },
     network: {
       name: "HBO",
       country: { code: "US" }
@@ -101,6 +104,8 @@ describe("tvmazeAdapter", () => {
       titleDisplay: "Rain City",
       mediaType: "series",
       releaseForm: "tv_series",
+      sourceContentType: "Scripted:tv",
+      posterUrl: "https://example.com/poster-original.jpg",
       tvmazeId: 9001,
       imdbId: "tt9001001",
       tvdbId: 12345

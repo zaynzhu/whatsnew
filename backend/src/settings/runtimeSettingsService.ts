@@ -45,6 +45,12 @@ function validateChanges(values: Record<string, string>): void {
     if (key.endsWith("_ENABLED") && !["true", "false"].includes(value)) {
       throw new Error(`启用状态无效: ${value}`)
     }
+    if (key.startsWith("ATTENTION_WEIGHT_") && value !== "") {
+      const weight = Number(value)
+      if (!Number.isInteger(weight) || weight < 0 || weight > 100) {
+        throw new Error(`关注权重无效: ${value}`)
+      }
+    }
   }
 }
 

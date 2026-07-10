@@ -4,6 +4,21 @@ import { describe, expect, it } from "vitest"
 import { MediaPoster } from "../src/components/MediaPoster"
 
 describe("MediaPoster", () => {
+  it("prioritizes the dashboard hero image", () => {
+    render(
+      <MediaPoster
+        mediaId="media-hero"
+        posterUrl="https://img.example.test/hero.jpg"
+        title="主视觉"
+        fallbackLabel="hero"
+        priority
+      />
+    )
+
+    expect(screen.getByAltText("主视觉")).toHaveAttribute("loading", "eager")
+    expect(screen.getByAltText("主视觉")).toHaveAttribute("fetchpriority", "high")
+  })
+
   it("falls back from remote poster URL to backend poster proxy", () => {
     render(
       <div className="poster">

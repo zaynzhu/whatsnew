@@ -113,9 +113,8 @@ function releasePattern(show: TvmazeShow): string {
 }
 
 function sourceContentType(show: TvmazeShow): string {
-  if (show.webChannel) return "web"
-
-  return show.type ?? "tv"
+  const delivery = show.webChannel ? "web" : "tv"
+  return show.type ? `${show.type}:${delivery}` : delivery
 }
 
 function todayLocalDate(): string {
@@ -159,7 +158,7 @@ function itemFromEpisodes(show: TvmazeShow, episodes: TvmazeEpisode[], today: st
       titleOriginal: show.name,
       titleAliases: [],
       overview: stripHtml(show.summary),
-      posterUrl: show.image?.medium ?? show.image?.original ?? null,
+      posterUrl: show.image?.original ?? show.image?.medium ?? null,
       productionCountries: region === "global" ? [] : [region],
       originalLanguage: show.language,
       genres: show.genres,

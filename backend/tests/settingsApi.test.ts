@@ -107,6 +107,11 @@ describe("settings API", () => {
 
     expect(response.status).toBe(200)
     expect(response.body.sources).toHaveLength(22)
+    expect(response.body.contentWeights).toEqual(expect.arrayContaining([
+      expect.objectContaining({ category: "documentary", value: 45, defaultValue: 45 }),
+      expect.objectContaining({ category: "reality_variety", value: 45, defaultValue: 45 }),
+      expect.objectContaining({ category: "news", value: 5 })
+    ]))
     expect(response.body.proxyFields.find((field: any) => field.key === "HTTPS_PROXY").value).toBeNull()
     expect(JSON.stringify(response.body)).not.toContain("secret-proxy-password")
     expect(JSON.stringify(response.body)).not.toContain("secret-tmdb-key")
@@ -317,6 +322,19 @@ describe("settings API", () => {
 
     const rejected = await request(testApp()).put("/api/settings").send({ values: { EVIL: "1" }, clearKeys: [] })
     expect(rejected.status).toBe(400)
+
+    const weightResponse = await request(testApp()).put("/api/settings").send({
+      values: { ATTENTION_WEIGHT_NEWS: "15" },
+      clearKeys: []
+    })
+    expect(weightResponse.status).toBe(200)
+    expect(testSettings.get("ATTENTION_WEIGHT_NEWS")).toBe("15")
+
+    const invalidWeight = await request(testApp()).put("/api/settings").send({
+      values: { ATTENTION_WEIGHT_NEWS: "101" },
+      clearKeys: []
+    })
+    expect(invalidWeight.status).toBe(400)
   })
 
   it("tests a planned source without making it active", async () => {

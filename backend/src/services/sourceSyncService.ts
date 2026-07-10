@@ -87,9 +87,16 @@ async function upsertItem(
     ? await prisma.mediaItem.update({
         where: { id: match.id },
         data: {
+          sourceContentType: item.media.source === "tvmaze" || !match.sourceContentType
+            ? item.media.sourceContentType
+            : match.sourceContentType,
           titleAliases: toJsonArray(titleAliases),
           overview: match.overview ?? item.media.overview,
-          posterUrl: match.posterUrl ?? item.media.posterUrl,
+          posterUrl: item.media.source === "tvmaze"
+            && item.media.posterUrl
+            && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
+            ? item.media.posterUrl
+            : match.posterUrl ?? item.media.posterUrl,
           productionCountries: toJsonArray(uniqueValues([
             ...parseJsonArray(match.productionCountries),
             ...item.media.productionCountries
@@ -133,6 +140,7 @@ async function upsertItem(
 
   if (match) {
     match.titleAliases = titleAliases
+    match.sourceContentType = mediaItem.sourceContentType
     match.overview = mediaItem.overview
     match.posterUrl = mediaItem.posterUrl
     match.productionCountries = mediaItem.productionCountries
@@ -148,6 +156,7 @@ async function upsertItem(
     candidates.push({
       id: mediaItem.id,
       mediaType: mediaTypeFromStorageValue(mediaItem.mediaType),
+      sourceContentType: mediaItem.sourceContentType,
       titleDisplay: mediaItem.titleDisplay,
       titleAliases,
       overview: mediaItem.overview,

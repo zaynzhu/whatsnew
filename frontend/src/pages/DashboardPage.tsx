@@ -28,12 +28,15 @@ export function DashboardPage() {
 
   const today = data?.today ?? []
   const week = data?.week ?? []
+  const featured = data?.featured ?? []
   const trending = data?.trending ?? []
   const events = data?.events ?? []
   const sources = data?.sources ?? []
-  const showcaseItems = [...today.map((release) => release.mediaItem), ...week.map((release) => release.mediaItem), ...trending]
-    .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
-    .slice(0, 5)
+  const showcaseItems = featured.length > 0
+    ? featured
+    : [...today.map((release) => release.mediaItem), ...week.map((release) => release.mediaItem), ...trending]
+      .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
+      .slice(0, 5)
   const heroItem = showcaseItems[0]
   const posterStripItems = showcaseItems.slice(1)
   const freshSignals = events.filter((event) => event.eventType === "release_date_added").length
@@ -47,9 +50,10 @@ export function DashboardPage() {
           <div className="dashboardBackdrop" aria-hidden="true">
             <MediaPoster
               mediaId={heroItem.id}
-              posterUrl={heroItem.posterUrl}
-              title={heroItem.titleDisplay}
-              fallbackLabel={heroItem.titleDisplay}
+                posterUrl={heroItem.posterUrl}
+                title={heroItem.titleDisplay}
+                fallbackLabel={heroItem.titleDisplay}
+                priority
             />
           </div>
         ) : null}
@@ -80,6 +84,7 @@ export function DashboardPage() {
                   posterUrl={heroItem.posterUrl}
                   title={heroItem.titleDisplay}
                   fallbackLabel={heroItem.titleDisplay}
+                  priority
                 />
               </div>
               <div className="heroPosterCaption">

@@ -15,6 +15,7 @@ export async function loadExistingMediaCandidates(prisma: PrismaClient): Promise
   return rows.map((row) => ({
     id: row.id,
     mediaType: mediaTypeFromStorageValue(row.mediaType),
+    sourceContentType: row.sourceContentType,
     titleDisplay: row.titleDisplay,
     titleAliases: parseJsonArray(row.titleAliases),
     overview: row.overview,

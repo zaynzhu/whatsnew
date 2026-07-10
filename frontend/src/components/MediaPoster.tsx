@@ -7,9 +7,10 @@ type MediaPosterProps = {
   posterUrl: string | null
   title: string
   fallbackLabel: string
+  priority?: boolean
 }
 
-export function MediaPoster({ mediaId, posterUrl, title, fallbackLabel }: MediaPosterProps) {
+export function MediaPoster({ mediaId, posterUrl, title, fallbackLabel, priority = false }: MediaPosterProps) {
   const [mode, setMode] = useState<PosterMode>(posterUrl ? "direct" : "failed")
 
   useEffect(() => {
@@ -24,7 +25,8 @@ export function MediaPoster({ mediaId, posterUrl, title, fallbackLabel }: MediaP
     <img
       src={src}
       alt={title}
-      loading="lazy"
+      loading={priority ? "eager" : "lazy"}
+      {...(priority ? { fetchpriority: "high" } : {})}
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => {

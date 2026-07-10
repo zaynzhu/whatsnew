@@ -59,3 +59,15 @@ _Avoid_: demo validation, mock data check
 **Source Signal**:
 A source-specific popularity, catalog, release, rating, availability or news observation that keeps its original source, platform, region and time window.
 _Avoid_: unified ranking, global score
+
+**Content Attention Weight**:
+A user-controlled preference from 0 to 100 for a broad content category, used to decide what deserves visual prominence without changing any source's popularity meaning.
+_Avoid_: heat score, source rank, global popularity
+
+**Featured Score**:
+An internal presentation priority that combines Content Attention Weight, current source-backed heat, release timing and artwork readiness to select dashboard features. It is not exposed as an objective ranking.
+_Avoid_: comprehensive heat, global ranking, popularity score
+
+**Content Attention Category**:
+A stable product grouping used by Content Attention Weight, such as scripted film and series, animation, documentary, reality and variety, talk and game shows, news, or sports.
+_Avoid_: source content type, media type, genre

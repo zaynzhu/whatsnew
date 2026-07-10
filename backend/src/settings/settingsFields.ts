@@ -1,4 +1,5 @@
 import { SOURCE_CATALOG } from "./sourceCatalog.js"
+import { CONTENT_WEIGHT_DEFINITIONS } from "./contentAttentionSettings.js"
 
 export type SourceSettingSuffix = "ENABLED" | "PROXY_MODE" | "HTTP_PROXY" | "HTTPS_PROXY"
 
@@ -39,7 +40,8 @@ export const GLOBAL_SETTING_KEYS = new Set([
   "THETVDB_BASE_URL",
   "IMDB_DATASET_CACHE_DIR",
   "DOUBAN_COOKIE",
-  "DOUBAN_BASE_URL"
+  "DOUBAN_BASE_URL",
+  ...CONTENT_WEIGHT_DEFINITIONS.map((definition) => definition.key)
 ])
 
 const SOURCE_SETTING_SUFFIXES: SourceSettingSuffix[] = ["ENABLED", "PROXY_MODE", "HTTP_PROXY", "HTTPS_PROXY"]

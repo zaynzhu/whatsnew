@@ -264,6 +264,7 @@ const responses: Record<string, unknown> = {
   "/api/dashboard": {
     today: [release],
     week: [release],
+    featured: [mediaItem],
     trending: [mediaItem],
     events: [event],
     sources: [sourceRun]

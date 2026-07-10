@@ -5,6 +5,7 @@ import {
   EyeOff,
   PlugZap,
   RefreshCw,
+  RotateCcw,
   Save,
   Settings,
   SlidersHorizontal,
@@ -77,6 +78,8 @@ export function SettingsPage() {
   const [clearKeys, setClearKeys] = useState<string[]>([])
   const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({})
   const [saveState, setSaveState] = useState<"idle" | "success" | "error">("idle")
+  const [attentionChanges, setAttentionChanges] = useState<Record<string, string>>({})
+  const [attentionSaveState, setAttentionSaveState] = useState<"idle" | "success" | "error">("idle")
   const [selectedSource, setSelectedSource] = useState<SourceSettingsView | null>(null)
 
   const settingsQuery = useQuery({
@@ -107,6 +110,23 @@ export function SettingsPage() {
       "POST",
       values
     )
+  })
+
+  const attentionMutation = useMutation({
+    mutationFn: (request: SettingsUpdateRequest) => apiRequest<SettingsUpdateResponse>(
+      "/api/settings",
+      "PUT",
+      request
+    ),
+    onSuccess: async () => {
+      setAttentionChanges({})
+      setAttentionSaveState("success")
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      ])
+    },
+    onError: () => setAttentionSaveState("error")
   })
 
   const sourcePolicyMutation = useMutation({
@@ -175,6 +195,22 @@ export function SettingsPage() {
     })
   }
 
+  function updateAttentionWeight(key: string, value: number) {
+    setAttentionSaveState("idle")
+    setAttentionChanges((current) => ({ ...current, [key]: String(value) }))
+  }
+
+  function restoreAttentionDefaults() {
+    setAttentionSaveState("idle")
+    setAttentionChanges(Object.fromEntries(
+      settingsQuery.data?.contentWeights.map((weight) => [weight.key, String(weight.defaultValue)]) ?? []
+    ))
+  }
+
+  function saveAttentionWeights() {
+    attentionMutation.mutate({ values: attentionChanges, clearKeys: [] })
+  }
+
   function sourceSettingKey(sourceId: string, suffix: "ENABLED" | "PROXY_MODE"): string {
     return `SOURCE_${sourceId.toUpperCase()}_${suffix}`
   }
@@ -200,6 +236,7 @@ export function SettingsPage() {
   }
 
   const hasChanges = Object.keys(changedValues).length > 0 || clearKeys.length > 0
+  const hasAttentionChanges = Object.keys(attentionChanges).length > 0
 
   return (
     <main className="page settingsLayout">
@@ -315,10 +352,73 @@ export function SettingsPage() {
         )}
       </section>
 
+      <section className="attentionSettings" aria-labelledby="attention-heading">
+        <div className="settingsSectionHeader attentionHeader">
+          <div>
+            <span className="settingsIndex">02 / FOCUS</span>
+            <h2 id="attention-heading">内容关注权重</h2>
+          </div>
+          <div className="attentionLegend" aria-label="权重刻度">
+            <span>降低</span>
+            <span>常规</span>
+            <span>优先</span>
+          </div>
+        </div>
+
+        <div className="attentionWeightList">
+          {settingsQuery.data.contentWeights.map((weight) => {
+            const value = Number(attentionChanges[weight.key] ?? weight.value)
+            return (
+              <div className="attentionWeightRow" key={weight.category}>
+                <div className="attentionWeightIdentity">
+                  <strong>{weight.label}</strong>
+                  <span>{weight.description}</span>
+                </div>
+                <input
+                  id={weight.key}
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={value}
+                  aria-label={`${weight.label}权重`}
+                  onChange={(event) => updateAttentionWeight(weight.key, Number(event.target.value))}
+                />
+                <output htmlFor={weight.key} aria-label={`${weight.label}当前权重`}>{value}</output>
+                <span className="attentionDefault">默认 {weight.defaultValue}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="attentionActions">
+          <p>保存后立即影响首页主视觉和今日、未来排期的展示顺序。</p>
+          <div>
+            <button type="button" className="secondaryButton" onClick={restoreAttentionDefaults}>
+              <RotateCcw aria-hidden="true" size={17} />
+              恢复默认
+            </button>
+            <button
+              type="button"
+              className="primaryButton"
+              disabled={!hasAttentionChanges || attentionMutation.isPending}
+              onClick={saveAttentionWeights}
+            >
+              <Save aria-hidden="true" size={17} />
+              {attentionMutation.isPending ? "保存中" : "保存权重"}
+            </button>
+          </div>
+        </div>
+        <div className="settingsFeedback" aria-live="polite">
+          {attentionSaveState === "success" && <p className="successText">关注权重已立即生效</p>}
+          {attentionSaveState === "error" && <p className="errorText">关注权重保存失败</p>}
+        </div>
+      </section>
+
       <section className="sourceRegistry" aria-labelledby="source-registry-heading">
         <div className="settingsSectionHeader sourceRegistryHeader">
           <div>
-            <span className="settingsIndex">02 / SOURCES</span>
+            <span className="settingsIndex">03 / SOURCES</span>
             <h2 id="source-registry-heading">数据源注册表</h2>
           </div>
           <strong>{settingsQuery.data.sources.length} 个来源</strong>

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
@@ -70,6 +70,16 @@ const proxyFields: SettingsFieldView[] = [
     maskedValue: "********7890",
     value: null
   }
+]
+
+const contentWeights = [
+  { category: "scripted" as const, key: "ATTENTION_WEIGHT_SCRIPTED", label: "电影与剧情剧", description: "电影、剧情连续剧、网络剧和短剧", value: 100, defaultValue: 100 },
+  { category: "animation" as const, key: "ATTENTION_WEIGHT_ANIMATION", label: "动画", description: "动画电影、动画连续剧和番剧", value: 90, defaultValue: 90 },
+  { category: "documentary" as const, key: "ATTENTION_WEIGHT_DOCUMENTARY", label: "纪录片", description: "纪录电影与纪录剧集", value: 45, defaultValue: 45 },
+  { category: "reality_variety" as const, key: "ATTENTION_WEIGHT_REALITY_VARIETY", label: "真人秀与综艺", description: "真人秀、综艺和竞演节目", value: 45, defaultValue: 45 },
+  { category: "talk_game" as const, key: "ATTENTION_WEIGHT_TALK_GAME", label: "谈话与游戏节目", description: "脱口秀、访谈、游戏和问答节目", value: 20, defaultValue: 20 },
+  { category: "news" as const, key: "ATTENTION_WEIGHT_NEWS", label: "新闻节目", description: "晨间新闻、新闻简报和时事节目", value: 5, defaultValue: 5 },
+  { category: "sports" as const, key: "ATTENTION_WEIGHT_SPORTS", label: "体育节目", description: "体育直播、赛事集锦和体育谈话节目", value: 5, defaultValue: 5 }
 ]
 
 const sourceFixtures = [
@@ -189,6 +199,7 @@ const sourceFixtures = [
 
 const settingsResponse: SettingsResponse = {
   proxyFields,
+  contentWeights,
   sources: sourceFixtures
 }
 
@@ -260,6 +271,31 @@ describe("SettingsPage", () => {
       }))
     })
     expect(await screen.findByText("设置已立即生效")).toBeInTheDocument()
+  })
+
+  it("调整并保存内容关注权重", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      if (input === "/api/settings" && init?.method === "PUT") {
+        return jsonResponse({ success: true, effectiveImmediately: true })
+      }
+      return jsonResponse(settingsResponse)
+    })
+
+    renderSettings()
+    const newsWeight = await screen.findByRole("slider", { name: "新闻节目权重" })
+    fireEvent.change(newsWeight, { target: { value: "15" } })
+    await userEvent.setup().click(screen.getByRole("button", { name: "保存权重" }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          values: { ATTENTION_WEIGHT_NEWS: "15" },
+          clearKeys: []
+        })
+      }))
+    })
+    expect(await screen.findByText("关注权重已立即生效")).toBeInTheDocument()
   })
 
   it("用尚未保存的代理值执行连通性测试", async () => {
