@@ -8,14 +8,24 @@ type MediaPosterProps = {
   title: string
   fallbackLabel: string
   priority?: boolean
+  proxyFirst?: boolean
 }
 
-export function MediaPoster({ mediaId, posterUrl, title, fallbackLabel, priority = false }: MediaPosterProps) {
-  const [mode, setMode] = useState<PosterMode>(posterUrl ? "direct" : "failed")
+export function MediaPoster({
+  mediaId,
+  posterUrl,
+  title,
+  fallbackLabel,
+  priority = false,
+  proxyFirst = false
+}: MediaPosterProps) {
+  const primaryMode: PosterMode = proxyFirst ? "proxy" : "direct"
+  const secondaryMode: PosterMode = proxyFirst ? "direct" : "proxy"
+  const [mode, setMode] = useState<PosterMode>(posterUrl ? primaryMode : "failed")
 
   useEffect(() => {
-    setMode(posterUrl ? "direct" : "failed")
-  }, [mediaId, posterUrl])
+    setMode(posterUrl ? primaryMode : "failed")
+  }, [mediaId, posterUrl, primaryMode])
 
   if (!posterUrl || mode === "failed") return <span>{fallbackLabel}</span>
 
@@ -30,7 +40,7 @@ export function MediaPoster({ mediaId, posterUrl, title, fallbackLabel, priority
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => {
-        setMode((current) => current === "direct" ? "proxy" : "failed")
+        setMode((current) => current === primaryMode ? secondaryMode : "failed")
       }}
     />
   )

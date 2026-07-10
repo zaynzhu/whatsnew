@@ -50,10 +50,11 @@ export function DashboardPage() {
           <div className="dashboardBackdrop" aria-hidden="true">
             <MediaPoster
               mediaId={heroItem.id}
-                posterUrl={heroItem.posterUrl}
-                title={heroItem.titleDisplay}
-                fallbackLabel={heroItem.titleDisplay}
-                priority
+              posterUrl={heroItem.posterUrl}
+              title={heroItem.titleDisplay}
+              fallbackLabel={heroItem.titleDisplay}
+              priority
+              proxyFirst
             />
           </div>
         ) : null}
@@ -85,6 +86,7 @@ export function DashboardPage() {
                   title={heroItem.titleDisplay}
                   fallbackLabel={heroItem.titleDisplay}
                   priority
+                  proxyFirst
                 />
               </div>
               <div className="heroPosterCaption">

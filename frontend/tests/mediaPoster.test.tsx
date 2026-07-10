@@ -12,11 +12,17 @@ describe("MediaPoster", () => {
         title="主视觉"
         fallbackLabel="hero"
         priority
+        proxyFirst
       />
     )
 
-    expect(screen.getByAltText("主视觉")).toHaveAttribute("loading", "eager")
-    expect(screen.getByAltText("主视觉")).toHaveAttribute("fetchpriority", "high")
+    const proxyImage = screen.getByAltText("主视觉")
+    expect(proxyImage).toHaveAttribute("src", "/api/media/media-hero/poster")
+    expect(proxyImage).toHaveAttribute("loading", "eager")
+    expect(proxyImage).toHaveAttribute("fetchpriority", "high")
+
+    fireEvent.error(proxyImage)
+    expect(screen.getByAltText("主视觉")).toHaveAttribute("src", "https://img.example.test/hero.jpg")
   })
 
   it("falls back from remote poster URL to backend poster proxy", () => {
