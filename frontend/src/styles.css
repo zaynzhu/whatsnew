@@ -413,9 +413,10 @@ h1 {
   transform: scale(1.035);
 }
 
-.heroPoster {
+.heroPosterFeature .heroPoster {
   width: 100%;
   height: 100%;
+  max-width: none;
   min-height: 540px;
   aspect-ratio: auto;
   border-radius: 0;
@@ -2222,7 +2223,7 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .heroPoster {
+  .heroPosterFeature .heroPoster {
     min-height: 430px;
   }
 
@@ -2375,7 +2376,7 @@ select:focus-visible {
     padding: 16px;
   }
 
-  .heroPoster {
+  .heroPosterFeature .heroPoster {
     min-height: 380px;
   }
 
