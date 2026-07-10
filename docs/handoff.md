@@ -46,7 +46,7 @@ This file is the short operational handoff for the current branch.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
 - Hulu, Disney+ and Max are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
-- Poster enrichment rejects ambiguous title matches and TMDb identity conflicts, so some source records intentionally retain placeholders until better metadata appears.
+- Poster enrichment safely merges a unique recent local Netflix match or a compatible TMDb identity. External-ID conflicts and candidates without a clear confidence lead still retain placeholders until better metadata appears.
 - Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.
 - `backend/.env` contains secrets and must not be committed.
 

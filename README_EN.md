@@ -102,9 +102,9 @@ Once both services are running, manage global proxies, source enable state, per-
 
 ## 🖼️ Poster Acquisition And Delivery
 
-- Source adapters keep their own `posterUrl` when available; missing artwork is enriched only by TMDb ID or a unique exact title match
+- Source adapters keep their own `posterUrl` when available; Netflix gaps first reuse one recent local film or active series, then use a TMDb ID, unique exact title or high-confidence recent candidate
 - After startup, hourly and daily scheduled sync batches, up to 40 eligible titles are processed when TMDb is enabled and credential-complete
-- Unmatched, artwork-free and conflicting results are never force-linked; `posterLookupAttemptedAt` makes them eligible for retry after 7 days
+- Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 7 days
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
 - Every frontend poster requests `GET /api/media/:id/poster` by default; the backend caches the upstream response under `backend/.cache/posters/`, while the frontend falls back to the original URL if the proxy fails
 - The proxy preserves the upstream response bytes and `Content-Type`; it does not guarantee a common transcoded format

@@ -42,7 +42,7 @@ npm run prisma:push --workspace backend
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
-- 缺失海报只允许通过 TMDb ID 或唯一严格标题匹配补全；冲突和歧义必须跳过，不得用模糊匹配强行绑定
+- 缺失海报优先复用库内唯一的近期同类型作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；外部 ID 冲突和无法拉开置信差距的歧义必须跳过
 - 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；不要绕过后端代理直接散落远端图片请求
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步

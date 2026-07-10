@@ -1,4 +1,4 @@
-import type { MediaItem, PrismaClient } from "@prisma/client"
+import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import {
@@ -22,13 +22,17 @@ type TmdbResult = {
   original_language?: string | null
   origin_country?: string[]
   production_countries?: Array<{ iso_3166_1?: string | null }>
+  popularity?: number | null
 }
 
 type TmdbSearchResponse = {
   results: TmdbResult[]
 }
 
-type EnrichmentDatabase = Pick<PrismaClient, "mediaItem" | "mediaSourceRef">
+type EnrichmentDatabase = Pick<
+  PrismaClient,
+  "mediaItem" | "mediaSourceRef" | "release" | "popularitySignal" | "changeEvent" | "$transaction"
+>
 
 type PosterEnrichmentOptions = {
   limit?: number
@@ -42,6 +46,7 @@ type PosterEnrichmentOptions = {
 export type PosterEnrichmentResult = {
   scanned: number
   enriched: number
+  merged: number
   unmatched: number
   conflicts: number
   failed: number
@@ -53,6 +58,8 @@ const DEFAULT_TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 const TMDB_TIMEOUT_MS = 30000
 const POSTER_RETRY_DAYS = 7
 const DAY_MS = 24 * 60 * 60 * 1000
+const NETFLIX_RECENT_RELEASE_DAYS = 550
+const NETFLIX_POPULARITY_LEAD_RATIO = 4
 const MOVIE_RELEASE_FORMS = new Set(["theatrical_movie", "streaming_movie", "animated_film", "documentary_film"])
 
 function formatLocalDate(date: Date): string {
@@ -112,7 +119,47 @@ function productionCountries(result: TmdbResult): string[] {
   return [...new Set(values.filter(Boolean))]
 }
 
-function strictSearchMatch(item: MediaItem, results: TmdbResult[]): TmdbResult | null {
+function netflixLanguageMatches(item: MediaItem, result: TmdbResult): boolean {
+  if (item.sourceContentType?.includes("(English)")) return result.original_language === "en"
+  if (item.sourceContentType?.includes("(Non-English)")) return result.original_language !== "en"
+  return false
+}
+
+function isNetflixItem(item: MediaItem): boolean {
+  return item.sourceContentType?.startsWith("Films (") === true
+    || item.sourceContentType?.startsWith("TV (") === true
+}
+
+function recentNetflixMatch(
+  item: MediaItem,
+  matches: TmdbResult[],
+  kind: TmdbMediaKind,
+  today: string
+): TmdbResult | null {
+  if (!isNetflixItem(item)) return null
+
+  const todayTime = Date.parse(`${today}T00:00:00.000Z`)
+  const earliestTime = todayTime - NETFLIX_RECENT_RELEASE_DAYS * DAY_MS
+  const recent = matches.filter((result) => {
+    const date = releaseDate(kind, result)
+    if (!date || !netflixLanguageMatches(item, result)) return false
+    const time = Date.parse(`${date}T00:00:00.000Z`)
+    return Number.isFinite(time) && time >= earliestTime && time <= todayTime
+  })
+
+  if (recent.length === 1) return recent[0]
+  const sorted = [...recent].sort((left, right) => (right.popularity ?? 0) - (left.popularity ?? 0))
+  const [first, second] = sorted
+  if (!first || !second) return null
+  const firstPopularity = first.popularity ?? 0
+  const secondPopularity = second.popularity ?? 0
+  if (firstPopularity > 0 && firstPopularity >= secondPopularity * NETFLIX_POPULARITY_LEAD_RATIO) {
+    return first
+  }
+  return null
+}
+
+function searchMatch(item: MediaItem, results: TmdbResult[], today: string): TmdbResult | null {
   const expectedTitles = new Set(itemTitles(item).map(normalizedTitle).filter(Boolean))
   let matches = results.filter((result) => (
     result.poster_path
@@ -126,7 +173,66 @@ function strictSearchMatch(item: MediaItem, results: TmdbResult[]): TmdbResult |
   }
 
   const uniqueMatches = [...new Map(matches.map((result) => [result.id, result])).values()]
-  return uniqueMatches.length === 1 ? uniqueMatches[0] : null
+  if (uniqueMatches.length === 1) return uniqueMatches[0]
+  return recentNetflixMatch(item, uniqueMatches, mediaKind(item), today)
+}
+
+function hasConflictingExternalIds(left: MediaItem, right: MediaItem): boolean {
+  return ["tmdbId", "tvmazeId", "imdbId", "traktId", "tvdbId"].some((field) => {
+    const leftValue = left[field as keyof MediaItem]
+    const rightValue = right[field as keyof MediaItem]
+    return leftValue != null && rightValue != null && leftValue !== rightValue
+  })
+}
+
+function canMergeDuplicate(item: MediaItem, canonical: MediaItem): boolean {
+  const itemTitleSet = new Set(itemTitles(item).map(normalizedTitle).filter(Boolean))
+  const sharedTitle = itemTitles(canonical).some((title) => itemTitleSet.has(normalizedTitle(title)))
+  return item.mediaType === canonical.mediaType
+    && sharedTitle
+    && !hasConflictingExternalIds(item, canonical)
+}
+
+function isRecentOrActiveLocalMatch(item: MediaItem, candidate: MediaItem, today: string): boolean {
+  if (!isNetflixItem(item) || !candidate.posterUrl) return false
+  if (item.originalLanguage && candidate.originalLanguage
+    && item.originalLanguage !== candidate.originalLanguage) return false
+  if (item.mediaType === "series" && ["returning", "ongoing", "upcoming"].includes(candidate.status)) {
+    return true
+  }
+
+  if (!candidate.firstReleaseDate) return false
+  const todayTime = Date.parse(`${today}T00:00:00.000Z`)
+  const releaseTime = Date.parse(`${candidate.firstReleaseDate}T00:00:00.000Z`)
+  return Number.isFinite(releaseTime)
+    && releaseTime <= todayTime
+    && releaseTime >= todayTime - NETFLIX_RECENT_RELEASE_DAYS * DAY_MS
+}
+
+function metadataUpdate(
+  item: MediaItem,
+  metadata: TmdbResult,
+  kind: TmdbMediaKind,
+  imageBaseUrl: string,
+  today: string,
+  now: Date
+): Prisma.MediaItemUncheckedUpdateInput {
+  const date = releaseDate(kind, metadata)
+  const countries = productionCountries(metadata)
+  const currentCountries = parseJsonArray(item.productionCountries)
+  return {
+    posterUrl: `${imageBaseUrl}${metadata.poster_path}`,
+    posterLookupAttemptedAt: now,
+    overview: item.overview ?? cleanText(metadata.overview),
+    titleOriginal: item.titleOriginal ?? cleanText(metadata.original_title ?? metadata.original_name),
+    firstReleaseDate: item.firstReleaseDate ?? date,
+    originalLanguage: item.originalLanguage ?? cleanText(metadata.original_language),
+    productionCountries: currentCountries.length > 0
+      ? item.productionCountries
+      : toJsonArray(countries),
+    status: item.status === "unknown" ? statusForDate(kind, date, today) : item.status,
+    tmdbId: item.tmdbId ?? metadata.id
+  }
 }
 
 function isBearerToken(credential: string): boolean {
@@ -172,6 +278,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   const result: PosterEnrichmentResult = {
     scanned: items.length,
     enriched: 0,
+    merged: 0,
     unmatched: 0,
     conflicts: 0,
     failed: 0,
@@ -201,9 +308,62 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
     })
   }
 
+  async function mergeDuplicate(
+    item: MediaItem,
+    canonical: MediaItem,
+    data: Prisma.MediaItemUncheckedUpdateInput = {}
+  ): Promise<MediaItem> {
+    return enrichmentDatabase.$transaction(async (transaction) => {
+      await transaction.mediaSourceRef.updateMany({
+        where: { mediaItemId: item.id },
+        data: { mediaItemId: canonical.id }
+      })
+      await transaction.release.updateMany({
+        where: { mediaItemId: item.id },
+        data: { mediaItemId: canonical.id }
+      })
+      await transaction.popularitySignal.updateMany({
+        where: { mediaItemId: item.id },
+        data: { mediaItemId: canonical.id }
+      })
+      await transaction.changeEvent.updateMany({
+        where: { mediaItemId: item.id },
+        data: { mediaItemId: canonical.id }
+      })
+      const merged = await transaction.mediaItem.update({
+        where: { id: canonical.id },
+        data: {
+          ...data,
+          heatScore: Math.max(item.heatScore, canonical.heatScore)
+        }
+      })
+      await transaction.mediaItem.delete({ where: { id: item.id } })
+      return merged
+    })
+  }
+
+  const localCandidates = await enrichmentDatabase.mediaItem.findMany({
+    where: {
+      posterUrl: { not: null },
+      NOT: { posterUrl: "" }
+    }
+  })
+
   for (const item of items) {
     const kind = mediaKind(item)
     try {
+      const localMatches = localCandidates.filter((candidate) => (
+        candidate.id !== item.id
+        && canMergeDuplicate(item, candidate)
+        && isRecentOrActiveLocalMatch(item, candidate, today)
+      ))
+      if (localMatches.length === 1) {
+        const updated = await mergeDuplicate(item, localMatches[0])
+        result.merged += 1
+        if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
+        continue
+      }
+
       let metadata: TmdbResult | null = null
       if (item.tmdbId) {
         metadata = await fetchTmdb<TmdbResult>(`/${kind}/${item.tmdbId}`)
@@ -213,7 +373,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
           include_adult: "false",
           page: "1"
         })
-        metadata = strictSearchMatch(item, search.results ?? [])
+        metadata = searchMatch(item, search.results ?? [], today)
       }
 
       if (!metadata?.poster_path) {
@@ -228,29 +388,29 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         select: { mediaItemId: true }
       })
       if (existingRef && existingRef.mediaItemId !== item.id) {
-        await markAttempt(item.id)
-        result.conflicts += 1
+        const canonical = await enrichmentDatabase.mediaItem.findUnique({
+          where: { id: existingRef.mediaItemId }
+        })
+        if (!canonical || !canMergeDuplicate(item, canonical)) {
+          await markAttempt(item.id)
+          result.conflicts += 1
+          continue
+        }
+
+        const updated = await mergeDuplicate(
+          item,
+          canonical,
+          metadataUpdate(canonical, metadata, kind, imageBaseUrl, today, now)
+        )
+
+        result.merged += 1
+        if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
         continue
       }
 
-      const date = releaseDate(kind, metadata)
-      const countries = productionCountries(metadata)
-      const currentCountries = parseJsonArray(item.productionCountries)
       const updated = await enrichmentDatabase.mediaItem.update({
         where: { id: item.id },
-        data: {
-          posterUrl: `${imageBaseUrl}${metadata.poster_path}`,
-          posterLookupAttemptedAt: now,
-          overview: item.overview ?? cleanText(metadata.overview),
-          titleOriginal: item.titleOriginal ?? cleanText(metadata.original_title ?? metadata.original_name),
-          firstReleaseDate: item.firstReleaseDate ?? date,
-          originalLanguage: item.originalLanguage ?? cleanText(metadata.original_language),
-          productionCountries: currentCountries.length > 0
-            ? item.productionCountries
-            : toJsonArray(countries),
-          status: item.status === "unknown" ? statusForDate(kind, date, today) : item.status,
-          tmdbId: item.tmdbId ?? metadata.id
-        }
+        data: metadataUpdate(item, metadata, kind, imageBaseUrl, today, now)
       })
       await enrichmentDatabase.mediaSourceRef.upsert({
         where: { source_sourceId: { source: "tmdb", sourceId } },

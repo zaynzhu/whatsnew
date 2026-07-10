@@ -102,9 +102,9 @@ Hulu、Disney+、Max、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置
 
 ## 🖼️ 海报获取与显示
 
-- 来源适配器优先保留自身提供的 `posterUrl`；缺图作品再使用 TMDb ID 或唯一严格标题匹配补充海报和基础元数据
+- 来源适配器优先保留自身提供的 `posterUrl`；Netflix 缺图项先复用库内唯一的近期电影或仍在播剧集，再使用 TMDb ID、唯一严格标题或高置信近期候选补充海报和基础元数据
 - 启动同步、小时级同步和日级同步完成后，如果 TMDb 已启用且凭据完整，会自动处理最多 40 条待补图作品
-- 未匹配、无图或归属冲突的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 7 天后重试
+- 安全重复项会事务性迁移来源、热度和关联数据；外部 ID 冲突、无图或候选优势不明确的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 7 天后重试
 - 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
 - 前端所有海报默认请求 `GET /api/media/:id/poster`；后端按图片 URL 缓存上游返回内容到 `backend/.cache/posters/`，并在代理失败时由前端回退原始地址
 - 图片代理保留上游响应的真实 `Content-Type` 和字节内容，不承诺统一转码格式

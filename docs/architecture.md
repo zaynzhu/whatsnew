@@ -38,11 +38,13 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 
 1. Adapters persist their source-provided `posterUrl` when available.
 2. `enrichMissingPosters()` selects missing-poster titles by heat, then update time.
-3. Existing TMDb IDs use direct metadata lookup; titles without IDs require one unique normalized exact-title match. Ambiguous matches and TMDb identity conflicts are skipped.
-4. Successful matches fill the poster URL and missing baseline metadata without overwriting existing values.
-5. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
-6. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, applies the configured proxy and per-origin rate limit, then caches the upstream bytes and metadata by URL hash.
-7. The backend preserves the upstream `Content-Type`; format conversion is not part of the pipeline. The frontend falls back to the original URL only when the proxy request fails.
+3. Netflix titles first reuse one safe local candidate: a recent same-type film or a same-type active series with compatible language and no conflicting external IDs.
+4. Existing TMDb IDs use direct metadata lookup. Titles without IDs accept one unique normalized exact-title match; Netflix may also accept a recent type/language-compatible candidate when it is unique or has at least a fourfold TMDb popularity lead.
+5. If the chosen TMDb identity already belongs to a safe same-title record, source refs, releases, popularity signals and events move transactionally to that canonical record. Unsafe identity conflicts and unresolved ambiguity are skipped.
+6. Successful matches fill the poster URL and missing baseline metadata without overwriting existing values.
+7. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
+8. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, applies the configured proxy and per-origin rate limit, then caches the upstream bytes and metadata by URL hash.
+9. The backend preserves the upstream `Content-Type`; format conversion is not part of the pipeline. The frontend falls back to the original URL only when the proxy request fails.
 
 ## Source Registry
 
