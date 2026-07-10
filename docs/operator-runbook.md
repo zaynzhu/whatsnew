@@ -48,7 +48,7 @@ npm run build
 | `TRAKT_CLIENT_ID` | Required for Trakt public sync. |
 | `THETVDB_API_KEY` | Required for TheTVDB when enabled. |
 | `IMDB_DATASET_CACHE_DIR` | Local cache directory for IMDb datasets. |
-| `SYNC_ON_START` | When true, runs enabled adapters once on backend startup. |
+| `SYNC_ON_START` | `true` runs enabled adapters once on backend startup; `false` disables it. Boolean strings are parsed explicitly. |
 
 Every active source also has:
 
@@ -72,6 +72,11 @@ npm run sync:disney-plus --workspace backend
 npm run sync:max --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
+npm run sync:mango-tv --workspace backend
+npm run sync:bilibili --workspace backend
+npm run sync:apple-tv-plus --workspace backend
+npm run sync:douban --workspace backend
+npm run enrich:posters --workspace backend -- --limit=120
 ```
 
 IMDb is local-cache based:
@@ -87,10 +92,24 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 
 | Group | Cron | Sources |
 |---|---|---|
-| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI |
-| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Max |
+| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI, MangoTV |
+| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
+
+When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Failed or ambiguous lookups wait 7 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
+
+## Poster Cache
+
+Frontend poster requests use `GET /api/media/:id/poster`. The backend stores the upstream image body and a small JSON metadata file under `backend/.cache/posters/`; this directory is ignored by Git and can be removed safely when the services are stopped. The next request downloads the image again.
+
+```bash
+find backend/.cache/posters -type f | wc -l
+du -sh backend/.cache/posters
+curl -sS -D - -o /dev/null http://127.0.0.1:19993/api/media/<mediaItemId>/poster
+```
+
+Inspect `X-Poster-Cache: hit|miss`, `Content-Type` and the HTTP status. The service validates and caches the upstream response but does not force a common image format.
 
 ## Troubleshooting
 
@@ -102,6 +121,8 @@ Only sources that are enabled, implemented and credential-complete are scheduled
 | Hulu / Disney+ / Max parse zero items | Check source page structure and base URL overrides. These are official pages, not APIs. |
 | IMDb says missing cache dir | Set `IMDB_DATASET_CACHE_DIR`, run `download:imdb`, then `sync:imdb`. |
 | TheTVDB asks for paid access | Do not implement paid fallback. Only free project API Key is allowed. |
+| A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles wait 7 days and intentionally keep the placeholder. |
+| Poster endpoint returns `502` | Check global proxy connectivity and the remote image host. Remove that URL's cache only after confirming the stored response is invalid. |
 
 Useful status commands:
 

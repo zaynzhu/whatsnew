@@ -9,12 +9,13 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 - Database: MySQL, configured by `DATABASE_URL`
 - Settings store: `backend/.env`, hot-loaded through the settings API
 - Scheduler: `node-cron`, hourly and daily adapter groups
+- Poster cache: upstream image responses stored under `backend/.cache/posters/`
 
 ## Data Model
 
 | Model | Purpose |
 |---|---|
-| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases and `heatScore`. |
+| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl` and the retry marker `posterLookupAttemptedAt`. |
 | `MediaSourceRef` | Stable identity link from a source item to a `MediaItem`. Unique by `source + sourceId`. |
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
 | `PopularitySignal` | Source-specific ranking or metric snapshots. Current rows power `/api/trending`; historical rows power detail charts. |
@@ -29,8 +30,19 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 4. Releases and popularity signals are upserted with original source attribution.
 5. Complete snapshots can retire missing releases or mark missing popularity signals historical.
 6. The sync run is finished as `success`, `warning` or `failed`.
+7. After startup, hourly and daily adapter batches, TMDb poster enrichment processes up to 40 eligible missing-poster titles when TMDb is runnable.
 
 At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` rows as `failed` with `同步进程中断，已自动收尾；请重新触发同步`. This prevents stale status after dev-server restarts or process exits.
+
+## Poster Pipeline
+
+1. Adapters persist their source-provided `posterUrl` when available.
+2. `enrichMissingPosters()` selects missing-poster titles by heat, then update time.
+3. Existing TMDb IDs use direct metadata lookup; titles without IDs require one unique normalized exact-title match. Ambiguous matches and TMDb identity conflicts are skipped.
+4. Successful matches fill the poster URL and missing baseline metadata without overwriting existing values.
+5. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
+6. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, applies the configured proxy and per-origin rate limit, then caches the upstream bytes and metadata by URL hash.
+7. The backend preserves the upstream `Content-Type`; format conversion is not part of the pipeline. The frontend falls back to the original URL only when the proxy request fails.
 
 ## Source Registry
 
@@ -68,6 +80,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/dashboard` | Dashboard slices: today, week, trending, events, source runs. |
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
 | `GET /api/media/:id` | Media detail with releases, refs, current signals and events. |
+| `GET /api/media/:id/poster` | Fetch and cache a stored remote poster through the backend image proxy. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
 | `GET /api/trending` | Current popularity signals with movement and source filters. |
 | `GET /api/calendar` | Release calendar by date window and optional filters. |

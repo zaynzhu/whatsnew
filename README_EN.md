@@ -30,6 +30,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 - **Global & per-source proxy** —— Global `HTTP_PROXY` / `HTTPS_PROXY`, per-source `inherit` / `direct` / `custom`
 - **Hot-reload settings** —— Settings apply immediately after save, no restart needed, sensitive values masked
 - **Scheduled + manual sync** —— Cron jobs pull automatically; each source also supports manual sync
+- **Continuous poster enrichment** —— Missing artwork is strictly matched through TMDb by heat priority, then served through the backend image proxy and disk cache
 
 ## 🧱 Tech Stack
 
@@ -59,6 +60,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | Private JSON API, curl examples and error semantics |
 | [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
 | [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
+| [Design Archive](docs/superpowers/README.md) | Authority boundary for historical specifications and implementation plans |
 
 ## 🚀 Quick Start
 
@@ -97,6 +99,15 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Apple TV+, Youku, iQIYI, MangoTV, Bilibili, Douban; IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
+
+## 🖼️ Poster Acquisition And Delivery
+
+- Source adapters keep their own `posterUrl` when available; missing artwork is enriched only by TMDb ID or a unique exact title match
+- After startup, hourly and daily scheduled sync batches, up to 40 eligible titles are processed when TMDb is enabled and credential-complete
+- Unmatched, artwork-free and conflicting results are never force-linked; `posterLookupAttemptedAt` makes them eligible for retry after 7 days
+- Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
+- Every frontend poster requests `GET /api/media/:id/poster` by default; the backend caches the upstream response under `backend/.cache/posters/`, while the frontend falls back to the original URL if the proxy fails
+- The proxy preserves the upstream response bytes and `Content-Type`; it does not guarantee a common transcoded format
 
 > [!WARNING]
 > The settings endpoint has no authentication — it is meant only for trusted home LANs or private NAS networks. Do not expose port `19992`, `19993` or the settings endpoint to the public internet.

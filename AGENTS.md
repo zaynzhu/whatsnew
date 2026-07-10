@@ -13,8 +13,9 @@ WhatsNew 是独立的全球与中国电影、剧集上新及热度监控项目�
 - `docs/operator-runbook.md`：环境变量、运行命令、调度和排障
 - `docs/integration-guide.md`：私有 API 接入示例和错误语义
 - `docs/handoff.md`：当前分支、已接入来源和交接清单
-- `docs/superpowers/specs/`：已确认的设计规格
-- `docs/superpowers/plans/`：历史实施计划，不作为当前运行状态来源
+- `docs/superpowers/specs/`：已归档的设计规格，只保留历史决策上下文
+- `docs/superpowers/plans/`：已归档的实施计划，不作为当前运行状态来源
+- `.superpowers/sdd/`：本机执行材料，大部分被 Git 忽略，同样不作为当前运行状态来源
 
 ## 开发与验证
 
@@ -41,6 +42,8 @@ npm run prisma:push --workspace backend
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
+- 缺失海报只允许通过 TMDb ID 或唯一严格标题匹配补全；冲突和歧义必须跳过，不得用模糊匹配强行绑定
+- 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；不要绕过后端代理直接散落远端图片请求
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 

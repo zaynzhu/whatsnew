@@ -44,6 +44,23 @@ curl -s http://127.0.0.1:19993/api/media/<mediaItemId>
 
 Returns the media item plus releases, source refs, current popularity signals and change events.
 
+## Media Poster
+
+```bash
+curl -sS -D - -o poster.bin http://127.0.0.1:19993/api/media/<mediaItemId>/poster
+```
+
+The backend fetches the stored remote poster through the configured outbound proxy, validates that the response is an image, caches it by URL hash and returns the original bytes and `Content-Type`.
+
+| Response | Meaning |
+|---|---|
+| `200` | Image body. `X-Poster-Cache` is `hit` or `miss`. |
+| `404 media_not_found` | The media item does not exist. |
+| `404 poster_not_found` | The media item has no stored poster URL. |
+| `502 poster_unavailable` | The remote image could not be fetched or did not pass validation. |
+
+Responses are browser-cacheable for one day with a seven-day `stale-while-revalidate` window. The route does not guarantee a transcoded image format.
+
 ## Popularity History
 
 ```bash

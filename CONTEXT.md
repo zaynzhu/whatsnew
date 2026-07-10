@@ -68,6 +68,14 @@ _Avoid_: heat score, source rank, global popularity
 An internal presentation priority that combines Content Attention Weight, current source-backed heat, release timing and artwork readiness to select dashboard features. It is not exposed as an objective ranking.
 _Avoid_: comprehensive heat, global ranking, popularity score
 
+**Poster Enrichment**:
+A metadata pass that fills missing artwork and baseline fields using an existing TMDb ID or one unique normalized exact-title match. Ambiguous and conflicting results are skipped and retried after a cooldown.
+_Avoid_: image scraping, fuzzy poster matching, one-time backfill
+
+**Poster Proxy**:
+The backend route `/api/media/:id/poster`, which fetches a stored remote poster with configured network settings, validates the image response and caches its original bytes before returning it to the frontend.
+_Avoid_: image hosting service, guaranteed WebP conversion, frontend hotlink
+
 **Content Attention Category**:
 A stable product grouping used by Content Attention Weight, such as scripted film and series, animation, documentary, reality and variety, talk and game shows, news, or sports.
 _Avoid_: source content type, media type, genre

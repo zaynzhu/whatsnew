@@ -16,6 +16,8 @@ This file is the short operational handoff for the current branch.
 - Settings page manages proxies, source enablement, source credentials, connectivity tests and manual sync.
 - Data source status pages poll every 5 seconds.
 - Backend startup recovers interrupted `running` source runs.
+- Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
+- Frontend artwork is proxy-first through `/api/media/:id/poster`, with an on-demand disk cache under `backend/.cache/posters/`.
 
 ## Syncable Sources
 
@@ -44,6 +46,8 @@ This file is the short operational handoff for the current branch.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
 - Hulu, Disney+ and Max are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
+- Poster enrichment rejects ambiguous title matches and TMDb identity conflicts, so some source records intentionally retain placeholders until better metadata appears.
+- Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.
 - `backend/.env` contains secrets and must not be committed.
 
 ## Validation Baseline

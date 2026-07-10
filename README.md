@@ -30,6 +30,7 @@
 - **全局与单源代理** —— 支持全局 `HTTP_PROXY` / `HTTPS_PROXY`，单源可 `inherit` / `direct` / `custom`
 - **设置热更新** —— 设置保存后即时生效，无需重启服务，敏感值掩码处理
 - **定时 + 手动同步** —— 定时任务自动拉取，也支持各来源独立手动同步
+- **持续海报补全** —— 缺图作品按热度通过 TMDb 严格匹配补全，页面统一走后端图片代理与磁盘缓存
 
 ## 🧱 Tech Stack
 
@@ -59,6 +60,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | 私有 JSON API、curl 示例和错误语义 |
 | [Operator Runbook](docs/operator-runbook.md) | 环境变量、运行命令、定时任务和排障 |
 | [Handoff](docs/handoff.md) | 当前分支、已接入来源、约束和交接清单 |
+| [Design Archive](docs/superpowers/README.md) | 历史设计规格和实施计划的权威边界 |
 
 ## 🚀 Quick Start
 
@@ -97,6 +99,15 @@ Hulu、Disney+、Max、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置
 - 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Max、Apple TV+、优酷、爱奇艺、芒果TV、哔哩哔哩和豆瓣；IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
+
+## 🖼️ 海报获取与显示
+
+- 来源适配器优先保留自身提供的 `posterUrl`；缺图作品再使用 TMDb ID 或唯一严格标题匹配补充海报和基础元数据
+- 启动同步、小时级同步和日级同步完成后，如果 TMDb 已启用且凭据完整，会自动处理最多 40 条待补图作品
+- 未匹配、无图或归属冲突的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 7 天后重试
+- 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
+- 前端所有海报默认请求 `GET /api/media/:id/poster`；后端按图片 URL 缓存上游返回内容到 `backend/.cache/posters/`，并在代理失败时由前端回退原始地址
+- 图片代理保留上游响应的真实 `Content-Type` 和字节内容，不承诺统一转码格式
 
 > [!WARNING]
 > 设置接口当前没有身份认证，只适合部署在可信的家庭局域网或 NAS 私有网络中。不要将 `19992`、`19993` 或设置接口直接暴露到公网。
