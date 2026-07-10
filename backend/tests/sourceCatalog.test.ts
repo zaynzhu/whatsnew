@@ -53,7 +53,12 @@ describe("source catalog", () => {
         command: "npm run sync:imdb --workspace backend"
       })
     ])
-    expect(getSourceDefinition("tmdb").manualCommands).toEqual([])
+    expect(getSourceDefinition("tmdb").manualCommands).toEqual([
+      expect.objectContaining({
+        label: "补全缺失海报",
+        command: "npm run enrich:posters --workspace backend -- --limit=120"
+      })
+    ])
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
     expect(getSourceDefinition("tencent").supportsSync).toBe(false)
     expect(getSourceDefinition("hulu")).toMatchObject({

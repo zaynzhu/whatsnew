@@ -258,6 +258,14 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   }
 }
 
+const TMDB_MANUAL_COMMANDS: SourceManualCommandView[] = [
+  {
+    label: "补全缺失海报",
+    command: "npm run enrich:posters --workspace backend -- --limit=120",
+    description: "按热度优先使用 TMDb ID 或严格标题匹配补全海报和基础元数据"
+  }
+]
+
 const IMDB_MANUAL_COMMANDS: SourceManualCommandView[] = [
   {
     label: "下载或刷新 IMDb 缓存",
@@ -273,7 +281,7 @@ const IMDB_MANUAL_COMMANDS: SourceManualCommandView[] = [
 
 export const SOURCE_CATALOG = [
   source("tvmaze", "TVmaze", "剧集与集数排期", "global_metadata", "active", "inherit", true, true, "https://api.tvmaze.com/shows/1", [], ["hourly"], true),
-  source("tmdb", "TMDb", "电影、剧集、趋势和基础元数据", "global_metadata", "active", "inherit", true, true, "https://api.themoviedb.org/3/configuration", ["TMDB_API_KEY"], ["hourly"], true),
+  source("tmdb", "TMDb", "电影、剧集、趋势和基础元数据", "global_metadata", "active", "inherit", true, true, "https://api.themoviedb.org/3/configuration", ["TMDB_API_KEY"], ["hourly"], true, [], [], TMDB_MANUAL_COMMANDS),
   source("trakt", "Trakt", "电影与剧集趋势", "global_metadata", "active", "inherit", true, true, "https://api.trakt.tv/shows/trending?limit=1", ["TRAKT_CLIENT_ID"], ["hourly", "daily"], true),
   source("imdb", "IMDb", "日更数据集与榜单", "global_metadata", "planned", "inherit", false, false, "https://datasets.imdbws.com/title.basics.tsv.gz", [], ["daily"], false, [], ["IMDB_DATASET_CACHE_DIR"], IMDB_MANUAL_COMMANDS),
   source("thetvdb", "TheTVDB", "影视元数据与外部 ID", "global_metadata", "active", "inherit", true, true, "https://api4.thetvdb.com/v4/login", ["THETVDB_API_KEY"], ["daily"], false, ["THETVDB_PIN"]),

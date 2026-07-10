@@ -25,7 +25,7 @@ describe("MediaPoster", () => {
     expect(screen.getByAltText("主视觉")).toHaveAttribute("src", "https://img.example.test/hero.jpg")
   })
 
-  it("falls back from remote poster URL to backend poster proxy", () => {
+  it("uses the backend poster proxy by default and falls back to the remote URL", () => {
     render(
       <div className="poster">
         <MediaPoster
@@ -37,15 +37,15 @@ describe("MediaPoster", () => {
       </div>
     )
 
-    const directImage = screen.getByAltText("样片")
-    expect(directImage).toHaveAttribute("src", "https://img.example.test/poster.jpg")
-
-    fireEvent.error(directImage)
-
     const proxyImage = screen.getByAltText("样片")
     expect(proxyImage).toHaveAttribute("src", "/api/media/media-1/poster")
 
     fireEvent.error(proxyImage)
+
+    const directImage = screen.getByAltText("样片")
+    expect(directImage).toHaveAttribute("src", "https://img.example.test/poster.jpg")
+
+    fireEvent.error(directImage)
 
     expect(screen.getByText("movie")).toBeInTheDocument()
   })

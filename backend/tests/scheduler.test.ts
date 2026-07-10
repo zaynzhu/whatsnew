@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   env: { SYNC_ON_START: false },
   settings: { sourceRunnable: vi.fn((_sourceId: string) => true) },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
+  enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   schedule: vi.fn()
 }))
 
@@ -102,6 +103,10 @@ vi.mock("../src/services/sourceSyncService.js", () => ({
   runSourceSync: mocks.runSourceSync
 }))
 
+vi.mock("../src/services/tmdbPosterEnrichmentService.js", () => ({
+  enrichMissingPosters: mocks.enrichMissingPosters
+}))
+
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
@@ -126,6 +131,7 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
+    expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
@@ -133,6 +139,10 @@ describe("scheduler", () => {
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(6)
+    expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 40
+    })
   })
 
   it("runs only enabled daily adapters on the daily schedule", async () => {
@@ -159,6 +169,10 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
+    expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 40
+    })
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
@@ -196,6 +210,10 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledTimes(14)
+      expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
+        database: mocks.db,
+        limit: 40
+      })
     })
   })
 

@@ -8,28 +8,29 @@ datasource db {
 }
 
 model MediaItem {
-  id                  String   @id @default(cuid())
-  mediaType           String
-  releaseForm         String
-  sourceContentType   String?
-  titleDisplay        String
-  titleOriginal       String?
-  titleAliases        String   @default("[]")
-  overview            String?  @db.Text
-  posterUrl           String?  @db.Text
-  productionCountries String   @default("[]")
-  originalLanguage    String?
-  genres              String   @default("[]")
-  firstReleaseDate    String?
-  status              String   @default("unknown")
-  heatScore           Float    @default(0)
-  tmdbId              Int?
-  tvmazeId            Int?
-  imdbId              String?
-  traktId             Int?
-  tvdbId              Int?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  mediaType               String
+  releaseForm             String
+  sourceContentType       String?
+  titleDisplay            String
+  titleOriginal           String?
+  titleAliases            String    @default("[]")
+  overview                String?   @db.Text
+  posterUrl               String?   @db.Text
+  posterLookupAttemptedAt DateTime?
+  productionCountries     String    @default("[]")
+  originalLanguage        String?
+  genres                  String    @default("[]")
+  firstReleaseDate        String?
+  status                  String    @default("unknown")
+  heatScore               Float     @default(0)
+  tmdbId                  Int?
+  tvmazeId                Int?
+  imdbId                  String?
+  traktId                 Int?
+  tvdbId                  Int?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   releases          Release[]
   sourceRefs        MediaSourceRef[]
@@ -43,6 +44,7 @@ model MediaItem {
   @@index([tmdbId])
   @@index([tvmazeId])
   @@index([imdbId])
+  @@index([posterLookupAttemptedAt])
 }
 
 model MediaSourceRef {

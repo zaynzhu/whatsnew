@@ -17,7 +17,7 @@ export function MediaPoster({
   title,
   fallbackLabel,
   priority = false,
-  proxyFirst = false
+  proxyFirst = true
 }: MediaPosterProps) {
   const primaryMode: PosterMode = proxyFirst ? "proxy" : "direct"
   const secondaryMode: PosterMode = proxyFirst ? "direct" : "proxy"
