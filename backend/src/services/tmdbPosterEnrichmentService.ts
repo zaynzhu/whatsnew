@@ -92,10 +92,17 @@ function resultTitles(result: TmdbResult): string[] {
     .filter((value): value is string => value != null)
 }
 
+function netflixSearchTitle(value: string): string {
+  return value.replace(/\s*\((?=[^)]*(?:raw|uncut|undekha))[^)]*\)\s*$/i, "").trim()
+}
+
 function itemTitles(item: MediaItem): string[] {
-  return [item.titleDisplay, item.titleOriginal, ...parseJsonArray(item.titleAliases)]
+  const titles = [item.titleDisplay, item.titleOriginal, ...parseJsonArray(item.titleAliases)]
     .map((value) => cleanText(value))
     .filter((value): value is string => value != null)
+  return isNetflixItem(item)
+    ? [...new Set(titles.flatMap((title) => [title, netflixSearchTitle(title)]).filter(Boolean))]
+    : titles
 }
 
 function releaseDate(kind: TmdbMediaKind, result: TmdbResult): string | null {
@@ -374,12 +381,16 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
       if (item.tmdbId) {
         metadata = await fetchTmdb<TmdbResult>(`/${kind}/${item.tmdbId}`)
       } else {
-        const search = await fetchTmdb<TmdbSearchResponse>(`/search/${kind}`, {
-          query: item.titleDisplay,
-          include_adult: "false",
-          page: "1"
-        })
-        metadata = searchMatch(item, search.results ?? [], today)
+        const searchQueries = [...new Set(itemTitles(item))].slice(0, 2)
+        for (const query of searchQueries) {
+          const search = await fetchTmdb<TmdbSearchResponse>(`/search/${kind}`, {
+            query,
+            include_adult: "false",
+            page: "1"
+          })
+          metadata = searchMatch(item, search.results ?? [], today)
+          if (metadata) break
+        }
       }
 
       if (!metadata?.poster_path) {

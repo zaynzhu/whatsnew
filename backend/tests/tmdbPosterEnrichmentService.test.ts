@@ -249,6 +249,51 @@ describe("TMDb poster enrichment", () => {
     }))
   })
 
+  it("retries a Netflix title without a trailing raw edition qualifier", async () => {
+    const item = media({
+      titleDisplay: "Dhurandhar The Revenge (Raw & Undekha)",
+      sourceContentType: "Films (Non-English)"
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => null),
+        upsert: vi.fn(async () => ({}))
+      }
+    }
+    const fetchJson = vi.fn(async (_source: string, rawUrl: string) => {
+      const query = new URL(rawUrl).searchParams.get("query")
+      if (query?.includes("Raw & Undekha")) return { results: [] }
+      return { results: [{
+        id: 1582770,
+        title: "Dhurandhar: The Revenge",
+        poster_path: "/dhurandhar.jpg",
+        release_date: "2026-03-19",
+        original_language: "hi"
+      }] }
+    })
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson } as never,
+      today: () => "2026-07-11"
+    })
+
+    expect(result).toMatchObject({ enriched: 1, unmatched: 0 })
+    expect(fetchJson).toHaveBeenCalledTimes(2)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        tmdbId: 1582770,
+        posterUrl: "https://image.tmdb.test/w500/dhurandhar.jpg"
+      })
+    }))
+  })
+
   it("merges a title-only Netflix duplicate into an existing TMDb title", async () => {
     const duplicate = media({
       id: "netflix-copy",
