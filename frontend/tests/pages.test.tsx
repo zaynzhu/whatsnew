@@ -289,6 +289,33 @@ const responses: Record<string, unknown> = {
       items: [traktRelease, movieRelease]
     }]
   },
+  "/api/preview": {
+    generatedAt: "2026-07-11T02:00:00.000Z",
+    today: "2026-07-11",
+    source: {
+      enabled: true,
+      runnable: true,
+      syncing: false,
+      latestRun: null,
+      lastSuccessAt: "2026-07-11T01:00:00.000Z"
+    },
+    summary: { total: 2, movies: 1, series: 1, undated: 1 },
+    days: [{
+      date: "2026-07-18",
+      items: [{
+        ...movieRelease,
+        source: "douban",
+        sourceUrl: "https://movie.douban.com/subject/1/"
+      }]
+    }],
+    undated: [{
+      ...traktRelease,
+      id: "release-undated",
+      releaseDate: null,
+      source: "douban",
+      sourceUrl: "https://movie.douban.com/subject/2/"
+    }]
+  },
   "/api/sources": {
     items: sourceCatalogItems
   },
@@ -537,6 +564,21 @@ describe("frontend pages", () => {
     fireEvent.click(screen.getByRole("tab", { name: "电影" }))
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/calendar?from=2026-07-01&to=2026-07-31&summary=true&mediaType=movie"
+    )
+  })
+
+  it("renders the Douban preview timeline and opens its detail drawer", async () => {
+    mockFetch()
+    renderRoute("/preview")
+
+    expect(await screen.findByRole("heading", { name: "待映 · 待播" })).toBeInTheDocument()
+    expect(screen.getByText("2026年7月")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "待定档" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /午夜档案/ }))
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "查看完整详情" })).toHaveAttribute(
+      "href",
+      "/media/media-movie-1"
     )
   })
 

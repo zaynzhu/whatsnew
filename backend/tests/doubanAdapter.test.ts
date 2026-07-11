@@ -240,4 +240,20 @@ describe("doubanAdapter", () => {
     expect(result.completePopularitySources).toEqual([])
     expect(result.completeReleaseSources).toEqual([])
   })
+
+  it("fetches only upcoming modules in upcoming scope", async () => {
+    const fetchText = vi.fn(async (_sourceId: string, _url: string) => JSON.stringify({ modules: [] }))
+    const adapter = createDoubanAdapter({
+      scope: "upcoming",
+      httpClient: { fetchText } as unknown as SourceHttpClient,
+      minIntervalMs: 0
+    })
+
+    const result = await adapter.fetchItems()
+
+    expect(adapter.scope).toBe("upcoming")
+    expect(fetchText).toHaveBeenCalledTimes(2)
+    expect(fetchText.mock.calls.every((call) => String(call[1]).includes("/modules"))).toBe(true)
+    expect(result.items).toEqual([])
+  })
 })

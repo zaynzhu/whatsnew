@@ -17,6 +17,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const TITLE_ALIASES_STORAGE_LIMIT = 191
 const INTERRUPTED_SYNC_ERROR = "同步进程中断，已自动收尾；请重新触发同步"
 const sourceSyncTails = new Map<string, Promise<void>>()
+
+export function isSourceSyncInFlight(source: string): boolean {
+  return sourceSyncTails.has(source)
+}
 const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max"])
 
 function uniqueValues(values: string[]): string[] {

@@ -7,6 +7,7 @@ import { RateLimiter } from "../utils/rateLimiter.js"
 import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type DoubanAdapterOptions = {
+  scope?: "all" | "upcoming"
   url?: string
   movieModulesUrl?: string
   tvModulesUrl?: string
@@ -47,18 +48,21 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
 
   return {
     source: "douban",
+    scope: options.scope === "upcoming" ? "upcoming" : undefined,
     async fetchItems(): Promise<SourceFetchBatch> {
       const currentSettings = settings.view()
       const baseUrl = (options.url ?? currentSettings.get("DOUBAN_BASE_URL")) || DOUBAN_CHART_URL
       const cookie = currentSettings.get("DOUBAN_COOKIE")
       const settingsOverride = captureSourceProxySettings(currentSettings, "douban")
       const chartUrl = `${baseUrl}?type=${DOUBAN_TYPE}&interval_id=100%3A90&action=&start=0&limit=${DOUBAN_LIMIT}`
-      const chartJson = await limiter.run(() => httpClient.fetchText("douban", chartUrl, {
-        headers: headersWithCookie(CHART_REQUEST_HEADERS, cookie),
-        timeoutMs: DOUBAN_TIMEOUT_MS,
-        settingsOverride,
-        sensitiveValues: [cookie]
-      }))
+      const chartJson = options.scope === "upcoming"
+        ? null
+        : await limiter.run(() => httpClient.fetchText("douban", chartUrl, {
+            headers: headersWithCookie(CHART_REQUEST_HEADERS, cookie),
+            timeoutMs: DOUBAN_TIMEOUT_MS,
+            settingsOverride,
+            sensitiveValues: [cookie]
+          }))
       const movieModulesJson = await limiter.run(() => httpClient.fetchText("douban", options.movieModulesUrl ?? DOUBAN_MOVIE_MODULES_URL, {
         headers: headersWithCookie(MOBILE_REQUEST_HEADERS, cookie),
         timeoutMs: DOUBAN_TIMEOUT_MS,
@@ -72,7 +76,7 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
         sensitiveValues: [cookie]
       }))
       const today = formatLocalDate(options.now ?? new Date())
-      const chartItems = parseDoubanChart(chartJson)
+      const chartItems = chartJson ? parseDoubanChart(chartJson) : []
       const upcomingItems = [
         ...parseDoubanMovieComingSoon(movieModulesJson, today),
         ...parseDoubanTvComingSoon(tvModulesJson, today)
@@ -97,3 +101,4 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
 }
 
 export const doubanAdapter = createDoubanAdapter()
+export const doubanUpcomingAdapter = createDoubanAdapter({ scope: "upcoming" })

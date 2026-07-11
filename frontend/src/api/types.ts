@@ -164,6 +164,32 @@ export type CalendarResponse = {
   }>
 }
 
+export type PreviewResponse = {
+  generatedAt: string
+  today: string
+  source: {
+    enabled: boolean
+    runnable: boolean
+    syncing: boolean
+    latestRun: {
+      status: string
+      startedAt: string
+      finishedAt: string | null
+      itemCount: number
+      errorMessage: string | null
+    } | null
+    lastSuccessAt: string | null
+  }
+  summary: {
+    total: number
+    movies: number
+    series: number
+    undated: number
+  }
+  days: Array<{ date: string, items: ReleaseRow[] }>
+  undated: ReleaseRow[]
+}
+
 export type SourcesResponse = {
   items: SourceCatalogItem[]
 }

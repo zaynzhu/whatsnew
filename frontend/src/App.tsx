@@ -7,13 +7,15 @@ import {
   Flame,
   RadioTower,
   Search,
-  Settings
+  Settings,
+  Telescope
 } from "lucide-react"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { CalendarPage } from "./pages/CalendarPage"
 import { DashboardPage } from "./pages/DashboardPage"
 import { DiscoverPage } from "./pages/DiscoverPage"
 import { MediaDetailPage } from "./pages/MediaDetailPage"
+import { PreviewPage } from "./pages/PreviewPage"
 import { SettingsPage } from "./pages/SettingsPage"
 import { SourcesPage } from "./pages/SourcesPage"
 import { TrendingPage } from "./pages/TrendingPage"
@@ -28,6 +30,7 @@ const navItems: NavItem[] = [
   { to: "/", label: "情报台", icon: RadioTower },
   { to: "/discover", label: "发现", icon: Compass },
   { to: "/trending", label: "热度", icon: Flame },
+  { to: "/preview", label: "前瞻", icon: Telescope },
   { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/sources", label: "数据源", icon: Database },
   { to: "/settings", label: "设置", icon: Settings }
@@ -90,6 +93,7 @@ export function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/trending" element={<TrendingPage />} />
+          <Route path="/preview" element={<PreviewPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/sources" element={<SourcesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
