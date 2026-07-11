@@ -6,8 +6,8 @@ import type {
   PopularitySignal,
   TrendingResponse
 } from "../api/types"
+import { MediaPoster } from "../components/MediaPoster"
 import { SourceLink } from "../components/SourceLink"
-import { sourceLabel } from "../utils/sourceLabel"
 
 const MOVEMENT_TABS: Array<{
   value: "" | PopularityMovement
@@ -55,6 +55,16 @@ function capturedAtLabel(capturedAt: string): string {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(capturedAt))
+}
+
+function mediaTypeLabel(mediaType: string): string {
+  const labels: Record<string, string> = {
+    movie: "电影",
+    series: "剧集",
+    anime: "动画",
+    documentary: "纪录片"
+  }
+  return labels[mediaType] ?? mediaType
 }
 
 export function TrendingPage() {
@@ -145,25 +155,46 @@ export function TrendingPage() {
         </div>
       </section>
 
-      <div className="list trendingList">
+      <div className="trendingList">
         {isLoading ? (
           <p className="emptyText">加载中...</p>
         ) : isError ? (
           <p className="emptyText">热度榜加载失败</p>
         ) : items.length > 0 ? (
-          items.map((signal) => (
-            <article className="row rankRow" key={signal.id}>
-              <Link className="rankTitle" to={`/media/${signal.mediaItemId}`}>
-                <strong>{signal.mediaItem.titleDisplay}</strong>
-                <span>{signal.mediaItem.mediaType} · {signal.platform ?? signal.region ?? "全局"}</span>
+          items.map((signal, index) => (
+            <article className="trendingCard" key={signal.id}>
+              <Link className="trendingPosterLink" to={`/media/${signal.mediaItemId}`}>
+                <div className="trendingPoster">
+                  <MediaPoster
+                    mediaId={signal.mediaItemId}
+                    posterUrl={signal.mediaItem.posterUrl}
+                    title={signal.mediaItem.titleDisplay}
+                    fallbackLabel={signal.mediaItem.titleDisplay}
+                    priority={index < 5}
+                  />
+                  <span className="trendingMediaType">
+                    {mediaTypeLabel(signal.mediaItem.mediaType)}
+                  </span>
+                  <strong className="rankPosition">#{signal.rank ?? "-"}</strong>
+                </div>
               </Link>
-              <span className="rankSource">
-                <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
-                <small>{signal.valueLabel ?? signal.window}</small>
-              </span>
-              <strong className="rankPosition">#{signal.rank ?? "-"}</strong>
-              <span className={movementClass(signal)}>{movementLabel(signal)}</span>
-              <time dateTime={signal.capturedAt}>{capturedAtLabel(signal.capturedAt)}</time>
+
+              <div className="trendingCardBody">
+                <div className="trendingCardProvenance">
+                  <span className="rankSource">
+                    <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
+                  </span>
+                  <time dateTime={signal.capturedAt}>{capturedAtLabel(signal.capturedAt)}</time>
+                </div>
+                <Link className="rankTitle" to={`/media/${signal.mediaItemId}`}>
+                  <strong>{signal.mediaItem.titleDisplay}</strong>
+                  <span>{signal.platform ?? signal.region ?? "全局"}</span>
+                </Link>
+                <div className="trendingCardSignal">
+                  <strong>{signal.valueLabel ?? signal.window}</strong>
+                  <span className={movementClass(signal)}>{movementLabel(signal)}</span>
+                </div>
+              </div>
             </article>
           ))
         ) : (

@@ -87,7 +87,10 @@ const signal = {
   capturedAt: "2026-06-17T02:00:00.000Z",
   isCurrent: true,
   sourceUrl: "https://example.com/trending",
-  mediaItem
+  mediaItem: {
+    ...mediaItem,
+    posterUrl: "https://image.tmdb.org/t/p/w500/example.jpg"
+  }
 }
 
 const risingSignal = {
@@ -461,6 +464,8 @@ describe("frontend pages", () => {
     renderRoute("/trending")
 
     expect(await screen.findByText("Trakt 趋势榜", { selector: ".rankSource span" })).toBeInTheDocument()
+    expect(screen.getByText("TMDb 电影趋势", { selector: ".rankSource span" })).toBeInTheDocument()
+    expect(screen.getAllByRole("img", { name: "星际回声" }).length).toBeGreaterThan(0)
     expect(screen.getByText("#4")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
     expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()

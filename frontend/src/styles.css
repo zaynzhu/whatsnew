@@ -1525,10 +1525,6 @@ h1 {
   font-size: 12px;
 }
 
-.rankRow {
-  grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.65fr) 64px minmax(96px, auto) minmax(110px, auto);
-}
-
 .eventRow {
   --event-color: var(--muted);
   grid-template-columns: minmax(88px, auto) minmax(160px, 0.7fr) minmax(180px, 1fr) minmax(90px, auto);
@@ -1696,6 +1692,131 @@ h1 {
   font: inherit;
 }
 
+.trendingList {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.trendingList > .emptyText {
+  grid-column: 1 / -1;
+}
+
+.trendingCard {
+  min-width: 0;
+  border: 1px solid rgba(59, 73, 84, 0.82);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d141a;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.trendingCard:hover {
+  border-color: rgba(241, 184, 77, 0.58);
+  box-shadow: 0 26px 58px rgba(0, 0, 0, 0.34);
+  transform: translateY(-3px);
+}
+
+.trendingPosterLink {
+  display: block;
+}
+
+.trendingPosterLink:focus-visible,
+.rankTitle:focus-visible {
+  outline: 3px solid rgba(241, 184, 77, 0.5);
+  outline-offset: -3px;
+}
+
+.trendingPoster {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #1a2228;
+  color: var(--mist);
+}
+
+.trendingPoster::after {
+  position: absolute;
+  inset: 44% 0 0;
+  background: linear-gradient(to bottom, transparent, rgba(5, 8, 10, 0.94));
+  content: "";
+  pointer-events: none;
+}
+
+.trendingPoster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 360ms ease;
+}
+
+.trendingCard:hover .trendingPoster img {
+  transform: scale(1.035);
+}
+
+.trendingPoster > span:first-child {
+  max-width: 80%;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.trendingMediaType {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(7, 10, 13, 0.76);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.trendingPoster .rankPosition {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 4px;
+  color: #fff;
+  font-size: 58px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.72);
+}
+
+.trendingCardBody {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.trendingCardProvenance,
+.trendingCardSignal {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.trendingCardProvenance time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .rankTitle {
   display: grid;
   gap: 4px;
@@ -1703,31 +1824,40 @@ h1 {
 }
 
 .rankTitle span,
-.rankSource > span,
-.rankRow time {
+.rankSource > span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.rankTitle strong {
+  color: var(--mist);
+  font-size: 18px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
 }
 
 .rankSource {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
-.rankSource small {
-  color: #718078;
+.rankSource .sourceLink {
+  color: var(--amber);
   font-size: 11px;
+  font-weight: 800;
 }
 
-.rankTitle:focus-visible {
-  outline: 3px solid rgba(61, 214, 179, 0.45);
-  outline-offset: 3px;
+.trendingCardSignal {
+  border-top: 1px solid var(--line);
+  padding-top: 11px;
 }
 
-.rankPosition {
+.trendingCardSignal > strong {
+  min-width: 0;
   color: var(--mist);
-  font-size: 18px;
-  text-align: right;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .movementUp,
@@ -2810,6 +2940,18 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+@media (max-width: 1180px) {
+  .trendingList {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  .trendingList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
   .commandBar {
     gap: 12px;
@@ -2965,7 +3107,6 @@ select:focus-visible {
   .calendarRow,
   .sourceRow,
   .sourceCatalogRow,
-  .rankRow,
   .eventRow {
     grid-template-columns: 1fr;
   }
@@ -2998,8 +3139,24 @@ select:focus-visible {
     width: 100%;
   }
 
-  .rankPosition {
-    text-align: left;
+  .trendingList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .trendingCardBody {
+    padding: 12px;
+  }
+
+  .trendingCardProvenance {
+    align-items: start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .trendingPoster .rankPosition {
+    right: 9px;
+    font-size: 46px;
   }
 
   .timelineRow {
@@ -3051,6 +3208,12 @@ select:focus-visible {
 
   .poster {
     width: 96px;
+  }
+
+  .trendingCardSignal {
+    align-items: start;
+    flex-direction: column;
+    gap: 5px;
   }
 
   .settingsSectionHeader {
