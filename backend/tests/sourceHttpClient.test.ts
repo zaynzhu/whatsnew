@@ -52,6 +52,60 @@ describe("resolveProxy", () => {
 })
 
 describe("SourceHttpClient", () => {
+  it("retries one transient network failure in the production retry mode", async () => {
+    const transport = vi.fn<SourceTransport>()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }))
+    const client = new SourceHttpClient(
+      fakeSettings({ SOURCE_TVMAZE_PROXY_MODE: "direct" }),
+      transport,
+      undefined,
+      0,
+      2
+    )
+
+    await expect(client.fetchText("tvmaze", "https://api.tvmaze.test/shows", {
+      timeoutMs: 1000,
+      retryDelayMs: 0
+    })).resolves.toBe("ok")
+    expect(transport).toHaveBeenCalledTimes(2)
+  })
+
+  it("retries server errors but not ordinary client errors", async () => {
+    const serverTransport = vi.fn<SourceTransport>()
+      .mockResolvedValueOnce(new Response("temporary", { status: 503 }))
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }))
+    const serverClient = new SourceHttpClient(fakeSettings({}), serverTransport, undefined, 0, 2)
+
+    await expect(serverClient.fetchText("tmdb", "https://api.example.test/server", {
+      timeoutMs: 1000,
+      retryDelayMs: 0
+    })).resolves.toBe("ok")
+    expect(serverTransport).toHaveBeenCalledTimes(2)
+
+    const clientTransport = vi.fn<SourceTransport>(async () => new Response("missing", { status: 404 }))
+    const client = new SourceHttpClient(fakeSettings({}), clientTransport, undefined, 0, 2)
+    await expect(client.fetchText("tmdb", "https://api.example.test/missing", {
+      timeoutMs: 1000,
+      retryDelayMs: 0
+    })).rejects.toMatchObject({ statusCode: 404 })
+    expect(clientTransport).toHaveBeenCalledTimes(1)
+  })
+
+  it("starts timeout accounting after a request leaves the rate-limit queue", async () => {
+    const transport = vi.fn<SourceTransport>(async (_url, options) => {
+      if (options?.signal?.aborted) throw options.signal.reason
+      return new Response("ok", { status: 200 })
+    })
+    const client = new SourceHttpClient(fakeSettings({}), transport, undefined, 60)
+
+    await client.fetchText("tmdb", "https://api.example.test/first", { timeoutMs: 10 })
+    await expect(client.fetchText("tmdb", "https://api.example.test/second", {
+      timeoutMs: 10
+    })).resolves.toBe("ok")
+    expect(transport).toHaveBeenCalledTimes(2)
+  })
+
   it("spaces runtime request starts across callers for the same service", async () => {
     vi.useFakeTimers()
     try {

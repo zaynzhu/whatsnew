@@ -16,6 +16,8 @@ const SENSITIVE_QUERY_KEYS = new Set(["api_key", "key", "token", "access_token"]
 
 export type SourceRequestOptions = Omit<RequestInit, "signal"> & {
   timeoutMs: number
+  retryAttempts?: number
+  retryDelayMs?: number
   settingsOverride?: Record<string, string>
   sensitiveValues?: readonly string[]
 }
@@ -111,6 +113,21 @@ export class SourceHttpError extends Error {
   }
 }
 
+function isRetryableRequestError(error: unknown): boolean {
+  if (error instanceof SourceHttpError) {
+    return error.statusCode === 408 || error.statusCode === 429 || error.statusCode >= 500
+  }
+  if (!(error instanceof Error)) return false
+  if (["AbortError", "TimeoutError"].includes(error.name)) return true
+  const message = `${error.message} ${error.cause instanceof Error ? error.cause.message : ""}`.toLowerCase()
+  return ["fetch failed", "econnreset", "econnrefused", "etimedout", "socket", "network"]
+    .some((fragment) => message.includes(fragment))
+}
+
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs))
+}
+
 export class SourceHttpClient {
   private readonly dispatchers = new Map<string, Dispatcher>()
   private readonly limiters = new Map<string, RateLimiter>()
@@ -119,7 +136,8 @@ export class SourceHttpClient {
     private readonly settings: RuntimeSettingsService,
     private readonly transport: SourceTransport = undiciFetch,
     private readonly createDispatcher = (proxyUrl: string): Dispatcher => new ProxyAgent(proxyUrl),
-    private readonly minIntervalMs = 0
+    private readonly minIntervalMs = 0,
+    private readonly defaultRetryAttempts = 1
   ) {}
 
   async fetchJson<T>(sourceId: string, url: string, options: SourceRequestOptions): Promise<T> {
@@ -138,13 +156,16 @@ export class SourceHttpClient {
   }
 
   async request(sourceId: string, url: string, options: SourceRequestOptions): Promise<Response> {
-    const { timeoutMs, settingsOverride, sensitiveValues = [], ...requestOptions } = options
+    const {
+      timeoutMs,
+      retryAttempts = this.defaultRetryAttempts,
+      retryDelayMs = 500,
+      settingsOverride,
+      sensitiveValues = [],
+      ...requestOptions
+    } = options
     const settings = this.settings.view(settingsOverride)
     const proxyUrl = resolveProxy(settings, sourceId, url)
-    const controller = new AbortController()
-    const timeout = setTimeout(() => {
-      controller.abort(new DOMException(`请求超时（${timeoutMs}ms）`, "TimeoutError"))
-    }, timeoutMs)
     const redactedUrl = redactUrl(url)
     const secrets = [
       ...redactedUrl.secrets,
@@ -152,26 +173,43 @@ export class SourceHttpClient {
       ...sensitiveValues.filter(Boolean)
     ]
 
-    try {
-      const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
-      const response = await this.limiterFor(url).run(() => this.transport(url, {
-        ...requestOptions as UndiciRequestInit,
-        signal: controller.signal,
-        ...(dispatcher ? { dispatcher } : {})
-      }))
-      if (response.ok) return response
+    const attempts = Math.max(1, Math.min(retryAttempts, 3))
+    let lastError: unknown
 
-      const body = redactSecrets(await response.text(), secrets).slice(0, 500)
-      const message = redactSecrets(
-        `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}`,
-        secrets
-      )
-      throw new SourceHttpError(message, sourceId, response.status, body, response.headers.get("server"))
-    } catch (error) {
-      throw redactError(error, secrets)
-    } finally {
-      clearTimeout(timeout)
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
+        const response = await this.limiterFor(url).run(async () => {
+          const controller = new AbortController()
+          const timeout = setTimeout(() => {
+            controller.abort(new DOMException(`请求超时（${timeoutMs}ms）`, "TimeoutError"))
+          }, timeoutMs)
+          try {
+            return await this.transport(url, {
+              ...requestOptions as UndiciRequestInit,
+              signal: controller.signal,
+              ...(dispatcher ? { dispatcher } : {})
+            })
+          } finally {
+            clearTimeout(timeout)
+          }
+        })
+        if (response.ok) return response
+
+        const body = redactSecrets(await response.text(), secrets).slice(0, 500)
+        const message = redactSecrets(
+          `HTTP ${response.status} ${response.statusText} for ${redactedUrl.safeUrl}`,
+          secrets
+        )
+        throw new SourceHttpError(message, sourceId, response.status, body, response.headers.get("server"))
+      } catch (error) {
+        lastError = redactError(error, secrets)
+        if (attempt >= attempts || !isRetryableRequestError(lastError)) throw lastError
+        if (retryDelayMs > 0) await sleep(retryDelayMs)
+      }
     }
+
+    throw lastError
   }
 
   private dispatcherFor(proxyUrl: string): Dispatcher {
@@ -194,4 +232,4 @@ export class SourceHttpClient {
   }
 }
 
-export const sourceHttpClient = new SourceHttpClient(runtimeSettings, undiciFetch, undefined, 2000)
+export const sourceHttpClient = new SourceHttpClient(runtimeSettings, undiciFetch, undefined, 2000, 2)
