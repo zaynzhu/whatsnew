@@ -49,17 +49,19 @@ export function SourcesPage() {
   if (isError) return <main className="page">数据源状态加载失败</main>
 
   const items = data?.items ?? []
-  const activeCount = items.filter((source) => source.implementationStatus === "active").length
-  const plannedCount = items.filter((source) => source.implementationStatus === "planned").length
-  const limitedCount = items.filter((source) => (
-    source.implementationStatus === "commercial" || source.implementationStatus === "blocked"
-  )).length
   const healthBySource = new Map<string, SourceHealthRow[]>()
   for (const row of healthQuery.data?.items ?? []) {
     const rows = healthBySource.get(row.sourceId) ?? []
     rows.push(row)
     healthBySource.set(row.sourceId, rows)
   }
+  const enabledSources = items.filter((source) => source.enabled)
+  const enabledHealth = enabledSources
+    .map((source) => primaryHealth(healthBySource.get(source.id) ?? []))
+    .filter((health): health is SourceHealthRow => health !== null)
+  const healthyCount = enabledHealth.filter((health) => health.acceptanceStatus === "passed").length
+  const attentionCount = enabledSources.length - healthyCount
+  const healthSummaryAvailable = healthQuery.data !== undefined
 
   return (
     <main className="page">
@@ -71,18 +73,18 @@ export function SourcesPage() {
         </div>
       </section>
 
-      <section className="sourceStats" aria-label="数据源数量">
+      <section className="sourceStats" aria-label="数据源概览">
         <div>
-          <span>已接入</span>
-          <strong>{activeCount}</strong>
+          <span>已启用</span>
+          <strong>{enabledSources.length}</strong>
         </div>
         <div>
-          <span>规划中</span>
-          <strong>{plannedCount}</strong>
+          <span>健康来源</span>
+          <strong>{healthSummaryAvailable ? healthyCount : "-"}</strong>
         </div>
         <div>
-          <span>受限/商业</span>
-          <strong>{limitedCount}</strong>
+          <span>需处理</span>
+          <strong>{healthSummaryAvailable ? attentionCount : "-"}</strong>
         </div>
       </section>
 

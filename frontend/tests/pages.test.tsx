@@ -496,6 +496,9 @@ describe("frontend pages", () => {
 
     renderRoute("/sources")
     expect(await screen.findByText("TMDb")).toBeInTheDocument()
+    expect(screen.getByText("已启用").closest("div")).toHaveTextContent("1")
+    expect(screen.getByText("健康来源").closest("div")).toHaveTextContent("0")
+    expect(screen.getByText("需处理").closest("div")).toHaveTextContent("1")
     expect(screen.getByText("社区热度")).toBeInTheDocument()
     expect(screen.getByText("全球电影与剧集 · 小时级趋势与日级发现")).toBeInTheDocument()
     expect(screen.getByText("8 条")).toBeInTheDocument()
