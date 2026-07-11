@@ -2167,6 +2167,113 @@ h1 {
   gap: 10px;
 }
 
+.posterHealthSettings {
+  margin-top: 24px;
+  border: 1px solid var(--glass-border);
+  border-top: 3px solid var(--violet);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+
+.posterHealthHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.posterHealthHeader > svg {
+  color: var(--violet);
+}
+
+.posterHealthGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.posterHealthGrid > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.posterHealthGrid span,
+.posterHealthSamples small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.posterHealthGrid strong {
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+
+.posterHealthStates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.posterHealthStates span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.posterHealthStates .warning {
+  border-color: rgba(241, 184, 77, 0.45);
+  color: var(--amber);
+}
+
+.posterHealthStates .error {
+  border-color: rgba(239, 93, 86, 0.45);
+  color: var(--red);
+}
+
+.posterHealthSamples {
+  margin-top: 18px;
+}
+
+.posterHealthSamples > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.posterHealthSamples a {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border-left: 2px solid var(--amber);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.posterHealthSamples a:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.posterHealthSamples span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .sourceTable {
   width: 100%;
   min-width: 0;
@@ -2763,7 +2870,9 @@ select:focus-visible {
   }
 
   .proxyFieldGrid,
-  .connectionResults {
+  .connectionResults,
+  .posterHealthGrid,
+  .posterHealthSamples > div {
     grid-template-columns: 1fr;
   }
 

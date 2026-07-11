@@ -26,6 +26,37 @@ export type ApiMediaItem = MediaSummary & {
   updatedAt?: string
 }
 
+export type PosterHealthSample = {
+  id: string
+  title: string
+  heatScore: number
+  sources: string[]
+}
+
+export type PosterHealthResponse = {
+  total: number
+  withPoster: number
+  missing: number
+  coveragePercent: number
+  statuses: {
+    unverified: number
+    healthy: number
+    degraded: number
+    broken: number
+  }
+  cache: {
+    entries: number
+    bytes: number
+    orphanedFiles: number
+    corruptEntries: number
+  }
+  samples: {
+    broken: PosterHealthSample[]
+    degraded: PosterHealthSample[]
+    missing: PosterHealthSample[]
+  }
+}
+
 export type ReleaseRow = {
   id: string
   mediaItemId: string

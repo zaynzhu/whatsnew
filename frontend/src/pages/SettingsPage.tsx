@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Images,
   PlugZap,
   RefreshCw,
   RotateCcw,
@@ -13,9 +14,11 @@ import {
   XCircle
 } from "lucide-react"
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { apiGet, apiRequest } from "../api/client"
 import type {
   ConnectionTestResult,
+  PosterHealthResponse,
   ProxyMode,
   ProxyTestResponse,
   SettingsResponse,
@@ -86,6 +89,12 @@ export function SettingsPage() {
     queryKey: ["settings"],
     queryFn: () => apiGet<SettingsResponse>("/api/settings"),
     refetchInterval: SOURCE_STATUS_REFETCH_MS
+  })
+
+  const posterHealthQuery = useQuery({
+    queryKey: ["poster-health"],
+    queryFn: () => apiGet<PosterHealthResponse>("/api/poster-health"),
+    refetchInterval: 30_000
   })
 
   const saveMutation = useMutation({
@@ -237,6 +246,9 @@ export function SettingsPage() {
 
   const hasChanges = Object.keys(changedValues).length > 0 || clearKeys.length > 0
   const hasAttentionChanges = Object.keys(attentionChanges).length > 0
+  const posterHealth = typeof posterHealthQuery.data?.coveragePercent === "number"
+    ? posterHealthQuery.data
+    : null
 
   return (
     <main className="page settingsLayout">
@@ -415,10 +427,82 @@ export function SettingsPage() {
         </div>
       </section>
 
+      <section className="posterHealthSettings" aria-labelledby="poster-health-heading">
+        <div className="settingsSectionHeader posterHealthHeader">
+          <div>
+            <span className="settingsIndex">03 / IMAGES</span>
+            <h2 id="poster-health-heading">图片健康</h2>
+          </div>
+          <Images aria-hidden="true" size={24} />
+        </div>
+
+        {posterHealth ? (
+          <>
+            <div className="posterHealthGrid">
+              <div>
+                <span>覆盖率</span>
+                <strong>{posterHealth.coveragePercent}%</strong>
+              </div>
+              <div>
+                <span>已有海报</span>
+                <strong>{posterHealth.withPoster} / {posterHealth.total}</strong>
+              </div>
+              <div>
+                <span>缺少海报</span>
+                <strong>{posterHealth.missing}</strong>
+              </div>
+              <div>
+                <span>损坏</span>
+                <strong className={posterHealth.statuses.broken > 0 ? "errorText" : "successText"}>
+                  {posterHealth.statuses.broken}
+                </strong>
+              </div>
+              <div>
+                <span>缓存</span>
+                <strong>{posterHealth.cache.entries} 张</strong>
+              </div>
+              <div>
+                <span>缓存容量</span>
+                <strong>{Math.round(posterHealth.cache.bytes / 1024 / 1024)} MB</strong>
+              </div>
+            </div>
+
+            <div className="posterHealthStates" aria-label="图片状态分布">
+              <span>已验证 {posterHealth.statuses.healthy}</span>
+              <span>待验证 {posterHealth.statuses.unverified}</span>
+              <span className={posterHealth.statuses.degraded > 0 ? "warning" : ""}>
+                已降级 {posterHealth.statuses.degraded}
+              </span>
+              <span className={posterHealth.cache.corruptEntries > 0 ? "error" : ""}>
+                缓存损坏 {posterHealth.cache.corruptEntries}
+              </span>
+            </div>
+
+            {posterHealth.samples.missing.length > 0 ? (
+              <div className="posterHealthSamples">
+                <strong>高优先级缺图</strong>
+                <div>
+                  {posterHealth.samples.missing.slice(0, 6).map((item) => (
+                    <Link to={`/media/${item.id}`} key={item.id}>
+                      <span>{item.title}</span>
+                      <small>Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"}</small>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="emptyText">
+            {posterHealthQuery.isLoading ? "正在统计图片状态..." : "图片健康状态暂不可用"}
+          </p>
+        )}
+      </section>
+
       <section className="sourceRegistry" aria-labelledby="source-registry-heading">
         <div className="settingsSectionHeader sourceRegistryHeader">
           <div>
-            <span className="settingsIndex">03 / SOURCES</span>
+            <span className="settingsIndex">04 / SOURCES</span>
             <h2 id="source-registry-heading">数据源注册表</h2>
           </div>
           <strong>{settingsQuery.data.sources.length} 个来源</strong>

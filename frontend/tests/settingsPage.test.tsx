@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "../src/App"
-import type { SettingsFieldView, SettingsResponse, SourceSettingsView } from "../src/api/types"
+import type { PosterHealthResponse, SettingsFieldView, SettingsResponse, SourceSettingsView } from "../src/api/types"
 
 type SourceFixtureOptions = {
   group: "global_metadata" | "cross_platform" | "international_platform" | "china_platform"
@@ -203,6 +203,25 @@ const settingsResponse: SettingsResponse = {
   sources: sourceFixtures
 }
 
+const posterHealthResponse: PosterHealthResponse = {
+  total: 857,
+  withPoster: 707,
+  missing: 150,
+  coveragePercent: 82.5,
+  statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
+  cache: { entries: 209, bytes: 73_886_357, orphanedFiles: 0, corruptEntries: 0 },
+  samples: {
+    broken: [],
+    degraded: [],
+    missing: [{
+      id: "media-missing",
+      title: "Agent Kim Reactivated",
+      heatScore: 98,
+      sources: ["netflix"]
+    }]
+  }
+}
+
 function jsonResponse(body: unknown): Response {
   return {
     ok: true,
@@ -245,6 +264,25 @@ describe("SettingsPage", () => {
     expect(httpsProxy).toHaveValue("")
     expect(httpsProxy).toHaveAttribute("placeholder", "********7890")
     expect(screen.queryByDisplayValue(/7890/)).not.toBeInTheDocument()
+  })
+
+  it("展示图片覆盖率、缓存和高优先级缺图", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      return input === "/api/poster-health"
+        ? jsonResponse(posterHealthResponse)
+        : jsonResponse(settingsResponse)
+    })
+
+    renderSettings()
+
+    expect(await screen.findByRole("heading", { name: "图片健康" })).toBeInTheDocument()
+    expect(screen.getByText("82.5%")).toBeInTheDocument()
+    expect(screen.getByText("707 / 857")).toBeInTheDocument()
+    expect(screen.getByText("209 张")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Agent Kim Reactivated/ })).toHaveAttribute(
+      "href",
+      "/media/media-missing"
+    )
   })
 
   it("保存修改后提示配置立即生效", async () => {
