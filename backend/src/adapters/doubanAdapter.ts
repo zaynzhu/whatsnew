@@ -1,5 +1,5 @@
 import type { AdapterItem, SourceAdapter, SourceFetchBatch } from "../domain/types.js"
-import { parseDoubanChart, parseDoubanMovieComingSoon, parseDoubanTvComingSoon } from "./doubanParser.js"
+import { parseDoubanChart, parseDoubanComingSoonPage } from "./doubanParser.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { formatLocalDate } from "../utils/date.js"
@@ -9,22 +9,24 @@ import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js
 type DoubanAdapterOptions = {
   scope?: "all" | "upcoming"
   url?: string
-  movieModulesUrl?: string
-  tvModulesUrl?: string
+  movieComingSoonUrl?: string
+  tvComingSoonUrl?: string
   minIntervalMs?: number
   httpClient?: SourceHttpClient
   settings?: RuntimeSettingsService
   now?: Date
 }
 
-// 豆瓣电影 TOP250 主榜保留为口碑评分样本；移动端 Rexxar modules 负责“即将上映 / 即将播出”
+// 豆瓣电影 TOP250 主榜保留为口碑评分样本；移动端独立 coming_soon 页面负责完整待映待播列表
 const DOUBAN_CHART_URL = "https://movie.douban.com/j/chart/top_list"
-const DOUBAN_MOVIE_MODULES_URL = "https://m.douban.com/rexxar/api/v2/movie/modules?need_manual_chart_card=1"
-const DOUBAN_TV_MODULES_URL = "https://m.douban.com/rexxar/api/v2/tv/modules?need_manual_chart_card=1"
+const DOUBAN_MOVIE_COMING_SOON_URL = "https://m.douban.com/rexxar/api/v2/movie/coming_soon"
+const DOUBAN_TV_COMING_SOON_URL = "https://m.douban.com/rexxar/api/v2/tv/coming_soon"
 const DOUBAN_TYPE = "24"
 const DOUBAN_LIMIT = 20
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const DOUBAN_TIMEOUT_MS = 30000
+const DOUBAN_PAGE_SIZE = 50
+const DOUBAN_MAX_ITEMS = 500
 const CHART_REQUEST_HEADERS = {
   "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 WhatsNewBot/0.1",
   "referer": "https://movie.douban.com/",
@@ -63,23 +65,32 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
             settingsOverride,
             sensitiveValues: [cookie]
           }))
-      const movieModulesJson = await limiter.run(() => httpClient.fetchText("douban", options.movieModulesUrl ?? DOUBAN_MOVIE_MODULES_URL, {
-        headers: headersWithCookie(MOBILE_REQUEST_HEADERS, cookie),
-        timeoutMs: DOUBAN_TIMEOUT_MS,
-        settingsOverride,
-        sensitiveValues: [cookie]
-      }))
-      const tvModulesJson = await limiter.run(() => httpClient.fetchText("douban", options.tvModulesUrl ?? DOUBAN_TV_MODULES_URL, {
-        headers: headersWithCookie({ ...MOBILE_REQUEST_HEADERS, referer: "https://m.douban.com/tv" }, cookie),
-        timeoutMs: DOUBAN_TIMEOUT_MS,
-        settingsOverride,
-        sensitiveValues: [cookie]
-      }))
       const today = formatLocalDate(options.now ?? new Date())
       const chartItems = chartJson ? parseDoubanChart(chartJson) : []
+      const fetchComingSoon = async (kind: "movie" | "tv", baseUrl: string): Promise<AdapterItem[]> => {
+        const items: AdapterItem[] = []
+        for (let start = 0; start < DOUBAN_MAX_ITEMS; start += DOUBAN_PAGE_SIZE) {
+          const url = new URL(baseUrl)
+          url.searchParams.set("start", `${start}`)
+          url.searchParams.set("count", `${DOUBAN_PAGE_SIZE}`)
+          const json = await limiter.run(() => httpClient.fetchText("douban", url.toString(), {
+            headers: headersWithCookie({
+              ...MOBILE_REQUEST_HEADERS,
+              referer: kind === "tv" ? "https://m.douban.com/tv" : "https://m.douban.com/movie"
+            }, cookie),
+            timeoutMs: DOUBAN_TIMEOUT_MS,
+            settingsOverride,
+            sensitiveValues: [cookie]
+          }))
+          const page = parseDoubanComingSoonPage(json, kind, today, start)
+          items.push(...page.items)
+          if (page.count === 0 || start + page.count >= page.total) break
+        }
+        return items
+      }
       const upcomingItems = [
-        ...parseDoubanMovieComingSoon(movieModulesJson, today),
-        ...parseDoubanTvComingSoon(tvModulesJson, today)
+        ...await fetchComingSoon("movie", options.movieComingSoonUrl ?? DOUBAN_MOVIE_COMING_SOON_URL),
+        ...await fetchComingSoon("tv", options.tvComingSoonUrl ?? DOUBAN_TV_COMING_SOON_URL)
       ]
       const items: AdapterItem[] = [
         ...chartItems,

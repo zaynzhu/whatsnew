@@ -91,6 +91,8 @@ const tvModulesJson = JSON.stringify({
             pubdate: ["2026-08-05(哥伦比亚)"],
             release_date: null,
             rating: { count: 0, value: 0 },
+            intro: "第二季将继续讲述布恩迪亚家族的命运。",
+            wish_count: 1200,
             url: "https://movie.douban.com/subject/37185797/",
             year: "2026"
           }
@@ -98,6 +100,20 @@ const tvModulesJson = JSON.stringify({
       }
     }
   ]
+})
+
+const moviePageJson = JSON.stringify({
+  start: 0,
+  count: 2,
+  total: 2,
+  subjects: JSON.parse(movieModulesJson).modules[0].data[0].items
+})
+
+const tvPageJson = JSON.stringify({
+  start: 0,
+  count: 1,
+  total: 1,
+  subjects: JSON.parse(tvModulesJson).modules[0].data.items
 })
 
 beforeEach(() => {
@@ -111,7 +127,7 @@ afterEach(() => {
 })
 
 describe("doubanAdapter", () => {
-  it("parses Douban TOP250 and mobile coming soon modules", async () => {
+  it("parses Douban TOP250 and paginated coming soon pages", async () => {
     const fetchText = vi.fn(async (sourceId: string, url: string) => {
       expect(sourceId).toBe("douban")
       if (url.includes("top_list")) {
@@ -119,8 +135,8 @@ describe("doubanAdapter", () => {
         expect(url).toContain("limit=20")
         return chartJson
       }
-      if (url.includes("/movie/modules")) return movieModulesJson
-      if (url.includes("/tv/modules")) return tvModulesJson
+      if (url.includes("/movie/coming_soon")) return moviePageJson
+      if (url.includes("/tv/coming_soon")) return tvPageJson
 
       throw new Error(`未预期的豆瓣 URL: ${url}`)
     })
@@ -189,7 +205,7 @@ describe("doubanAdapter", () => {
       sourceCategory: "chinese_interest",
       platform: "豆瓣",
       region: "中国大陆",
-      window: "国内即将上映",
+      window: "豆瓣电影即将上映",
       rank: 1,
       valueLabel: "豆瓣即将播出排序"
     })
@@ -215,13 +231,18 @@ describe("doubanAdapter", () => {
       titleDisplay: "百年孤独 第二季",
       firstReleaseDate: "2026-08-05",
       status: "upcoming",
-      productionCountries: ["哥伦比亚"]
+      productionCountries: ["哥伦比亚"],
+      overview: "第二季将继续讲述布恩迪亚家族的命运。"
     })
     expect(result.items[4].releases[0]).toMatchObject({
       region: "哥伦比亚",
       releaseDate: "2026-08-05",
       releasePattern: "tv_coming_soon",
       releaseStatus: "upcoming"
+    })
+    expect(result.items[4].popularitySignals[0]).toMatchObject({
+      value: 1200,
+      valueLabel: "豆瓣想看"
     })
   })
 
@@ -241,8 +262,13 @@ describe("doubanAdapter", () => {
     expect(result.completeReleaseSources).toEqual([])
   })
 
-  it("fetches only upcoming modules in upcoming scope", async () => {
-    const fetchText = vi.fn(async (_sourceId: string, _url: string) => JSON.stringify({ modules: [] }))
+  it("fetches only upcoming pages in upcoming scope", async () => {
+    const fetchText = vi.fn(async (_sourceId: string, _url: string) => JSON.stringify({
+      start: 0,
+      count: 0,
+      total: 0,
+      subjects: []
+    }))
     const adapter = createDoubanAdapter({
       scope: "upcoming",
       httpClient: { fetchText } as unknown as SourceHttpClient,
@@ -253,7 +279,37 @@ describe("doubanAdapter", () => {
 
     expect(adapter.scope).toBe("upcoming")
     expect(fetchText).toHaveBeenCalledTimes(2)
-    expect(fetchText.mock.calls.every((call) => String(call[1]).includes("/modules"))).toBe(true)
+    expect(fetchText.mock.calls.every((call) => String(call[1]).includes("/coming_soon"))).toBe(true)
     expect(result.items).toEqual([])
+  })
+
+  it("paginates the dedicated coming-soon page", async () => {
+    const subject = (index: number) => ({
+      id: `tv-${index}`,
+      title: `待播剧 ${index}`,
+      type: "tv",
+      subtype: "tv",
+      pubdate: ["2026-08-05(中国大陆)"],
+      url: `https://movie.douban.com/subject/tv-${index}/`
+    })
+    const fetchText = vi.fn(async (_sourceId: string, url: string) => {
+      if (url.includes("/movie/")) return JSON.stringify({ start: 0, count: 0, total: 0, subjects: [] })
+      const start = Number(new URL(url).searchParams.get("start"))
+      const subjects = start === 0
+        ? Array.from({ length: 50 }, (_, index) => subject(index))
+        : [subject(50)]
+      return JSON.stringify({ start, count: subjects.length, total: 51, subjects })
+    })
+    const adapter = createDoubanAdapter({
+      scope: "upcoming",
+      httpClient: { fetchText } as unknown as SourceHttpClient,
+      minIntervalMs: 0
+    })
+
+    const result = await adapter.fetchItems()
+
+    expect(fetchText).toHaveBeenCalledTimes(3)
+    expect(result.items).toHaveLength(51)
+    expect(result.items.at(-1)?.media.sourceId).toBe("douban-tv-50")
   })
 })

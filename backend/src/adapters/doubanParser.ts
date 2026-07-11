@@ -39,25 +39,15 @@ type DoubanMobileSubject = {
   } | null
   url?: string
   year?: string
+  intro?: string | null
+  wish_count?: number | null
 }
 
-type DoubanMobileComingGroup = {
-  items?: DoubanMobileSubject[]
-  title?: string
-  type?: string
+type DoubanComingSoonPage = {
+  start?: number
+  count?: number
   total?: number
-  total_hot?: number
-  uri?: string
-}
-
-type DoubanMobileModule = {
-  key?: string
-  module_name?: string
-  data?: unknown
-}
-
-type DoubanMobileModulesResponse = {
-  modules?: DoubanMobileModule[]
+  subjects?: DoubanMobileSubject[]
 }
 
 function absoluteUrl(value: string | null | undefined): string | null {
@@ -158,6 +148,7 @@ function upcomingSignalFromSubject(
   index: number,
   groupTitle: string
 ): PopularitySignalInput {
+  const wishCount = typeof item.wish_count === "number" && item.wish_count > 0 ? item.wish_count : null
   const ratingCount = typeof item.rating?.count === "number" && item.rating.count > 0 ? item.rating.count : null
 
   return {
@@ -168,8 +159,8 @@ function upcomingSignalFromSubject(
     window: groupTitle,
     rank: index + 1,
     rankDelta: null,
-    value: ratingCount,
-    valueLabel: ratingCount != null ? "豆瓣评分人数" : "豆瓣即将播出排序",
+    value: wishCount ?? ratingCount,
+    valueLabel: wishCount != null ? "豆瓣想看" : ratingCount != null ? "豆瓣评分人数" : "豆瓣即将播出排序",
     sourceUrl: absoluteUrl(item.url)
   }
 }
@@ -203,7 +194,7 @@ function mobileSubjectToAdapterItem(
       titleDisplay: title,
       titleOriginal: title,
       titleAliases: [],
-      overview: null,
+      overview: item.intro?.trim() || null,
       posterUrl: posterUrlFromSubject(item),
       productionCountries: regionsFromSubject(item, groupTitle),
       originalLanguage: null,
@@ -293,49 +284,26 @@ export function parseDoubanChart(json: string): AdapterItem[] {
     .map((item) => toAdapterItem(item))
 }
 
-function modulesFromJson(json: string): DoubanMobileModule[] {
+export function parseDoubanComingSoonPage(
+  json: string,
+  kind: "movie" | "tv",
+  today: string,
+  rankOffset = 0
+): { items: AdapterItem[], total: number, count: number } {
+  let page: DoubanComingSoonPage
   try {
-    const data = JSON.parse(json) as DoubanMobileModulesResponse
-    return Array.isArray(data.modules) ? data.modules : []
+    page = JSON.parse(json) as DoubanComingSoonPage
   } catch {
-    return []
+    return { items: [], total: 0, count: 0 }
   }
-}
 
-function movieComingGroups(data: unknown): DoubanMobileComingGroup[] {
-  if (!Array.isArray(data)) return []
-
-  return data.filter((group): group is DoubanMobileComingGroup => {
-    return Boolean(group && typeof group === "object" && Array.isArray((group as DoubanMobileComingGroup).items))
-  })
-}
-
-function tvComingGroups(data: unknown): DoubanMobileComingGroup[] {
-  if (!data || typeof data !== "object") return []
-  const group = data as DoubanMobileComingGroup
-  return Array.isArray(group.items) ? [group] : []
-}
-
-export function parseDoubanMovieComingSoon(json: string, today: string): AdapterItem[] {
-  const module = modulesFromJson(json).find((item) => item.key === "movie_coming_soon")
-  if (!module) return []
-
-  return movieComingGroups(module.data).flatMap((group) => {
-    const groupTitle = group.title ?? "豆瓣电影即将上映"
-    return (group.items ?? [])
-      .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, index, today))
-      .filter((item): item is AdapterItem => Boolean(item))
-  })
-}
-
-export function parseDoubanTvComingSoon(json: string, today: string): AdapterItem[] {
-  const module = modulesFromJson(json).find((item) => item.key === "coming_soon" || item.module_name === "tv_coming_soon")
-  if (!module) return []
-
-  return tvComingGroups(module.data).flatMap((group) => {
-    const groupTitle = group.title ?? "豆瓣剧集即将播出"
-    return (group.items ?? [])
-      .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, index, today))
-      .filter((item): item is AdapterItem => Boolean(item))
-  })
+  const subjects = Array.isArray(page.subjects) ? page.subjects : []
+  const groupTitle = kind === "movie" ? "豆瓣电影即将上映" : "豆瓣剧集即将播出"
+  return {
+    items: subjects
+      .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, rankOffset + index, today))
+      .filter((item): item is AdapterItem => Boolean(item)),
+    total: typeof page.total === "number" ? page.total : subjects.length,
+    count: subjects.length
+  }
 }

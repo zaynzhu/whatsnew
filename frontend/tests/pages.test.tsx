@@ -304,6 +304,7 @@ const responses: Record<string, unknown> = {
       date: "2026-07-18",
       items: [{
         ...movieRelease,
+        releasePattern: "theatrical_coming_soon",
         source: "douban",
         sourceUrl: "https://movie.douban.com/subject/1/"
       }]
@@ -312,6 +313,7 @@ const responses: Record<string, unknown> = {
       ...traktRelease,
       id: "release-undated",
       releaseDate: null,
+      releasePattern: "tv_coming_soon",
       source: "douban",
       sourceUrl: "https://movie.douban.com/subject/2/"
     }]

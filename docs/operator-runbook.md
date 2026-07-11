@@ -79,7 +79,7 @@ npm run sync:douban --workspace backend
 npm run enrich:posters --workspace backend -- --limit=120
 ```
 
-The `/preview` page reads only Douban movie and TV upcoming releases. Its manual sync action calls `POST /api/preview/sync`, which skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
+The `/preview` page reads only Douban movie and TV upcoming releases. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
 
 IMDb is local-cache based:
 

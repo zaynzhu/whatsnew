@@ -71,9 +71,17 @@ export function PreviewPage() {
   const data = query.data
   const days = useMemo(() => (data?.days ?? []).map((day) => ({
     ...day,
-    items: day.items.filter((item) => filter === "all" || item.mediaItem.mediaType === filter)
+    items: day.items.filter((item) => (
+      filter === "all"
+      || (filter === "movie" && item.releasePattern === "theatrical_coming_soon")
+      || (filter === "series" && item.releasePattern === "tv_coming_soon")
+    ))
   })).filter((day) => day.items.length > 0), [data?.days, filter])
-  const undated = (data?.undated ?? []).filter((item) => filter === "all" || item.mediaItem.mediaType === filter)
+  const undated = (data?.undated ?? []).filter((item) => (
+    filter === "all"
+    || (filter === "movie" && item.releasePattern === "theatrical_coming_soon")
+    || (filter === "series" && item.releasePattern === "tv_coming_soon")
+  ))
   const syncing = Boolean(data?.source.syncing || syncMutation.isPending)
 
   if (query.isLoading) return <main className="page previewPage">加载前瞻时间线...</main>
@@ -192,7 +200,8 @@ export function PreviewPage() {
 }
 
 function PreviewPoster({ release, onOpen }: { release: ReleaseRow, onOpen: (release: ReleaseRow) => void }) {
-  const Icon = release.mediaItem.mediaType === "movie" ? Film : Tv
+  const isMovie = release.releasePattern === "theatrical_coming_soon"
+  const Icon = isMovie ? Film : Tv
   return (
     <button className="previewPosterCard" onClick={() => onOpen(release)} type="button">
       <div className="previewPosterImage">
@@ -203,7 +212,7 @@ function PreviewPoster({ release, onOpen }: { release: ReleaseRow, onOpen: (rele
           fallbackLabel={release.mediaItem.titleDisplay}
         />
       </div>
-      <span><Icon aria-hidden="true" size={12} />{release.mediaItem.mediaType === "movie" ? "电影" : "剧集"}</span>
+      <span><Icon aria-hidden="true" size={12} />{isMovie ? "电影" : "剧集"}</span>
       <strong>{release.mediaItem.titleDisplay}</strong>
     </button>
   )
@@ -228,9 +237,12 @@ function PreviewDrawer({ release, onClose }: { release: ReleaseRow, onClose: () 
           />
         </div>
         <div className="previewDrawerBody">
-          <p className="eyebrow">{release.mediaItem.mediaType === "movie" ? "电影待映" : "剧集待播"}</p>
+          <p className="eyebrow">{release.releasePattern === "theatrical_coming_soon" ? "电影待映" : "剧集待播"}</p>
           <h2 id="preview-drawer-title">{release.mediaItem.titleDisplay}</h2>
           <strong>{release.releaseDate ?? "日期待定"}</strong>
+          {release.mediaItem.overview ? (
+            <p className="previewDrawerOverview">{release.mediaItem.overview}</p>
+          ) : null}
           <div className="previewDrawerTags">
             {[...countries, ...genres].map((item) => <span key={item}>{item}</span>)}
           </div>

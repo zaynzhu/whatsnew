@@ -227,10 +227,10 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   douban: {
     signalKinds: ["rating", "release_calendar"],
     coverage: "豆瓣 TOP250 口碑评分、移动端电影即将上映与剧集即将播出",
-    cadence: "日级低频同步 TOP250 前 20 条、电影与剧集移动端即将播出模块",
+    cadence: "日级低频同步 TOP250 前 20 条、电影与剧集移动端待映待播分页",
     access: "public_page",
     freshnessNote: "只代表豆瓣站内口碑和期待排期，不代表平台实际可看性",
-    riskNote: "不得高频爬取、不得绕过登录或验证码；移动端 Rexxar 模块变化时需降级保留旧数据"
+    riskNote: "不得高频爬取、不得绕过登录或验证码；移动端 coming_soon 接口变化时需降级保留旧数据"
   },
   maoyan_pro: {
     signalKinds: ["box_office", "platform_rank"],
@@ -298,7 +298,7 @@ export const SOURCE_CATALOG = [
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
   source("mango_tv", "芒果TV", "热播剧集与平台上新", "china_platform", "active", "direct", true, true, "https://www.mgtv.com/tv/", [], ["hourly"], true),
   source("bilibili", "哔哩哔哩", "番剧、国创与纪录片榜单", "china_platform", "active", "direct", true, true, "https://api.bilibili.com/pgc/season/rank/web/list?season_type=1&day=3", [], ["daily"], true),
-  source("douban", "豆瓣", "TOP250 口碑与即将播出", "china_platform", "active", "direct", true, true, "https://m.douban.com/rexxar/api/v2/tv/modules?need_manual_chart_card=1", [], ["daily"], false, ["DOUBAN_COOKIE"]),
+  source("douban", "豆瓣", "TOP250 口碑与即将播出", "china_platform", "active", "direct", true, true, "https://m.douban.com/rexxar/api/v2/tv/coming_soon", [], ["daily"], false, ["DOUBAN_COOKIE"]),
   source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),
   source("dengta_pro", "灯塔专业版", "票房、网播热度与收视指标", "china_platform", "planned", "direct", false, false, "https://www.taopiaopiao.com/"),
   source("mtime", "时光网", "中文影视资讯补充", "china_platform", "planned", "direct", false, false, "https://www.mtime.com/")

@@ -76,8 +76,8 @@ previewRouter.get("/", async (_req, res) => {
     },
     summary: {
       total: releases.length,
-      movies: releases.filter((release) => release.mediaItem.mediaType === "movie").length,
-      series: releases.filter((release) => release.mediaItem.mediaType === "series").length,
+      movies: releases.filter((release) => release.releasePattern === "theatrical_coming_soon").length,
+      series: releases.filter((release) => release.releasePattern === "tv_coming_soon").length,
       undated: undated.length
     },
     days: dates.map((date) => ({

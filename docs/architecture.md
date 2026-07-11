@@ -104,7 +104,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/trending` | Current popularity signals with movement and source filters. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |
 | `GET /api/preview` | Read-only Douban upcoming timeline grouped by date, including undated titles and source status. |
-| `POST /api/preview/sync` | Run only the Douban movie and TV upcoming modules; rejects duplicate in-flight source work. |
+| `POST /api/preview/sync` | Run only the paginated Douban movie and TV coming-soon pages; rejects duplicate in-flight source work. |
 | `GET /api/settings` | Runtime settings fields, source state and latest runs. |
 | `PUT /api/settings` | Persist allowed settings into `backend/.env`, effective immediately. |
 | `POST /api/settings/proxy/test` | Test direct, HTTP proxy and HTTPS proxy paths. |
