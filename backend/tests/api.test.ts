@@ -83,7 +83,7 @@ describe("api routes", () => {
       missing: 4,
       coveragePercent: 0,
       statuses: {
-        unverified: 4,
+        unverified: 0,
         healthy: 0,
         degraded: 0,
         broken: 0

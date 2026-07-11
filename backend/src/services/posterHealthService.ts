@@ -115,6 +115,10 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           select: { source: true }
         }
       } as const
+      const withPosterWhere = {
+        posterUrl: { not: null },
+        NOT: { posterUrl: "" }
+      } as const
       const [
         total,
         missing,
@@ -129,10 +133,10 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
       ] = await Promise.all([
         database.mediaItem.count(),
         database.mediaItem.count({ where: { OR: [{ posterUrl: null }, { posterUrl: "" }] } }),
-        database.mediaItem.count({ where: { posterStatus: "unverified" } }),
-        database.mediaItem.count({ where: { posterStatus: "healthy" } }),
-        database.mediaItem.count({ where: { posterStatus: "degraded" } }),
-        database.mediaItem.count({ where: { posterStatus: "broken" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "unverified" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "healthy" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "degraded" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "broken" } }),
         database.mediaItem.findMany({
           where: { posterStatus: "broken" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
