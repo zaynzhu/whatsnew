@@ -5,6 +5,7 @@ import {
   Database,
   Flame,
   RadioTower,
+  Search,
   Settings
 } from "lucide-react"
 import { NavLink, Route, Routes } from "react-router-dom"
@@ -34,34 +35,43 @@ const navItems: NavItem[] = [
 export function App() {
   return (
     <div className="appShell">
-      <aside className="sidebar">
-        <div className="brand" aria-label="WhatsNew">
-          <Activity aria-hidden="true" size={24} />
-          <div>
-            <strong>WhatsNew</strong>
-            <span>新片新剧监控</span>
-          </div>
+      <header className="commandBar">
+        <NavLink className="brand" to="/" aria-label="WhatsNew 首页">
+          <Activity aria-hidden="true" size={22} />
+          <strong>WhatsNew</strong>
+        </NavLink>
+
+        <div className="commandSearch" role="search">
+          <Search aria-hidden="true" size={16} />
+          <input
+            type="search"
+            placeholder="搜索作品、数据源…"
+            aria-label="全局搜索"
+          />
+          <kbd className="commandSearchHint" aria-hidden="true">⌘K</kbd>
         </div>
+      </header>
 
-        <nav className="navList" aria-label="主导航">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === "/"} className="navLink">
-              <Icon aria-hidden="true" size={18} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <div className="appContent">
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/discover" element={<DiscoverPage />} />
+          <Route path="/trending" element={<TrendingPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/sources" element={<SourcesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/media/:id" element={<MediaDetailPage />} />
+        </Routes>
+      </div>
 
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/trending" element={<TrendingPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/sources" element={<SourcesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/media/:id" element={<MediaDetailPage />} />
-      </Routes>
+      <nav className="dock" aria-label="主导航">
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === "/"} className="dockItem">
+            <Icon aria-hidden="true" size={20} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }
