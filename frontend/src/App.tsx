@@ -1,3 +1,4 @@
+import { type FormEvent, useEffect, useRef, useState } from "react"
 import {
   Activity,
   CalendarDays,
@@ -8,7 +9,7 @@ import {
   Search,
   Settings
 } from "lucide-react"
-import { NavLink, Route, Routes } from "react-router-dom"
+import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { CalendarPage } from "./pages/CalendarPage"
 import { DashboardPage } from "./pages/DashboardPage"
 import { DiscoverPage } from "./pages/DiscoverPage"
@@ -33,6 +34,35 @@ const navItems: NavItem[] = [
 ]
 
 export function App() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [searchValue, setSearchValue] = useState(() => {
+    return new URLSearchParams(location.search).get("q") ?? ""
+  })
+
+  useEffect(() => {
+    setSearchValue(new URLSearchParams(location.search).get("q") ?? "")
+  }, [location.search])
+
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener("keydown", focusSearch)
+    return () => window.removeEventListener("keydown", focusSearch)
+  }, [])
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const query = searchValue.trim()
+    navigate(query ? `/discover?q=${encodeURIComponent(query)}` : "/discover")
+  }
+
   return (
     <div className="appShell">
       <header className="commandBar">
@@ -41,15 +71,18 @@ export function App() {
           <strong>WhatsNew</strong>
         </NavLink>
 
-        <div className="commandSearch" role="search">
+        <form className="commandSearch" role="search" onSubmit={submitSearch}>
           <Search aria-hidden="true" size={16} />
           <input
+            ref={searchInputRef}
             type="search"
             placeholder="搜索作品、数据源…"
             aria-label="全局搜索"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
           />
           <kbd className="commandSearchHint" aria-hidden="true">⌘K</kbd>
-        </div>
+        </form>
       </header>
 
       <div className="appContent">

@@ -81,6 +81,16 @@ describe("api routes", () => {
     expect(response.body.items[0].dataSources).toEqual(expect.arrayContaining(["demo", "demo_trending"]))
   })
 
+  it("searches media by title aliases and source names", async () => {
+    const byAlias = await request(createApp()).get("/api/media?q=Echoes%20Beyond")
+    const bySource = await request(createApp()).get("/api/media?q=demo_trending")
+
+    expect(byAlias.status).toBe(200)
+    expect(byAlias.body.items.map((item: any) => item.titleDisplay)).toEqual(["星际回声"])
+    expect(bySource.status).toBe(200)
+    expect(bySource.body.items.map((item: any) => item.titleDisplay)).toContain("星际回声")
+  })
+
   it("proxies stored media posters through the backend", async () => {
     const media = await prisma.mediaItem.create({
       data: {

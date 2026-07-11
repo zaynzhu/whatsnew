@@ -114,7 +114,7 @@ a {
 .commandBar .brand strong {
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .commandSearch {
@@ -2692,44 +2692,36 @@ select:focus-visible {
 }
 
 @media (max-width: 760px) {
-  .appShell {
-    grid-template-columns: 1fr;
+  .commandBar {
+    gap: 12px;
+    padding: 0 14px;
   }
 
-  .sidebar {
-    position: static;
-    z-index: 1;
-    height: auto;
+  .dock {
+    right: 12px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 12px;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    transform: none;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .dockItem {
+    flex: 1 1 0;
     min-width: 0;
-    max-width: 100vw;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    padding: 14px;
+    padding: 8px 2px;
   }
 
-  .brand {
-    margin-bottom: 12px;
-  }
-
-  .navList {
-    display: flex;
-    gap: 8px;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .navLink {
-    flex: 0 0 auto;
-    min-height: 40px;
-    white-space: nowrap;
+  .dockItem span {
+    font-size: 10px;
   }
 
   .page {
     max-width: 100vw;
     min-width: 0;
-    padding: 24px 14px;
+    padding: 24px 14px calc(108px + env(safe-area-inset-bottom));
   }
 
   .pageHeader,
@@ -2892,6 +2884,15 @@ select:focus-visible {
 }
 
 @media (max-width: 520px) {
+  .commandBar .brand strong,
+  .commandSearchHint {
+    display: none;
+  }
+
+  .commandBar .brand {
+    gap: 0;
+  }
+
   h1 {
     font-size: 36px;
   }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MemoryRouter } from "react-router-dom"
@@ -25,6 +25,7 @@ function renderApp(route = "/") {
 
 describe("App", () => {
   afterEach(() => {
+    cleanup()
     vi.restoreAllMocks()
   })
 
@@ -39,5 +40,23 @@ describe("App", () => {
     expect(screen.getByText("WhatsNew")).toBeInTheDocument()
     expect(await screen.findByRole("heading", { name: "新片新剧雷达" })).toBeInTheDocument()
     expect(screen.getByText("热度")).toBeInTheDocument()
+  })
+
+  it("focuses and submits the global search", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], nextCursor: null })
+    } as Response)
+
+    renderApp()
+
+    const search = screen.getByRole("searchbox", { name: "全局搜索" })
+    fireEvent.keyDown(window, { key: "k", metaKey: true })
+    expect(search).toHaveFocus()
+    fireEvent.change(search, { target: { value: "House of the Dragon" } })
+    fireEvent.submit(search.closest("form") as HTMLFormElement)
+
+    expect(await screen.findByText("“House of the Dragon”的匹配结果")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith("/api/media?q=House%20of%20the%20Dragon")
   })
 })

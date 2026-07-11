@@ -321,6 +321,7 @@ function mockFetch() {
     const path = input instanceof Request ? input.url : String(input)
     const pathname = path.startsWith("http") ? new URL(path).pathname + new URL(path).search : path
     let body = responses[pathname]
+    if (pathname.startsWith("/api/media?")) body = responses["/api/media"]
     if (pathname.startsWith("/api/trending?")) body = responses["/api/trending"]
     if (pathname.startsWith("/api/calendar?")) {
       const params = new URL(`http://local${pathname}`).searchParams
@@ -396,6 +397,14 @@ describe("frontend pages", () => {
     expect(screen.getAllByText("web_series").length).toBeGreaterThan(0)
     expect(screen.getByText("Heat 91")).toBeInTheDocument()
     expect(screen.getByText("来源 TMDb · TVmaze")).toBeInTheDocument()
+  })
+
+  it("loads discover results from the global search query", async () => {
+    const fetchMock = mockFetch()
+    renderRoute("/discover?q=TMDb")
+
+    expect(await screen.findByText("“TMDb”的匹配结果")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith("/api/media?q=TMDb")
   })
 
   it("renders trending, calendar, and sources rows from API data", async () => {

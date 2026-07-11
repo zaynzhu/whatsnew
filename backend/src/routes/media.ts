@@ -25,6 +25,7 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
 
   router.get("/", async (req, res) => {
     const { mediaType, releaseForm, status, sort = "heat", limit = "50" } = req.query
+    const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : ""
     const take = Math.min(Number(limit) || 50, 100)
     const orderBy =
       sort === "firstReleaseDate"
@@ -37,7 +38,21 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
       where: {
         mediaType: typeof mediaType === "string" ? mediaType : undefined,
         releaseForm: typeof releaseForm === "string" ? releaseForm : undefined,
-        status: typeof status === "string" ? status : undefined
+        status: typeof status === "string" ? status : undefined,
+        OR: query ? [
+          { titleDisplay: { contains: query } },
+          { titleOriginal: { contains: query } },
+          { titleAliases: { contains: query } },
+          { sourceRefs: { some: { source: { contains: query }, isActive: true } } },
+          { releases: { some: { OR: [
+            { source: { contains: query } },
+            { platform: { contains: query } }
+          ] } } },
+          { popularitySignals: { some: { OR: [
+            { source: { contains: query } },
+            { platform: { contains: query } }
+          ] } } }
+        ] : undefined
       },
       include: {
         releases: { select: { source: true } },
