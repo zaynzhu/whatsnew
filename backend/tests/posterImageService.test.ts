@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -70,5 +70,103 @@ describe("PosterImageService", () => {
     expect(queued.body.toString()).toBe("image-bytes")
     expect(transport).toHaveBeenCalledTimes(2)
     expect(transport.mock.calls[1]?.[1]?.signal?.aborted).toBe(false)
+  })
+
+  it("deduplicates concurrent cold-cache requests for the same poster", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const transport = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return new Response(Buffer.from("shared-image"), {
+        status: 200,
+        headers: { "content-type": "image/webp" }
+      })
+    })
+    const service = new PosterImageService({
+      cacheDir: tempDir,
+      transport,
+      minIntervalMs: 0
+    })
+    const url = "https://image.tmdb.org/t/p/w500/shared.jpg"
+
+    const images = await Promise.all([
+      service.getPoster(url),
+      service.getPoster(url),
+      service.getPoster(url)
+    ])
+
+    expect(images.map((image) => image.body.toString())).toEqual([
+      "shared-image",
+      "shared-image",
+      "shared-image"
+    ])
+    expect(transport).toHaveBeenCalledTimes(1)
+  })
+
+  it("serves an expired cached poster when upstream refresh fails", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const transport = vi.fn()
+      .mockResolvedValueOnce(new Response(Buffer.from("stale-image"), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      }))
+      .mockRejectedValueOnce(new Error("upstream unavailable"))
+    const service = new PosterImageService({
+      cacheDir: tempDir,
+      transport,
+      minIntervalMs: 0,
+      cacheMaxAgeMs: -1
+    })
+    const url = "https://image.tmdb.org/t/p/w500/stale.jpg"
+
+    await service.getPoster(url)
+    const image = await service.getPoster(url)
+
+    expect(image).toMatchObject({
+      cacheHit: true,
+      cacheStatus: "stale",
+      contentType: "image/jpeg"
+    })
+    expect(image.body.toString()).toBe("stale-image")
+    expect(transport).toHaveBeenCalledTimes(2)
+  })
+
+  it("backs off repeated failures for an uncached poster", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const transport = vi.fn(async () => {
+      throw new Error("upstream unavailable")
+    })
+    const service = new PosterImageService({
+      cacheDir: tempDir,
+      transport,
+      minIntervalMs: 0,
+      failureCooldownMs: 60_000
+    })
+    const url = "https://image.tmdb.org/t/p/w500/missing.jpg"
+
+    await expect(service.getPoster(url)).rejects.toThrow("upstream unavailable")
+    await expect(service.getPoster(url)).rejects.toThrow("upstream unavailable")
+
+    expect(transport).toHaveBeenCalledTimes(1)
+  })
+
+  it("rejects a corrupt disk entry and fetches a clean replacement", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const transport = vi.fn(async () => new Response(Buffer.from("valid-image"), {
+      status: 200,
+      headers: { "content-type": "image/png" }
+    }))
+    const url = "https://image.tmdb.org/t/p/w500/corrupt.jpg"
+    const firstService = new PosterImageService({ cacheDir: tempDir, transport, minIntervalMs: 0 })
+    await firstService.getPoster(url)
+    const bodyFile = (await readdir(tempDir)).find((name) => name.endsWith(".bin"))
+    if (!bodyFile) throw new Error("测试缓存文件未创建")
+    await writeFile(join(tempDir, bodyFile), Buffer.alloc(0))
+
+    const secondService = new PosterImageService({ cacheDir: tempDir, transport, minIntervalMs: 0 })
+    const image = await secondService.getPoster(url)
+
+    expect(image.cacheStatus).toBe("miss")
+    expect(image.body.toString()).toBe("valid-image")
+    expect(transport).toHaveBeenCalledTimes(2)
   })
 })

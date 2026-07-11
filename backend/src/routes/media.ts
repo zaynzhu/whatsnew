@@ -109,7 +109,7 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
       const image = await posters.getPoster(item.posterUrl)
       res.setHeader("Content-Type", image.contentType)
       res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
-      res.setHeader("X-Poster-Cache", image.cacheHit ? "hit" : "miss")
+      res.setHeader("X-Poster-Cache", image.cacheStatus)
       res.send(image.body)
     } catch {
       res.status(502).json({ error: "poster_unavailable" })

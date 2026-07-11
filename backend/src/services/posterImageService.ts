@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import {
   ProxyAgent,
@@ -15,6 +15,7 @@ export type PosterImage = {
   body: Buffer
   contentType: string
   cacheHit: boolean
+  cacheStatus: "hit" | "miss" | "stale"
 }
 
 type PosterMetadata = {
@@ -32,13 +33,26 @@ type PosterImageServiceOptions = {
   minIntervalMs?: number
   timeoutMs?: number
   maxBytes?: number
+  cacheMaxAgeMs?: number
+  failureCooldownMs?: number
   createDispatcher?: (proxyUrl: string) => Dispatcher
 }
 
 const DEFAULT_CACHE_DIR = join(process.cwd(), ".cache", "posters")
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024
+const DEFAULT_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+const DEFAULT_FAILURE_COOLDOWN_MS = 60 * 1000
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
+
+type CachedPoster = PosterImage & {
+  expired: boolean
+}
+
+type RecentFailure = {
+  error: Error
+  retryAt: number
+}
 
 function cacheKey(url: string): string {
   return createHash("sha256").update(url).digest("hex")
@@ -70,9 +84,13 @@ export class PosterImageService {
   private readonly minIntervalMs: number
   private readonly timeoutMs: number
   private readonly maxBytes: number
+  private readonly cacheMaxAgeMs: number
+  private readonly failureCooldownMs: number
   private readonly createDispatcher: (proxyUrl: string) => Dispatcher
   private readonly dispatchers = new Map<string, Dispatcher>()
   private readonly limiters = new Map<string, RateLimiter>()
+  private readonly inFlight = new Map<string, Promise<PosterImage>>()
+  private readonly recentFailures = new Map<string, RecentFailure>()
 
   constructor(options: PosterImageServiceOptions = {}) {
     this.cacheDir = options.cacheDir ?? DEFAULT_CACHE_DIR
@@ -81,15 +99,45 @@ export class PosterImageService {
     this.minIntervalMs = options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
     this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES
+    this.cacheMaxAgeMs = options.cacheMaxAgeMs ?? DEFAULT_CACHE_MAX_AGE_MS
+    this.failureCooldownMs = options.failureCooldownMs ?? DEFAULT_FAILURE_COOLDOWN_MS
     this.createDispatcher = options.createDispatcher ?? ((proxyUrl: string) => new ProxyAgent(proxyUrl))
   }
 
   async getPoster(url: string): Promise<PosterImage> {
     this.validateUrl(url)
     const cached = await this.readCached(url)
-    if (cached) return cached
+    if (cached && !cached.expired) return cached
 
-    return this.fetchAndCache(url)
+    const inFlight = this.inFlight.get(url)
+    if (inFlight) return inFlight
+
+    const recentFailure = this.recentFailures.get(url)
+    if (recentFailure && recentFailure.retryAt > Date.now()) {
+      if (cached) return { ...cached, cacheStatus: "stale" }
+      throw recentFailure.error
+    }
+
+    const request = this.fetchAndCache(url)
+      .then((image) => {
+        this.recentFailures.delete(url)
+        return image
+      })
+      .catch((error: unknown) => {
+        const normalized = error instanceof Error ? error : new Error(String(error))
+        this.recentFailures.set(url, {
+          error: normalized,
+          retryAt: Date.now() + this.failureCooldownMs
+        })
+        if (cached) return { ...cached, cacheStatus: "stale" as const }
+        throw normalized
+      })
+      .finally(() => {
+        this.inFlight.delete(url)
+      })
+
+    this.inFlight.set(url, request)
+    return request
   }
 
   private validateUrl(url: string): void {
@@ -99,7 +147,7 @@ export class PosterImageService {
     }
   }
 
-  private async readCached(url: string): Promise<PosterImage | null> {
+  private async readCached(url: string): Promise<CachedPoster | null> {
     const key = cacheKey(url)
     try {
       const [metadataRaw, body] = await Promise.all([
@@ -108,11 +156,17 @@ export class PosterImageService {
       ])
       const metadata = JSON.parse(metadataRaw) as PosterMetadata
       if (metadata.url !== url) return null
+      const contentType = assertImageResponse(metadata.contentType, body.length)
+      if (body.length > this.maxBytes) return null
+      const cachedAt = Date.parse(metadata.cachedAt)
+      if (!Number.isFinite(cachedAt)) return null
 
       return {
         body,
-        contentType: metadata.contentType,
-        cacheHit: true
+        contentType,
+        cacheHit: true,
+        cacheStatus: "hit",
+        expired: Date.now() - cachedAt > this.cacheMaxAgeMs
       }
     } catch {
       return null
@@ -145,7 +199,7 @@ export class PosterImageService {
         const contentType = assertImageResponse(response.headers.get("content-type"), body.length)
 
         await this.writeCached(url, contentType, body)
-        return { body, contentType, cacheHit: false }
+        return { body, contentType, cacheHit: false, cacheStatus: "miss" }
       } finally {
         clearTimeout(timer)
       }
@@ -160,10 +214,17 @@ export class PosterImageService {
       cachedAt: new Date().toISOString()
     }
     await mkdir(this.cacheDir, { recursive: true })
+    const suffix = `${process.pid}-${Date.now()}`
+    const bodyPath = join(this.cacheDir, `${key}.bin`)
+    const metadataPath = join(this.cacheDir, `${key}.json`)
+    const temporaryBodyPath = `${bodyPath}.${suffix}.tmp`
+    const temporaryMetadataPath = `${metadataPath}.${suffix}.tmp`
     await Promise.all([
-      writeFile(join(this.cacheDir, `${key}.bin`), body),
-      writeFile(join(this.cacheDir, `${key}.json`), `${JSON.stringify(metadata, null, 2)}\n`)
+      writeFile(temporaryBodyPath, body),
+      writeFile(temporaryMetadataPath, `${JSON.stringify(metadata, null, 2)}\n`)
     ])
+    await rename(temporaryBodyPath, bodyPath)
+    await rename(temporaryMetadataPath, metadataPath)
   }
 
   private dispatcherFor(url: string): Dispatcher | undefined {

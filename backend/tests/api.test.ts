@@ -108,7 +108,8 @@ describe("api routes", () => {
       getPoster: vi.fn(async () => ({
         body: Buffer.from("poster-bytes"),
         contentType: "image/png",
-        cacheHit: true
+        cacheHit: true,
+        cacheStatus: "hit" as const
       }))
     }
 
