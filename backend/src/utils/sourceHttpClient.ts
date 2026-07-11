@@ -173,7 +173,9 @@ export class SourceHttpClient {
       ...sensitiveValues.filter(Boolean)
     ]
 
-    const attempts = Math.max(1, Math.min(retryAttempts, 3))
+    const method = (requestOptions.method ?? "GET").toUpperCase()
+    const retryableMethod = ["GET", "HEAD", "OPTIONS"].includes(method)
+    const attempts = retryableMethod ? Math.max(1, Math.min(retryAttempts, 3)) : 1
     let lastError: unknown
 
     for (let attempt = 1; attempt <= attempts; attempt += 1) {

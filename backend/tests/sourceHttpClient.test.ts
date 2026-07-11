@@ -92,6 +92,20 @@ describe("SourceHttpClient", () => {
     expect(clientTransport).toHaveBeenCalledTimes(1)
   })
 
+  it("does not automatically retry non-idempotent requests", async () => {
+    const transport = vi.fn<SourceTransport>()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }))
+    const client = new SourceHttpClient(fakeSettings({}), transport, undefined, 0, 2)
+
+    await expect(client.fetchText("thetvdb", "https://api.example.test/login", {
+      method: "POST",
+      timeoutMs: 1000,
+      retryDelayMs: 0
+    })).rejects.toThrow("fetch failed")
+    expect(transport).toHaveBeenCalledTimes(1)
+  })
+
   it("starts timeout accounting after a request leaves the rate-limit queue", async () => {
     const transport = vi.fn<SourceTransport>(async (_url, options) => {
       if (options?.signal?.aborted) throw options.signal.reason
