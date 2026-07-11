@@ -46,6 +46,32 @@ function settings(): RuntimeSettingsService {
 }
 
 describe("TMDb poster enrichment", () => {
+  it("can bypass the retry window for an explicit manual repair", async () => {
+    const findMany = vi.fn(async (_args?: unknown) => [])
+    const database = {
+      mediaItem: { findMany }
+    }
+
+    await enrichMissingPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson: vi.fn() } as never,
+      force: true
+    })
+
+    expect(findMany.mock.calls[0]?.[0]).toMatchObject({
+      where: {
+        AND: [{
+          OR: [
+            { posterUrl: null },
+            { posterUrl: "" },
+            { posterStatus: "broken" }
+          ]
+        }]
+      }
+    })
+  })
+
   it("enriches direct TMDb IDs and unique exact title matches", async () => {
     const items = [
       media({ id: "direct", titleDisplay: "Direct Movie", tmdbId: 101 }),

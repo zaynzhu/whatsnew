@@ -13,7 +13,8 @@ try {
   const result = await enrichMissingPosters({
     database: db,
     settings: runtimeSettings,
-    limit: requestedLimit()
+    limit: requestedLimit(),
+    force: process.argv.includes("--force")
   })
   console.log(JSON.stringify(result))
 } catch {

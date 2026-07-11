@@ -41,6 +41,7 @@ type PosterEnrichmentOptions = {
   httpClient?: Pick<SourceHttpClient, "fetchJson">
   today?: () => string
   now?: () => Date
+  force?: boolean
 }
 
 export type PosterEnrichmentResult = {
@@ -269,12 +270,12 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
             { posterStatus: "broken" }
           ]
         },
-        {
+        ...(!options.force ? [{
           OR: [
             { posterLookupAttemptedAt: null },
             { posterLookupAttemptedAt: { lt: retryBefore } }
           ]
-        }
+        }] : [])
       ]
     },
     orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
