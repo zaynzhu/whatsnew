@@ -13,6 +13,19 @@ export type PopularityEventPayload = {
   capturedAt: string
 }
 
+const POPULARITY_SOURCE_LABELS: Record<string, string> = {
+  tmdb_trending: "TMDb 电影趋势",
+  tmdb_tv_trending: "TMDb 剧集趋势",
+  trakt_trending: "Trakt 趋势榜",
+  trakt_anticipated: "Trakt 期待榜",
+  netflix_top10: "Netflix Top 10",
+  youku_hot: "优酷热度",
+  youku_reserve: "优酷预约",
+  iqiyi_reserve: "爱奇艺预约",
+  douban_upcoming: "豆瓣即将播出",
+  douban_top: "豆瓣 TOP250"
+}
+
 export async function createSourceFailedEvent(
   prisma: PrismaClient,
   source: string,
@@ -64,19 +77,27 @@ export async function createPopularityEvent(
   payload: PopularityEventPayload,
   sourceUrl: string | null
 ): Promise<void> {
-  const descriptions = {
-    rank_entered: `${mediaTitle} 新进入 ${payload.source} 前十`,
-    heat_rising: `${mediaTitle} 在 ${payload.source} 上升 ${payload.rankDelta} 位`,
-    rank_changed: `${mediaTitle} 在 ${payload.source} 排名发生变化`
+  const sourceName = POPULARITY_SOURCE_LABELS[payload.source] ?? payload.platform ?? payload.source
+  const currentRank = payload.currentRank == null ? "未知" : `${payload.currentRank}`
+  const previousRank = payload.previousRank == null ? "未知" : `${payload.previousRank}`
+  const direction = (payload.rankDelta ?? 0) > 0 ? "上升" : "下降"
+  const titles = {
+    rank_entered: `${mediaTitle} 新进入榜`,
+    heat_rising: `${mediaTitle} 升至第 ${currentRank} 名`,
+    rank_changed: `${mediaTitle} ${(payload.rankDelta ?? 0) > 0 ? "升至" : "回落至"}第 ${currentRank} 名`
   }
-  const description = descriptions[eventType]
+  const descriptions = {
+    rank_entered: `${sourceName} · 当前第 ${currentRank} 名`,
+    heat_rising: `${sourceName} · 从第 ${previousRank} 名上升 ${Math.abs(payload.rankDelta ?? 0)} 位`,
+    rank_changed: `${sourceName} · 从第 ${previousRank} 名${direction} ${Math.abs(payload.rankDelta ?? 0)} 位`
+  }
 
   await prisma.changeEvent.create({
     data: {
       mediaItemId,
       eventType,
-      title: description,
-      description,
+      title: titles[eventType],
+      description: descriptions[eventType],
       source: payload.source,
       sourceUrl,
       eventAt: new Date(payload.capturedAt),

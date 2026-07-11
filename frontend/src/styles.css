@@ -1544,6 +1544,49 @@ h1 {
   border: 1px solid color-mix(in srgb, var(--event-color) 38%, transparent);
 }
 
+.eventFeedItem {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(59, 73, 84, 0.78);
+  border-left: 3px solid var(--event-color);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(12, 18, 24, 0.9);
+}
+
+.eventFeedHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.eventFeedHeader time {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.eventFeedItem > strong {
+  color: var(--mist);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.eventFeedItem > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.eventFeedItem > .sourceLink {
+  width: fit-content;
+  color: var(--teal);
+  font-size: 11px;
+}
+
 .event-detect { --event-color: #6aa9ff; }
 .event-announce { --event-color: #b08bff; }
 .event-today { --event-color: #4ec9a0; }

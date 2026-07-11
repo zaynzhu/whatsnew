@@ -124,6 +124,8 @@ describe("PopularitySnapshotService", () => {
     const events = await testPrisma.changeEvent.findMany()
     expect(events).toHaveLength(1)
     expect(events[0].eventType).toBe("heat_rising")
+    expect(events[0].title).toBe("示例剧 升至第 7 名")
+    expect(events[0].description).toBe("TMDb 电影趋势 · 从第 12 名上升 5 位")
     expect(JSON.parse(events[0].payload)).toEqual({
       source: "tmdb_trending",
       platform: "TMDb",

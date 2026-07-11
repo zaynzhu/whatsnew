@@ -134,6 +134,7 @@ export type ChangeEvent = {
   sourceUrl: string | null
   eventAt: string
   payload: string
+  mediaItem?: Pick<ApiMediaItem, "id" | "titleDisplay"> | null
 }
 
 export type DashboardResponse = {

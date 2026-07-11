@@ -11,6 +11,7 @@ import { MediaPoster } from "../components/MediaPoster"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
 import { eventStyle } from "../utils/eventStyle"
+import { eventPresentation } from "../utils/eventPresentation"
 
 function timelineMovement(signal: Omit<PopularitySignal, "mediaItem">): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
@@ -179,11 +180,15 @@ export function MediaDetailPage() {
           {data.changeEvents.length > 0 ? (
             data.changeEvents.map((event) => {
               const style = eventStyle(event.eventType)
+              const presentation = eventPresentation({
+                ...event,
+                mediaItem: { id: data.id, titleDisplay: data.titleDisplay }
+              })
               return (
                 <article className={`row eventRow event-${style.tone}`} key={event.id}>
                   <span className="eventTag">{style.label}</span>
-                  <span>{event.title}</span>
-                  <span>{event.description}</span>
+                  <strong>{presentation.headline}</strong>
+                  <span>{presentation.detail}</span>
                   <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
                 </article>
               )

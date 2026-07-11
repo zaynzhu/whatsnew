@@ -36,6 +36,11 @@ dashboardRouter.get("/", async (_req, res) => {
       take: 50
     }),
     db.changeEvent.findMany({
+      include: {
+        mediaItem: {
+          select: { id: true, titleDisplay: true }
+        }
+      },
       orderBy: { eventAt: "desc" },
       take: 20
     }),

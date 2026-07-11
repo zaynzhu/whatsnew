@@ -6,15 +6,26 @@ import { apiGet } from "../api/client"
 import type { DashboardResponse } from "../api/types"
 import { MediaCard } from "../components/MediaCard"
 import { MediaPoster } from "../components/MediaPoster"
+import { SourceLink } from "../components/SourceLink"
 import { StatusBadge } from "../components/StatusBadge"
 import { sourceLabel } from "../utils/sourceLabel"
 import { eventStyle } from "../utils/eventStyle"
+import { eventPresentation } from "../utils/eventPresentation"
 
 type MetricPanelProps = {
   icon: LucideIcon
   label: string
   value: string
   tone: "heat" | "date" | "data" | "source"
+}
+
+function eventTimeLabel(eventAt: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(eventAt))
 }
 
 export function DashboardPage() {
@@ -161,12 +172,16 @@ export function DashboardPage() {
             {events.length > 0 ? (
               events.slice(0, 5).map((event) => {
                 const style = eventStyle(event.eventType)
+                const presentation = eventPresentation(event)
                 return (
-                  <article className={`row eventRow event-${style.tone}`} key={event.id}>
-                    <span className="eventTag">{style.label}</span>
-                    <strong>{event.title}</strong>
-                    <span>{event.description}</span>
-                    <span>{event.source}</span>
+                  <article className={`eventFeedItem event-${style.tone}`} key={event.id}>
+                    <div className="eventFeedHeader">
+                      <span className="eventTag">{style.label}</span>
+                      <time dateTime={event.eventAt}>{eventTimeLabel(event.eventAt)}</time>
+                    </div>
+                    <strong>{presentation.headline}</strong>
+                    {presentation.detail ? <p>{presentation.detail}</p> : null}
+                    <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
                   </article>
                 )
               })
