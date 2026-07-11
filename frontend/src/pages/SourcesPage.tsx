@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiGet } from "../api/client"
-import type { SourcesResponse } from "../api/types"
+import type { SourceHealthResponse, SourceHealthRow, SourcesResponse } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
 import {
   SOURCE_LOCAL_STATE_LABELS,
@@ -20,11 +20,28 @@ const SOURCE_STATUS_LABELS = {
   commercial: "商业接口"
 }
 const SOURCE_STATUS_REFETCH_MS = 5000
+const HEALTH_PRIORITY: Record<SourceHealthRow["acceptanceStatus"], number> = {
+  failed: 4,
+  degraded: 3,
+  blocked: 2,
+  passed: 1
+}
+
+function primaryHealth(rows: SourceHealthRow[]): SourceHealthRow | null {
+  return [...rows].sort((left, right) => (
+    HEALTH_PRIORITY[right.acceptanceStatus] - HEALTH_PRIORITY[left.acceptanceStatus]
+  ))[0] ?? null
+}
 
 export function SourcesPage() {
   const { data, isError, isLoading } = useQuery({
     queryKey: ["sources"],
     queryFn: () => apiGet<SourcesResponse>("/api/sources"),
+    refetchInterval: SOURCE_STATUS_REFETCH_MS
+  })
+  const healthQuery = useQuery({
+    queryKey: ["source-health"],
+    queryFn: () => apiGet<SourceHealthResponse>("/api/source-health"),
     refetchInterval: SOURCE_STATUS_REFETCH_MS
   })
 
@@ -37,6 +54,12 @@ export function SourcesPage() {
   const limitedCount = items.filter((source) => (
     source.implementationStatus === "commercial" || source.implementationStatus === "blocked"
   )).length
+  const healthBySource = new Map<string, SourceHealthRow[]>()
+  for (const row of healthQuery.data?.items ?? []) {
+    const rows = healthBySource.get(row.sourceId) ?? []
+    rows.push(row)
+    healthBySource.set(row.sourceId, rows)
+  }
 
   return (
     <main className="page">
@@ -67,6 +90,9 @@ export function SourcesPage() {
         {items.length > 0 ? (
           items.map((source) => {
             const guidance = sourceActionGuidance(source)
+            const healthRows = healthBySource.get(source.id) ?? []
+            const health = primaryHealth(healthRows)
+            const passedScopes = healthRows.filter((row) => row.acceptanceStatus === "passed").length
 
             return (
               <article className="sourceCatalogRow" key={source.id}>
@@ -87,7 +113,16 @@ export function SourcesPage() {
                   <strong>{SOURCE_ACCESS_LABELS[source.semantics.access]}</strong>
                 </div>
                 <div className="sourceRuntimeState">
-                  {source.latestRun ? (
+                  {health ? (
+                    <>
+                      <StatusBadge>{health.acceptanceStatus}</StatusBadge>
+                      <span>
+                        {healthRows.length > 1
+                          ? `${passedScopes}/${healthRows.length} 范围通过`
+                          : `${health.itemCount} 条`}
+                      </span>
+                    </>
+                  ) : source.latestRun ? (
                     <>
                       <StatusBadge>{source.latestRun.status}</StatusBadge>
                       <span>{source.latestRun.itemCount} 条</span>
@@ -109,7 +144,9 @@ export function SourcesPage() {
                   )}
                 </div>
                 <p className="sourceRiskNote">
-                  {source.implementationStatus === "active" && source.runnable
+                  {health
+                    ? health.reason
+                    : source.implementationStatus === "active" && source.runnable
                     ? source.semantics.freshnessNote
                     : source.semantics.riskNote}
                 </p>

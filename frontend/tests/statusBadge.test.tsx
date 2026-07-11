@@ -10,4 +10,14 @@ describe("StatusBadge", () => {
     expect(screen.getByText("待确认")).toHaveClass("unknown")
     expect(screen.queryByText("unknown")).not.toBeInTheDocument()
   })
+
+  it.each([
+    ["passed", "健康"],
+    ["degraded", "降级可用"],
+    ["blocked", "不可用"]
+  ])("shows the source health label for %s", (status, label) => {
+    render(<StatusBadge>{status}</StatusBadge>)
+
+    expect(screen.getByText(label)).toHaveClass(status)
+  })
 })

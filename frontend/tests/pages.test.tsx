@@ -289,6 +289,50 @@ const responses: Record<string, unknown> = {
   "/api/sources": {
     items: sourceCatalogItems
   },
+  "/api/source-health": {
+    generatedAt: "2026-06-17T02:05:00.000Z",
+    summary: {
+      total: 1,
+      passed: 0,
+      degraded: 1,
+      failed: 0,
+      blocked: 0,
+      runnable: 1,
+      stale: 0
+    },
+    items: [
+      {
+        sourceId: "tmdb",
+        sourceName: "TMDb",
+        scope: "default",
+        scheduleGroup: "hourly",
+        group: "global_metadata",
+        implementationStatus: "active",
+        enabled: true,
+        runnable: true,
+        credentialsComplete: true,
+        missingCredentials: [],
+        signalKinds: ["metadata", "community_trend", "release_calendar"],
+        runStatus: "failed",
+        acceptanceStatus: "degraded",
+        freshnessStatus: "fresh",
+        reasonCode: "latest_failed_with_fresh_success",
+        reason: "最近同步失败，但仍有新鲜成功数据可用",
+        latestRun: {
+          status: "failed",
+          startedAt: "2026-06-17T02:00:00.000Z",
+          finishedAt: "2026-06-17T02:00:02.000Z",
+          itemCount: 0,
+          durationMs: 2000,
+          errorMessage: "fetch failed"
+        },
+        lastSuccessAt: "2026-06-17T01:00:00.000Z",
+        staleAfterHours: 3,
+        itemCount: 8,
+        samples: []
+      }
+    ]
+  },
   "/api/media/media-1": {
     ...mediaItem,
     releases: [traktRelease],
@@ -455,6 +499,8 @@ describe("frontend pages", () => {
     expect(screen.getByText("社区热度")).toBeInTheDocument()
     expect(screen.getByText("全球电影与剧集 · 小时级趋势与日级发现")).toBeInTheDocument()
     expect(screen.getByText("8 条")).toBeInTheDocument()
+    expect(screen.getByText("降级可用")).toHaveClass("degraded")
+    expect(screen.getByText("最近同步失败，但仍有新鲜成功数据可用")).toBeInTheDocument()
     expect(screen.getByText("IMDb")).toBeInTheDocument()
     expect(screen.getByText("缓存就绪")).toBeInTheDocument()
     expect(screen.getByText("2/2 文件")).toBeInTheDocument()

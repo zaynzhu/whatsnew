@@ -8,6 +8,8 @@ export type {
   SettingsUpdateRequest,
   SettingsUpdateResponse,
   SourceCatalogItem,
+  SourceHealthResponse,
+  SourceHealthRow,
   SourceSettingsView
 } from "@whatsnew/shared/settings"
 

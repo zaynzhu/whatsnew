@@ -837,7 +837,19 @@ h1 {
   color: var(--red);
 }
 
+.statusBadge.degraded,
+.statusBadge.warning {
+  border-color: rgba(241, 184, 77, 0.45);
+  color: var(--amber);
+}
+
+.statusBadge.blocked {
+  border-color: var(--line-strong);
+  color: var(--muted);
+}
+
 .statusBadge.success,
+.statusBadge.passed,
 .statusBadge.available,
 .statusBadge.released {
   background: rgba(61, 214, 179, 0.12);
@@ -2952,9 +2964,14 @@ select:focus-visible {
   .row,
   .calendarRow,
   .sourceRow,
+  .sourceCatalogRow,
   .rankRow,
   .eventRow {
     grid-template-columns: 1fr;
+  }
+
+  .sourceRuntimeState {
+    width: auto;
   }
 
   .calendarEpisode:empty {

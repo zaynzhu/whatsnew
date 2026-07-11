@@ -15,6 +15,9 @@ const STATUS_LABELS: Record<string, string> = {
   delayed: "已延期",
   running: "同步中",
   success: "成功",
+  passed: "健康",
+  degraded: "降级可用",
+  blocked: "不可用",
   warning: "需关注",
   failed: "失败"
 }
