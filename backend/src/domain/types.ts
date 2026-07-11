@@ -93,6 +93,7 @@ export interface ExistingMediaCandidate {
   titleAliases: string[]
   overview: string | null
   posterUrl: string | null
+  posterStatus?: string
   productionCountries: string
   genres: string
   firstReleaseDate: string | null

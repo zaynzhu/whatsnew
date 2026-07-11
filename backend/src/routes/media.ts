@@ -17,6 +17,53 @@ const historyQuerySchema = z.object({
 })
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const POSTER_FAILURE_THRESHOLD = 2
+const POSTER_FAILURE_WINDOW_MS = 60 * 1000
+
+type PosterHealthItem = {
+  id: string
+  posterUrl: string | null
+  posterStatus: string
+  posterCheckedAt: Date | null
+  posterFailureCount: number
+}
+
+async function markPosterHealthy(database: PrismaClient, item: PosterHealthItem): Promise<void> {
+  if (item.posterStatus === "healthy" && item.posterFailureCount === 0) return
+  await database.mediaItem.update({
+    where: { id: item.id },
+    data: {
+      posterStatus: "healthy",
+      posterCheckedAt: new Date(),
+      posterFailureCount: 0,
+      posterFailureReason: null
+    }
+  })
+}
+
+async function markPosterDegraded(
+  database: PrismaClient,
+  item: PosterHealthItem,
+  reason: "stale_cache_fallback" | "upstream_unavailable"
+): Promise<void> {
+  const now = new Date()
+  if (item.posterCheckedAt && now.getTime() - item.posterCheckedAt.getTime() < POSTER_FAILURE_WINDOW_MS) return
+  if (reason === "stale_cache_fallback" && item.posterStatus === "degraded") return
+  if (item.posterStatus === "broken") return
+
+  const failureCount = item.posterFailureCount + 1
+  await database.mediaItem.update({
+    where: { id: item.id },
+    data: {
+      posterStatus: reason === "upstream_unavailable" && failureCount >= POSTER_FAILURE_THRESHOLD
+        ? "broken"
+        : "degraded",
+      posterCheckedAt: now,
+      posterFailureCount: failureCount,
+      posterFailureReason: reason
+    }
+  })
+}
 
 export function createMediaRouter(dependencies: MediaRouterDependencies = {}): Router {
   const router = Router()
@@ -93,7 +140,13 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
   router.get("/:id/poster", async (req, res) => {
     const item = await database.mediaItem.findUnique({
       where: { id: req.params.id },
-      select: { posterUrl: true }
+      select: {
+        id: true,
+        posterUrl: true,
+        posterStatus: true,
+        posterCheckedAt: true,
+        posterFailureCount: true
+      }
     })
 
     if (!item) {
@@ -110,8 +163,14 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
       res.setHeader("Content-Type", image.contentType)
       res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
       res.setHeader("X-Poster-Cache", image.cacheStatus)
+      if (image.cacheStatus === "stale") {
+        await markPosterDegraded(database, item, "stale_cache_fallback").catch(() => {})
+      } else {
+        await markPosterHealthy(database, item).catch(() => {})
+      }
       res.send(image.body)
     } catch {
+      await markPosterDegraded(database, item, "upstream_unavailable").catch(() => {})
       res.status(502).json({ error: "poster_unavailable" })
     }
   })

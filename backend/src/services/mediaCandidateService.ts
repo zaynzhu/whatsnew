@@ -20,6 +20,7 @@ export async function loadExistingMediaCandidates(prisma: PrismaClient): Promise
     titleAliases: parseJsonArray(row.titleAliases),
     overview: row.overview,
     posterUrl: row.posterUrl,
+    posterStatus: row.posterStatus,
     productionCountries: row.productionCountries,
     genres: row.genres,
     firstReleaseDate: row.firstReleaseDate,

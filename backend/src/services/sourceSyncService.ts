@@ -117,6 +117,16 @@ async function upsertItem(
   const replacePlatformFirstReleaseDate = match
     ? shouldReplacePlatformFirstReleaseDate(item, match)
     : false
+  const nextPosterUrl = match
+    ? match.posterStatus === "broken" && item.media.posterUrl
+      ? item.media.posterUrl
+      : item.media.source === "tvmaze"
+        && item.media.posterUrl
+        && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
+        ? item.media.posterUrl
+        : match.posterUrl ?? item.media.posterUrl
+    : item.media.posterUrl
+  const posterChanged = match?.posterUrl !== nextPosterUrl
 
   const mediaItem = match
     ? await prisma.mediaItem.update({
@@ -128,11 +138,13 @@ async function upsertItem(
             : match.sourceContentType,
           titleAliases: toJsonArray(titleAliases),
           overview: match.overview ?? item.media.overview,
-          posterUrl: item.media.source === "tvmaze"
-            && item.media.posterUrl
-            && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
-            ? item.media.posterUrl
-            : match.posterUrl ?? item.media.posterUrl,
+          posterUrl: nextPosterUrl,
+          ...(posterChanged ? {
+            posterStatus: "unverified",
+            posterCheckedAt: null,
+            posterFailureCount: 0,
+            posterFailureReason: null
+          } : {}),
           productionCountries: toJsonArray(uniqueValues([
             ...parseJsonArray(match.productionCountries),
             ...item.media.productionCountries
@@ -185,6 +197,7 @@ async function upsertItem(
     match.sourceContentType = mediaItem.sourceContentType
     match.overview = mediaItem.overview
     match.posterUrl = mediaItem.posterUrl
+    match.posterStatus = mediaItem.posterStatus
     match.productionCountries = mediaItem.productionCountries
     match.genres = mediaItem.genres
     match.firstReleaseDate = mediaItem.firstReleaseDate
@@ -204,6 +217,7 @@ async function upsertItem(
       titleAliases,
       overview: mediaItem.overview,
       posterUrl: mediaItem.posterUrl,
+      posterStatus: mediaItem.posterStatus,
       productionCountries: mediaItem.productionCountries,
       genres: mediaItem.genres,
       firstReleaseDate: mediaItem.firstReleaseDate,

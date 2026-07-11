@@ -125,6 +125,76 @@ describe("api routes", () => {
     expect(response.headers["x-poster-cache"]).toBe("hit")
     expect(response.body.toString()).toBe("poster-bytes")
     expect(posterService.getPoster).toHaveBeenCalledWith("https://img.example.test/poster.jpg")
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterStatus: "healthy",
+      posterFailureCount: 0,
+      posterFailureReason: null
+    })
+  })
+
+  it("marks repeatedly unavailable posters as broken across retry windows", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "streaming_movie",
+        titleDisplay: "Broken Poster",
+        posterUrl: "https://img.example.test/broken.jpg",
+        status: "released"
+      }
+    })
+    const posterService = {
+      getPoster: vi.fn(async () => {
+        throw new Error("upstream unavailable")
+      })
+    }
+    const app = createApp({
+      mediaRouter: createMediaRouter({ database: prisma, posterService })
+    })
+
+    expect((await request(app).get(`/api/media/${media.id}/poster`)).status).toBe(502)
+    await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: { posterCheckedAt: new Date(Date.now() - 61_000) }
+    })
+    expect((await request(app).get(`/api/media/${media.id}/poster`)).status).toBe(502)
+
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterStatus: "broken",
+      posterFailureCount: 2,
+      posterFailureReason: "upstream_unavailable"
+    })
+  })
+
+  it("keeps stale cached posters available while recording degraded health", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        titleDisplay: "Stale Poster",
+        posterUrl: "https://img.example.test/stale.jpg",
+        status: "ongoing"
+      }
+    })
+    const posterService = {
+      getPoster: vi.fn(async () => ({
+        body: Buffer.from("stale-poster"),
+        contentType: "image/jpeg",
+        cacheHit: true,
+        cacheStatus: "stale" as const
+      }))
+    }
+
+    const response = await request(createApp({
+      mediaRouter: createMediaRouter({ database: prisma, posterService })
+    })).get(`/api/media/${media.id}/poster`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers["x-poster-cache"]).toBe("stale")
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterStatus: "degraded",
+      posterFailureCount: 1,
+      posterFailureReason: "stale_cache_fallback"
+    })
   })
 
   it("returns calendar releases", async () => {

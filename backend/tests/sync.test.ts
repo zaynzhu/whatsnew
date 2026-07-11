@@ -158,7 +158,51 @@ function adapterWithFutureRelease(releaseDate: string, releaseStatus = "upcoming
   }
 }
 
+function adapterWithPoster(posterUrl: string): SourceAdapter {
+  return {
+    source: "poster_test",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+      return [{
+        ...base,
+        media: {
+          ...base.media,
+          source: "poster_test",
+          sourceId: "stable-poster-1",
+          posterUrl
+        },
+        releases: [],
+        popularitySignals: []
+      }]
+    }
+  }
+}
+
 describe("runSourceSync", () => {
+  it("replaces a broken poster when its source provides a different URL", async () => {
+    await runSourceSync(prisma, adapterWithPoster("https://img.example.test/old.jpg"))
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: {
+        posterStatus: "broken",
+        posterCheckedAt: new Date("2026-07-01T00:00:00Z"),
+        posterFailureCount: 2,
+        posterFailureReason: "upstream_unavailable"
+      }
+    })
+
+    await runSourceSync(prisma, adapterWithPoster("https://img.example.test/new.jpg"))
+
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterUrl: "https://img.example.test/new.jpg",
+      posterStatus: "unverified",
+      posterCheckedAt: null,
+      posterFailureCount: 0,
+      posterFailureReason: null
+    })
+  })
+
   it("marks interrupted running source runs as failed on recovery", async () => {
     const now = new Date("2026-07-01T12:20:00Z")
     const interrupted = await prisma.sourceSyncRun.create({

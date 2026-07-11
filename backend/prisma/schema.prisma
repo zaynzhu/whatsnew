@@ -18,6 +18,10 @@ model MediaItem {
   overview                String?   @db.Text
   posterUrl               String?   @db.Text
   posterLookupAttemptedAt DateTime?
+  posterStatus            String    @default("unverified")
+  posterCheckedAt         DateTime?
+  posterFailureCount      Int       @default(0)
+  posterFailureReason     String?   @db.VarChar(255)
   productionCountries     String    @default("[]")
   originalLanguage        String?
   genres                  String    @default("[]")
@@ -45,6 +49,7 @@ model MediaItem {
   @@index([tvmazeId])
   @@index([imdbId])
   @@index([posterLookupAttemptedAt])
+  @@index([posterStatus])
 }
 
 model MediaSourceRef {

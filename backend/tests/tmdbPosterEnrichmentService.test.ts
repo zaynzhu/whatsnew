@@ -16,6 +16,10 @@ function media(overrides: Partial<MediaItem>): MediaItem {
     overview: null,
     posterUrl: null,
     posterLookupAttemptedAt: null,
+    posterStatus: "unverified",
+    posterCheckedAt: null,
+    posterFailureCount: 0,
+    posterFailureReason: null,
     productionCountries: "[]",
     originalLanguage: null,
     genres: "[]",
@@ -101,7 +105,8 @@ describe("TMDb poster enrichment", () => {
           {
             OR: [
               { posterUrl: null },
-              { posterUrl: "" }
+              { posterUrl: "" },
+              { posterStatus: "broken" }
             ]
           },
           {
@@ -117,6 +122,8 @@ describe("TMDb poster enrichment", () => {
       where: { id: "direct" },
       data: expect.objectContaining({
         posterUrl: "https://image.tmdb.test/w500/direct.jpg",
+        posterStatus: "unverified",
+        posterFailureCount: 0,
         status: "released"
       })
     }))
