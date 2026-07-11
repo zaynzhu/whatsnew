@@ -38,7 +38,7 @@ type PosterImageServiceOptions = {
   createDispatcher?: (proxyUrl: string) => Dispatcher
 }
 
-const DEFAULT_CACHE_DIR = join(process.cwd(), ".cache", "posters")
+export const POSTER_CACHE_DIR = join(process.cwd(), ".cache", "posters")
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024
 const DEFAULT_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
@@ -93,7 +93,7 @@ export class PosterImageService {
   private readonly recentFailures = new Map<string, RecentFailure>()
 
   constructor(options: PosterImageServiceOptions = {}) {
-    this.cacheDir = options.cacheDir ?? DEFAULT_CACHE_DIR
+    this.cacheDir = options.cacheDir ?? POSTER_CACHE_DIR
     this.settings = options.settings ?? runtimeSettings
     this.transport = options.transport ?? undiciFetch
     this.minIntervalMs = options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS

@@ -4,6 +4,7 @@ import { env } from "./config/env.js"
 import { calendarRouter } from "./routes/calendar.js"
 import { dashboardRouter } from "./routes/dashboard.js"
 import { mediaRouter } from "./routes/media.js"
+import { posterHealthRouter } from "./routes/posterHealth.js"
 import { settingsRouter } from "./routes/settings.js"
 import { sourceHealthRouter } from "./routes/sourceHealth.js"
 import { sourcesRouter, syncRouter } from "./routes/sources.js"
@@ -29,6 +30,7 @@ export function createApp(dependencies: AppDependencies = {}) {
 
   app.use("/api/dashboard", dashboardRouter)
   app.use("/api/media", dependencies.mediaRouter ?? mediaRouter)
+  app.use("/api/poster-health", posterHealthRouter)
   app.use("/api/trending", trendingRouter)
   app.use("/api/calendar", calendarRouter)
   app.use("/api/settings", dependencies.settingsRouter ?? settingsRouter)

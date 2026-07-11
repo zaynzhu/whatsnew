@@ -73,6 +73,28 @@ describe("api routes", () => {
     expect(response.body.sources.map((run: any) => run.source)).toEqual(["tmdb"])
   })
 
+  it("returns poster coverage and persistent health status", async () => {
+    const response = await request(createApp()).get("/api/poster-health")
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({
+      total: 4,
+      withPoster: 0,
+      missing: 4,
+      coveragePercent: 0,
+      statuses: {
+        unverified: 4,
+        healthy: 0,
+        degraded: 0,
+        broken: 0
+      },
+      cache: expect.objectContaining({
+        entries: expect.any(Number),
+        bytes: expect.any(Number)
+      })
+    })
+  })
+
   it("filters media by mediaType", async () => {
     const response = await request(createApp()).get("/api/media?mediaType=movie")
 
