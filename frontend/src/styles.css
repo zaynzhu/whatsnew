@@ -1784,6 +1784,31 @@ h1 {
   -webkit-backdrop-filter: blur(8px);
 }
 
+.trendingHeatScore {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 12px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--amber);
+  color: #12100a;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+}
+
+.trendingSignalCount {
+  position: absolute;
+  z-index: 1;
+  bottom: 12px;
+  left: 12px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
 .trendingPoster .rankPosition {
   position: absolute;
   z-index: 1;
@@ -1803,18 +1828,21 @@ h1 {
   padding: 14px;
 }
 
-.trendingCardProvenance,
-.trendingCardSignal {
+.trendingCardProvenance {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   align-items: center;
 }
 
+.trendingCardProvenance > span,
 .trendingCardProvenance time {
-  flex: 0 0 auto;
   color: var(--muted);
   font-size: 10px;
+}
+
+.trendingCardProvenance time {
+  flex: 0 0 auto;
 }
 
 .rankTitle {
@@ -1848,15 +1876,41 @@ h1 {
   font-weight: 800;
 }
 
-.trendingCardSignal {
-  border-top: 1px solid var(--line);
-  padding-top: 11px;
+.rankSource small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
-.trendingCardSignal > strong {
+.trendingSignalList {
+  border-top: 1px solid var(--line);
+}
+
+.trendingSignalRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.trendingSignalRow + .trendingSignalRow {
+  border-top: 1px solid rgba(59, 73, 84, 0.56);
+}
+
+.trendingSignalRank {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  text-align: right;
+}
+
+.trendingSignalRank > strong {
   min-width: 0;
   color: var(--mist);
-  font-size: 12px;
+  font-size: 18px;
   overflow-wrap: anywhere;
 }
 
@@ -3210,10 +3264,30 @@ select:focus-visible {
     width: 96px;
   }
 
-  .trendingCardSignal {
-    align-items: start;
-    flex-direction: column;
-    gap: 5px;
+  .trendingHeatScore {
+    top: 9px;
+    right: 9px;
+  }
+
+  .trendingMediaType {
+    top: 9px;
+    left: 9px;
+  }
+
+  .trendingSignalCount {
+    bottom: 9px;
+    left: 9px;
+  }
+
+  .trendingSignalRow {
+    grid-template-columns: 1fr;
+  }
+
+  .trendingSignalRank {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
   }
 
   .settingsSectionHeader {

@@ -97,6 +97,19 @@ export function TrendingPage() {
   }
 
   const items = data?.items ?? []
+  const works = Array.from(items.reduce((groups, signal) => {
+    const existing = groups.get(signal.mediaItemId)
+    if (existing) existing.push(signal)
+    else groups.set(signal.mediaItemId, [signal])
+    return groups
+  }, new Map<string, PopularitySignal[]>())).map(([, signals]) => ({
+    mediaItem: signals[0].mediaItem,
+    signals
+  }))
+
+  if (!source) {
+    works.sort((left, right) => right.mediaItem.heatScore - left.mediaItem.heatScore)
+  }
 
   return (
     <main className="page">
@@ -160,43 +173,61 @@ export function TrendingPage() {
           <p className="emptyText">加载中...</p>
         ) : isError ? (
           <p className="emptyText">热度榜加载失败</p>
-        ) : items.length > 0 ? (
-          items.map((signal, index) => (
-            <article className="trendingCard" key={signal.id}>
-              <Link className="trendingPosterLink" to={`/media/${signal.mediaItemId}`}>
-                <div className="trendingPoster">
-                  <MediaPoster
-                    mediaId={signal.mediaItemId}
-                    posterUrl={signal.mediaItem.posterUrl}
-                    title={signal.mediaItem.titleDisplay}
-                    fallbackLabel={signal.mediaItem.titleDisplay}
-                    priority={index < 5}
-                  />
-                  <span className="trendingMediaType">
-                    {mediaTypeLabel(signal.mediaItem.mediaType)}
-                  </span>
-                  <strong className="rankPosition">#{signal.rank ?? "-"}</strong>
-                </div>
-              </Link>
+        ) : works.length > 0 ? (
+          works.map(({ mediaItem, signals }, index) => {
+            const primarySignal = signals[0]
 
-              <div className="trendingCardBody">
-                <div className="trendingCardProvenance">
-                  <span className="rankSource">
-                    <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
-                  </span>
-                  <time dateTime={signal.capturedAt}>{capturedAtLabel(signal.capturedAt)}</time>
-                </div>
-                <Link className="rankTitle" to={`/media/${signal.mediaItemId}`}>
-                  <strong>{signal.mediaItem.titleDisplay}</strong>
-                  <span>{signal.platform ?? signal.region ?? "全局"}</span>
+            return (
+              <article className="trendingCard" key={mediaItem.id}>
+                <Link className="trendingPosterLink" to={`/media/${mediaItem.id}`}>
+                  <div className="trendingPoster">
+                    <MediaPoster
+                      mediaId={mediaItem.id}
+                      posterUrl={mediaItem.posterUrl}
+                      title={mediaItem.titleDisplay}
+                      fallbackLabel={mediaItem.titleDisplay}
+                      priority={index < 5}
+                    />
+                    <span className="trendingMediaType">
+                      {mediaTypeLabel(mediaItem.mediaType)}
+                    </span>
+                    <strong className="trendingHeatScore">Heat {Math.round(mediaItem.heatScore)}</strong>
+                    {signals.length > 1 ? (
+                      <span className="trendingSignalCount">{signals.length} 个榜单</span>
+                    ) : null}
+                    {source ? (
+                      <strong className="rankPosition">#{primarySignal.rank ?? "-"}</strong>
+                    ) : null}
+                  </div>
                 </Link>
-                <div className="trendingCardSignal">
-                  <strong>{signal.valueLabel ?? signal.window}</strong>
-                  <span className={movementClass(signal)}>{movementLabel(signal)}</span>
+
+                <div className="trendingCardBody">
+                  <div className="trendingCardProvenance">
+                    <span>{signals.length} 条热度信号</span>
+                    <time dateTime={primarySignal.capturedAt}>{capturedAtLabel(primarySignal.capturedAt)}</time>
+                  </div>
+                  <Link className="rankTitle" to={`/media/${mediaItem.id}`}>
+                    <strong>{mediaItem.titleDisplay}</strong>
+                    <span>{primarySignal.platform ?? primarySignal.region ?? "全局"}</span>
+                  </Link>
+                  <div className="trendingSignalList">
+                    {signals.map((signal) => (
+                      <div className="trendingSignalRow" key={signal.id}>
+                        <span className="rankSource">
+                          <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
+                          <small>{signal.valueLabel ?? signal.window}</small>
+                        </span>
+                        <span className="trendingSignalRank">
+                          <strong>#{signal.rank ?? "-"}</strong>
+                          <span className={movementClass(signal)}>{movementLabel(signal)}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))
+              </article>
+            )
+          })
         ) : (
           <p className="emptyText">暂无热度信号</p>
         )}
