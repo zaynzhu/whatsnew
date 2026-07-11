@@ -34,6 +34,8 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 
 At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` rows as `failed` with `同步进程中断，已自动收尾；请重新触发同步`. This prevents stale status after dev-server restarts or process exits.
 
+External reads use the shared `SourceHttpClient`. The production client preserves the two-second per-origin rate limit and makes up to two attempts for idempotent requests after network errors, timeouts, HTTP 408, HTTP 429 or HTTP 5xx. Non-idempotent methods and ordinary HTTP 4xx responses are never retried automatically.
+
 ## Poster Pipeline
 
 1. Adapters persist their source-provided `posterUrl` when available.
@@ -76,6 +78,8 @@ Platform catalog additions use `releasePattern=catalog_addition` and do not over
 Source status is aggregated by latest `source + scope` rows, then grouped by source. This matters for Trakt because `popularity` and `calendar` run separately. Both `/api/sources` and `/api/settings` must use `aggregateLatestSourceRuns()` so the UI stays consistent.
 
 `GET /api/source-health` separates run status from acceptance status, applies stale thresholds by schedule group, and returns blocked coverage rows for unavailable sources. It is read-only and does not trigger adapter sync.
+
+The source page groups health rows by source and exposes the least healthy scope. Its summary counts enabled sources as healthy only when every reported scope passes. A latest failed run can remain `degraded` while a recent successful snapshot is still within its freshness window; it becomes `failed` when no fresh success remains.
 
 Status priority is:
 

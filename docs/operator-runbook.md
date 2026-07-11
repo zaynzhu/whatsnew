@@ -99,6 +99,8 @@ Only sources that are enabled, implemented and credential-complete are scheduled
 
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
 
+All normal source reads use the shared HTTP client with a two-second minimum interval per origin. Safe `GET`, `HEAD` and `OPTIONS` requests make at most two attempts when the first attempt fails because of a network error, timeout, HTTP 408, HTTP 429 or HTTP 5xx. Ordinary HTTP 4xx responses and non-idempotent requests are not retried automatically.
+
 When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Failed or ambiguous lookups wait 7 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
 
 Startup and daily batches also verify up to 20 high-priority poster URLs. Verification uses the same proxy, per-origin rate limiter and disk cache as browser requests.
@@ -124,12 +126,24 @@ curl -s http://127.0.0.1:19993/api/poster-health
 
 `audit:posters` is read-only. `verify:posters` performs real image requests and updates health states. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
+## Source Health
+
+The source page polls both `/api/sources` and the read-only `/api/source-health` endpoint every five seconds. Its summary counts enabled sources, not every catalog entry or adapter scope. A source with multiple scopes, such as Trakt, uses its least healthy scope as the source-level status.
+
+- `健康`: the latest accepted data is fresh and has verifiable samples.
+- `降级可用`: the latest run has a problem, but a recent successful snapshot is still fresh enough to serve.
+- `失败`: no fresh successful snapshot remains.
+- `不可用`: the source is disabled, restricted, commercial, unimplemented or missing required configuration.
+
+Check the row reason before retrying a sync. A single `fetch failed` run does not require intervention when the source still shows `降级可用`; use the last successful snapshot until it becomes stale or a later retry succeeds.
+
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
 | Source stays `running` after restart | Backend startup should mark interrupted runs as `failed`. Refresh `/sources` after 5 seconds. |
 | `/api/settings` and `/api/sources` disagree | Both must use `aggregateLatestSourceRuns()`; rerun tests if this regresses. |
+| Source shows `降级可用` | The latest run failed or warned, but a fresh successful snapshot still exists. Inspect the row reason before manually retrying. |
 | Trakt fails with network errors | Verify `TRAKT_CLIENT_ID` and proxy settings. Trakt only needs the public client ID. |
 | Hulu / Disney+ parse zero items | Check source page structure and base URL overrides. These are official pages, not APIs. |
 | Max cannot be enabled | Expected while WBD Pressroom remains login/403 restricted. Verify public access before changing the catalog status. |
@@ -145,6 +159,7 @@ Useful status commands:
 ```bash
 curl -s http://127.0.0.1:19993/api/health
 curl -s http://127.0.0.1:19993/api/sources
+curl -s http://127.0.0.1:19993/api/source-health
 curl -s http://127.0.0.1:19993/api/settings
 ```
 
