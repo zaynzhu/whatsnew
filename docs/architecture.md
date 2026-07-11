@@ -15,7 +15,7 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 
 | Model | Purpose |
 |---|---|
-| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl` and the retry marker `posterLookupAttemptedAt`. |
+| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry time and persistent poster health. |
 | `MediaSourceRef` | Stable identity link from a source item to a `MediaItem`. Unique by `source + sourceId`. |
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
 | `PopularitySignal` | Source-specific ranking or metric snapshots. Current rows power `/api/trending`; historical rows power detail charts. |
@@ -45,6 +45,10 @@ At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` 
 7. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
 8. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, applies the configured proxy and per-origin rate limit, then caches the upstream bytes and metadata by URL hash.
 9. The backend preserves the upstream `Content-Type`; format conversion is not part of the pipeline. The frontend falls back to the original URL only when the proxy request fails.
+10. Disk entries are validated on read and written through temporary files. Concurrent cold requests for one URL share one upstream fetch.
+11. Cache entries refresh after 30 days. A failed refresh serves the previous bytes as `stale`; uncached failures use a one-minute in-memory cooldown.
+12. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
+13. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Broken posters wait seven days before verification retries and are eligible for TMDb replacement.
 
 ## Source Registry
 
@@ -91,6 +95,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
 | `GET /api/media/:id` | Media detail with releases, refs, current signals and events. |
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster through the backend image proxy. |
+| `GET /api/poster-health` | Return poster coverage, persistent health counts, cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
 | `GET /api/trending` | Current popularity signals with movement and source filters. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |

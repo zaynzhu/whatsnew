@@ -18,6 +18,7 @@ This file is the short operational handoff for the current branch.
 - Backend startup recovers interrupted `running` source runs.
 - Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
 - Frontend artwork is proxy-first through `/api/media/:id/poster`, with an on-demand disk cache under `backend/.cache/posters/`.
+- Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Cache refresh can serve stale bytes during transient upstream failures.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 
 ## Syncable Sources
@@ -52,6 +53,7 @@ This file is the short operational handoff for the current branch.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
 - Poster enrichment safely merges a unique recent local Netflix match or a compatible TMDb identity. External-ID conflicts and candidates without a clear confidence lead still retain placeholders until better metadata appears.
 - Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.
+- Startup and daily maintenance verify 20 high-priority posters. Manual operators can audit, verify or force a strict enrichment retry with the documented npm commands.
 - `backend/.env` contains secrets and must not be committed.
 
 ## Validation Baseline

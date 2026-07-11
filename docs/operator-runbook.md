@@ -101,6 +101,8 @@ Max is currently classified as restricted because WBD Pressroom requires login o
 
 When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Failed or ambiguous lookups wait 7 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
 
+Startup and daily batches also verify up to 20 high-priority poster URLs. Verification uses the same proxy, per-origin rate limiter and disk cache as browser requests.
+
 ## Poster Cache
 
 Frontend poster requests use `GET /api/media/:id/poster`. The backend stores the upstream image body and a small JSON metadata file under `backend/.cache/posters/`; this directory is ignored by Git and can be removed safely when the services are stopped. The next request downloads the image again.
@@ -112,6 +114,15 @@ curl -sS -D - -o /dev/null http://127.0.0.1:19993/api/media/<mediaItemId>/poster
 ```
 
 Inspect `X-Poster-Cache: hit|miss`, `Content-Type` and the HTTP status. The service validates and caches the upstream response but does not force a common image format.
+
+```bash
+npm run audit:posters --workspace backend
+npm run verify:posters --workspace backend -- --limit=100
+npm run enrich:posters --workspace backend -- --limit=20 --force
+curl -s http://127.0.0.1:19993/api/poster-health
+```
+
+`audit:posters` is read-only. `verify:posters` performs real image requests and updates health states. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
 ## Troubleshooting
 
@@ -126,6 +137,8 @@ Inspect `X-Poster-Cache: hit|miss`, `Content-Type` and the HTTP status. The serv
 | TheTVDB asks for paid access | Do not implement paid fallback. Only free project API Key is allowed. |
 | A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles wait 7 days and intentionally keep the placeholder. |
 | Poster endpoint returns `502` | Check global proxy connectivity and the remote image host. Remove that URL's cache only after confirming the stored response is invalid. |
+| Poster health shows `degraded` | An expired cache copy is still usable or the first upstream attempt failed. Let the cooldown expire before retrying. |
+| Poster health shows `broken` | The URL failed across separate retry windows. Run strict enrichment or wait for a source to provide a different URL. |
 
 Useful status commands:
 
