@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   reconcileDuplicateTmdbIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
+  verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
   schedule: vi.fn()
 }))
 
@@ -117,6 +118,10 @@ vi.mock("../src/services/tmdbPosterEnrichmentService.js", () => ({
   enrichMissingPosters: mocks.enrichMissingPosters
 }))
 
+vi.mock("../src/services/posterVerificationService.js", () => ({
+  verifyPosterImages: mocks.verifyPosterImages
+}))
+
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
@@ -147,6 +152,7 @@ describe("scheduler", () => {
       apply: true
     })
     expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
+    expect(mocks.verifyPosterImages).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
@@ -193,6 +199,10 @@ describe("scheduler", () => {
       database: mocks.db,
       sources: ["disney_plus", "hulu", "max"],
       apply: true
+    })
+    expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 20
     })
 
     mocks.runSourceSync.mockClear()
@@ -243,6 +253,10 @@ describe("scheduler", () => {
         database: mocks.db,
         sources: ["disney_plus", "hulu", "max"],
         apply: true
+      })
+      expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
+        database: mocks.db,
+        limit: 20
       })
     })
   })

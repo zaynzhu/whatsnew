@@ -4,11 +4,13 @@ import { db } from "./config/db.js"
 import { env } from "./config/env.js"
 import { reconcileDuplicateTmdbIdentities } from "./services/duplicateIdentityService.js"
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
+import { verifyPosterImages } from "./services/posterVerificationService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
 
 const AUTOMATIC_POSTER_LIMIT = 40
+const AUTOMATIC_POSTER_VERIFICATION_LIMIT = 20
 const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max"]
 
 async function maintainDataQuality(cleanPlatformOrphans: boolean) {
@@ -39,12 +41,24 @@ async function enrichPostersAfterSync() {
   }
 }
 
+async function verifyPostersAfterSync() {
+  try {
+    await verifyPosterImages({
+      database: db,
+      limit: AUTOMATIC_POSTER_VERIFICATION_LIMIT
+    })
+  } catch (error) {
+    console.error("Automatic poster verification failed", error)
+  }
+}
+
 export async function runInitialSync() {
   for (const entry of getEnabledAdapters()) {
     await runSourceSync(db, entry.adapter)
   }
   await maintainDataQuality(true)
   await enrichPostersAfterSync()
+  await verifyPostersAfterSync()
 }
 
 export function registerScheduler() {
@@ -62,6 +76,7 @@ export function registerScheduler() {
     }
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
+    await verifyPostersAfterSync()
   }, { timezone: "Asia/Shanghai" })
 
   if (env.SYNC_ON_START) {
