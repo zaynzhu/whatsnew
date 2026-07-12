@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { RotateCcw, SlidersHorizontal } from "lucide-react"
 import { Link, useSearchParams } from "react-router-dom"
 import { apiGet } from "../api/client"
 import type {
@@ -24,7 +25,6 @@ const SOURCE_OPTIONS = [
   ["tmdb_tv_trending", "TMDb 剧集趋势"],
   ["trakt_trending", "Trakt 趋势榜"],
   ["trakt_anticipated", "Trakt 期待榜"],
-  ["youku_hot", "优酷热度"],
   ["youku_reserve", "优酷预约"],
   ["iqiyi_reserve", "爱奇艺预约"],
   ["netflix_top10", "Netflix Top 10"],
@@ -65,6 +65,29 @@ function mediaTypeLabel(mediaType: string): string {
     documentary: "纪录片"
   }
   return labels[mediaType] ?? mediaType
+}
+
+function sourceTone(source: string): string {
+  if (source.startsWith("iqiyi") || source.startsWith("youku")) return "domestic"
+  if (source.startsWith("trakt")) return "trakt"
+  if (source.startsWith("tmdb")) return "tmdb"
+  if (source.startsWith("netflix")) return "netflix"
+  if (source.startsWith("douban")) return "douban"
+  return "default"
+}
+
+function compactNumber(value: number): string {
+  return new Intl.NumberFormat("zh-CN", {
+    notation: "compact",
+    maximumFractionDigits: 1
+  }).format(value)
+}
+
+function signalMetric(signal: PopularitySignal): string {
+  if (signal.source.endsWith("_reserve") && signal.value != null) {
+    return `${compactNumber(signal.value)} 人预约`
+  }
+  return signal.valueLabel ?? (signal.value != null ? compactNumber(signal.value) : signal.window)
 }
 
 export function TrendingPage() {
@@ -111,6 +134,13 @@ export function TrendingPage() {
     works.sort((left, right) => right.mediaItem.heatScore - left.mediaItem.heatScore)
   }
 
+  const selectedSourceLabel = SOURCE_OPTIONS.find(([value]) => value === source)?.[1] ?? "全部榜单来源"
+  const hasFilters = Boolean(movement || source || platform || mediaType)
+
+  function clearFilters() {
+    setSearchParams({}, { replace: true })
+  }
+
   return (
     <main className="page">
       <section className="pageHeader simple" aria-labelledby="page-title">
@@ -121,7 +151,60 @@ export function TrendingPage() {
         </div>
       </section>
 
-      <section className="trendingToolbar" aria-label="热度筛选">
+      <section className="trendingControlDeck" aria-label="热度筛选">
+        <div className="trendingControlHeader">
+          <div className="trendingControlTitle">
+            <SlidersHorizontal aria-hidden="true" size={18} />
+            <span>榜单控制台</span>
+            <strong>{selectedSourceLabel}</strong>
+          </div>
+          <div className="trendingControlResult" aria-live="polite">
+            <strong>{isLoading ? "--" : works.length}</strong>
+            <span>部作品</span>
+          </div>
+          <button
+            className="trendingResetButton"
+            disabled={!hasFilters}
+            onClick={clearFilters}
+            title="清除筛选"
+            type="button"
+          >
+            <RotateCcw aria-hidden="true" size={16} />
+            <span>重置</span>
+          </button>
+        </div>
+
+        <div className="trendingSelects">
+          <label className="trendingSourceSelect">
+            <span>榜单来源</span>
+            <select aria-label="热度来源" value={source} onChange={(event) => updateFilter("source", event.target.value)}>
+              <option value="">全部来源</option>
+              {SOURCE_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>信号平台</span>
+            <select aria-label="平台" value={platform} onChange={(event) => updateFilter("platform", event.target.value)}>
+              <option value="">全部平台</option>
+              {PLATFORM_OPTIONS.map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>影视类型</span>
+            <select value={mediaType} onChange={(event) => updateFilter("mediaType", event.target.value)}>
+              <option value="">电影与剧集</option>
+              <option value="movie">电影</option>
+              <option value="series">剧集</option>
+              <option value="anime">动画</option>
+              <option value="documentary">纪录片</option>
+            </select>
+          </label>
+        </div>
+
         <div className="movementTabs" role="tablist" aria-label="排名变化">
           {MOVEMENT_TABS.map((tab) => (
             <button
@@ -135,37 +218,6 @@ export function TrendingPage() {
             </button>
           ))}
         </div>
-
-        <div className="trendingSelects">
-          <label>
-            <span>热度来源</span>
-            <select value={source} onChange={(event) => updateFilter("source", event.target.value)}>
-              <option value="">全部来源</option>
-              {SOURCE_OPTIONS.map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>平台</span>
-            <select value={platform} onChange={(event) => updateFilter("platform", event.target.value)}>
-              <option value="">全部平台</option>
-              {PLATFORM_OPTIONS.map((value) => (
-                <option key={value} value={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>类型</span>
-            <select value={mediaType} onChange={(event) => updateFilter("mediaType", event.target.value)}>
-              <option value="">电影与剧集</option>
-              <option value="movie">电影</option>
-              <option value="series">剧集</option>
-              <option value="anime">动画</option>
-              <option value="documentary">纪录片</option>
-            </select>
-          </label>
-        </div>
       </section>
 
       <div className="trendingList">
@@ -178,7 +230,7 @@ export function TrendingPage() {
             const primarySignal = signals[0]
 
             return (
-              <article className="trendingCard" key={mediaItem.id}>
+              <article className={`trendingCard ${sourceTone(primarySignal.source)}`} key={mediaItem.id}>
                 <Link className="trendingPosterLink" to={`/media/${mediaItem.id}`}>
                   <div className="trendingPoster">
                     <MediaPoster
@@ -191,31 +243,33 @@ export function TrendingPage() {
                     <span className="trendingMediaType">
                       {mediaTypeLabel(mediaItem.mediaType)}
                     </span>
-                    <strong className="trendingHeatScore">Heat {Math.round(mediaItem.heatScore)}</strong>
-                    {signals.length > 1 ? (
-                      <span className="trendingSignalCount">{signals.length} 个榜单</span>
-                    ) : null}
-                    {source ? (
-                      <strong className="rankPosition">#{primarySignal.rank ?? "-"}</strong>
-                    ) : null}
                   </div>
                 </Link>
 
                 <div className="trendingCardBody">
                   <div className="trendingCardProvenance">
-                    <span>{signals.length} 条热度信号</span>
+                    <span>{signals.length > 1 ? `${signals.length} 个榜单` : mediaTypeLabel(mediaItem.mediaType)}</span>
                     <time dateTime={primarySignal.capturedAt}>{capturedAtLabel(primarySignal.capturedAt)}</time>
+                  </div>
+                  <div className="trendingRankLine">
+                    <strong className="rankPosition">#{primarySignal.rank ?? index + 1}</strong>
+                    <span className={movementClass(primarySignal)}>{movementLabel(primarySignal)}</span>
                   </div>
                   <Link className="rankTitle" to={`/media/${mediaItem.id}`}>
                     <strong>{mediaItem.titleDisplay}</strong>
                     <span>{primarySignal.platform ?? primarySignal.region ?? "全局"}</span>
+                    <small className="trendingCompositeHeat">Heat {Math.round(mediaItem.heatScore)}</small>
                   </Link>
+                  <strong className="trendingPrimaryMetric">{signalMetric(primarySignal)}</strong>
+                  <span className="rankSource trendingPrimarySource">
+                    <SourceLink source={primarySignal.source} sourceUrl={primarySignal.sourceUrl} prefix={null} />
+                  </span>
                   <div className="trendingSignalList">
-                    {signals.map((signal) => (
+                    {signals.slice(1).map((signal) => (
                       <div className="trendingSignalRow" key={signal.id}>
                         <span className="rankSource">
                           <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
-                          <small>{signal.valueLabel ?? signal.window}</small>
+                          <small>{signalMetric(signal)}</small>
                         </span>
                         <span className="trendingSignalRank">
                           <strong>#{signal.rank ?? "-"}</strong>
