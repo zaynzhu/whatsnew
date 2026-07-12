@@ -1,5 +1,5 @@
-import path from "node:path"
 import type { ProxyMode, SettingsFieldView } from "@whatsnew/shared/settings"
+import { settingsEnvPath } from "../config/env.js"
 import { EnvFileStore } from "./envFileStore.js"
 import { getSourceDefinition } from "./sourceCatalog.js"
 import {
@@ -160,6 +160,6 @@ export class RuntimeSettingsService implements SettingsReader {
 }
 
 export const runtimeSettings = new RuntimeSettingsService(
-  new EnvFileStore(path.resolve(process.cwd(), ".env")),
+  new EnvFileStore(settingsEnvPath),
   process.env as Record<string, string>
 )

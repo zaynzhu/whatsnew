@@ -2,6 +2,9 @@ node_modules/
 dist/
 .env
 .env.local
+.env.china-sandbox
+.env.china-sandbox.backup.local
+.env.china-sandbox.tmp
 .env.backup.local
 .env.tmp
 *.log

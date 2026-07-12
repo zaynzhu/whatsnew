@@ -12,8 +12,8 @@ if (recoveredRuns > 0) {
 }
 const app = createApp()
 
-registerScheduler()
+if (env.SCHEDULER_ENABLED) registerScheduler()
 
 app.listen(env.PORT, () => {
-  console.log(`WhatsNew backend listening on http://localhost:${env.PORT}`)
+  console.log(`WhatsNew backend (${env.APP_ENVIRONMENT}) listening on http://localhost:${env.PORT}`)
 })

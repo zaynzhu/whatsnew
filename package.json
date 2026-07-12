@@ -12,6 +12,10 @@
     "dev": "npm run dev --workspace backend",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
+    "sandbox:prepare": "npm run sandbox:prepare --workspace backend",
+    "sandbox:sync": "npm run sandbox:sync --workspace backend --",
+    "sandbox:backend": "npm run dev:sandbox --workspace backend",
+    "sandbox:frontend": "npm run dev:sandbox --workspace frontend",
     "build": "npm run build --workspace shared && npm run build --workspace backend && npm run build --workspace frontend",
     "test": "npm run test --workspace backend && npm run test --workspace frontend",
     "typecheck": "npm run typecheck --workspace shared && npm run typecheck --workspace backend && npm run typecheck --workspace frontend"

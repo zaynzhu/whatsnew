@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 19992",
+    "dev:sandbox": "VITE_BACKEND_URL=http://127.0.0.1:19994 vite --host 127.0.0.1 --port 19995",
     "build": "tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

@@ -7,6 +7,6 @@ describe("health", () => {
     const response = await request(createApp()).get("/api/health")
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({ ok: true, service: "whatsnew-backend" })
+    expect(response.body).toEqual({ ok: true, service: "whatsnew-backend", environment: "main" })
   })
 })

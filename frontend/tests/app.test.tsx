@@ -59,4 +59,18 @@ describe("App", () => {
     expect(await screen.findByText("“House of the Dragon”的匹配结果")).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith("/api/media?q=House%20of%20the%20Dragon")
   })
+
+  it("shows a persistent badge in the China source sandbox", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = input instanceof Request ? input.url : String(input)
+      const body = path === "/api/health"
+        ? { environment: "china_sandbox" }
+        : { today: [], week: [], trending: [], events: [], sources: [] }
+      return { ok: true, json: async () => body } as Response
+    })
+
+    renderApp()
+
+    expect(await screen.findByText("国内源沙盒")).toBeInTheDocument()
+  })
 })

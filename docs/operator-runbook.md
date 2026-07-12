@@ -36,6 +36,37 @@ npm test
 npm run build
 ```
 
+## China Source Sandbox
+
+Never evaluate domestic adapters against the main `whatsnew` database. Rebuild the isolated sandbox from the current main database baseline:
+
+```bash
+npm run sandbox:prepare
+```
+
+This recreates only `whatsnew_china_sandbox`, writes ignored `backend/.env.china-sandbox` with mode `0600`, disables every source, sets `SYNC_ON_START=false`, disables the scheduler and uses ports `19994` / `19995`.
+
+Run one source at a time. The command hard-fails unless both `APP_ENVIRONMENT=china_sandbox` and the exact sandbox database name are active:
+
+```bash
+npm run sandbox:sync -- youku
+npm run sandbox:sync -- iqiyi
+npm run sandbox:sync -- mango_tv
+npm run sandbox:sync -- bilibili
+npm run sandbox:sync -- douban
+```
+
+Each run reports global row deltas, newly created versus matched works, missing posters, missing source dates, media-type distribution and suspicious programme-like titles. Re-run `sandbox:prepare` between sources for isolated comparisons.
+
+Inspect the sandbox UI in two terminals:
+
+```bash
+npm run sandbox:backend
+npm run sandbox:frontend
+```
+
+Open `http://127.0.0.1:19995/`. The backend health response and frontend header must show `china_sandbox` / `国内源沙盒`. Never copy sandbox rows into the main database; promote adapter fixes, reset the sandbox, re-test, then sync the corrected adapter in main.
+
 ## Key Environment Variables
 
 | Key | Purpose |

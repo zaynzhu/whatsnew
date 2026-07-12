@@ -117,6 +117,17 @@ a {
   letter-spacing: 0;
 }
 
+.sandboxBadge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(241, 184, 77, 0.58);
+  border-radius: 5px;
+  padding: 4px 7px;
+  background: rgba(241, 184, 77, 0.14);
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .commandSearch {
   position: relative;
   display: flex;
@@ -3271,6 +3282,15 @@ select:focus-visible {
 
   .commandBar .brand {
     gap: 0;
+  }
+
+  .sandboxBadge {
+    font-size: 0;
+  }
+
+  .sandboxBadge::after {
+    font-size: 10px;
+    content: "沙盒";
   }
 
   h1 {

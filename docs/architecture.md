@@ -8,6 +8,7 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 - Backend: Express + Prisma on `19993`
 - Database: MySQL, configured by `DATABASE_URL`
 - Settings store: `backend/.env`, hot-loaded through the settings API
+- China source sandbox: isolated `whatsnew_china_sandbox`, `backend/.env.china-sandbox`, ports `19994` / `19995`, scheduler disabled
 - Scheduler: `node-cron`, hourly and daily adapter groups
 - Poster cache: upstream image responses stored under `backend/.cache/posters/`
 

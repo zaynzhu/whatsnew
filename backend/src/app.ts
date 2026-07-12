@@ -26,7 +26,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use(express.json())
 
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, service: "whatsnew-backend" })
+    res.json({ ok: true, service: "whatsnew-backend", environment: env.APP_ENVIRONMENT })
   })
 
   app.use("/api/dashboard", dashboardRouter)

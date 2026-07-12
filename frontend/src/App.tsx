@@ -11,6 +11,8 @@ import {
   Telescope
 } from "lucide-react"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { apiGet } from "./api/client"
 import { CalendarPage } from "./pages/CalendarPage"
 import { DashboardPage } from "./pages/DashboardPage"
 import { DiscoverPage } from "./pages/DiscoverPage"
@@ -43,6 +45,13 @@ export function App() {
   const [searchValue, setSearchValue] = useState(() => {
     return new URLSearchParams(location.search).get("q") ?? ""
   })
+  const environmentQuery = useQuery({
+    queryKey: ["health-environment"],
+    queryFn: () => apiGet<{ environment?: string }>("/api/health"),
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false
+  })
+  const isSandbox = environmentQuery.data?.environment === "china_sandbox"
 
   useEffect(() => {
     setSearchValue(new URLSearchParams(location.search).get("q") ?? "")
@@ -73,6 +82,7 @@ export function App() {
           <Activity aria-hidden="true" size={22} />
           <strong>WhatsNew</strong>
         </NavLink>
+        {isSandbox ? <span className="sandboxBadge">国内源沙盒</span> : null}
 
         <form className="commandSearch" role="search" onSubmit={submitSearch}>
           <Search aria-hidden="true" size={16} />
