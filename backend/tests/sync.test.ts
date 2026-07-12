@@ -554,6 +554,36 @@ describe("runSourceSync", () => {
     })).toBe(1)
   })
 
+  it("同一来源身份再次同步时更新作品状态", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const adapterForStatus = (status: "upcoming" | "released"): SourceAdapter => ({
+      source: "status_transition",
+      async fetchItems() {
+        return [{
+          ...base,
+          media: {
+            ...base.media,
+            source: "status_transition",
+            sourceId: "stable-status-1",
+            status,
+            tmdbId: null,
+            tvmazeId: null,
+            imdbId: null,
+            traktId: null,
+            tvdbId: null
+          },
+          releases: [],
+          popularitySignals: []
+        }]
+      }
+    })
+
+    await runSourceSync(prisma, adapterForStatus("upcoming"))
+    await runSourceSync(prisma, adapterForStatus("released"))
+
+    await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({ status: "released" })
+  })
+
   it("marks source signals missing from the next complete snapshot as historical", async () => {
     await runSourceSync(prisma, adapterWithUnmatchableLanguage(["作品甲", "作品乙"]))
     await runSourceSync(prisma, adapterWithUnmatchableLanguage(["作品甲"]))

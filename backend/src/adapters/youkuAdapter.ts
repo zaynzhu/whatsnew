@@ -1,5 +1,5 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
-import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
+import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter, SourceFetchBatch } from "../domain/types.js"
 import type { ReleaseForm } from "@whatsnew/shared/media"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
@@ -42,6 +42,12 @@ type YoukuComponent = {
   typeName?: string
   spmC?: string
   itemList?: YoukuItem[]
+}
+
+type YoukuRow = {
+  item: YoukuItem
+  category: string
+  isReserve: boolean
 }
 
 type YoukuInitialData = {
@@ -119,18 +125,21 @@ function extractInitialData(html: string): YoukuInitialData | null {
   }
 }
 
-function allItems(data: YoukuInitialData | null, fallbackCategory: string): Array<{ item: YoukuItem, index: number, category: string }> {
+function allItems(data: YoukuInitialData | null, fallbackCategory: string): YoukuRow[] {
   if (!data?.moduleList) return []
 
-  const rows: Array<{ item: YoukuItem, index: number, category: string }> = []
+  const rows: YoukuRow[] = []
 
   for (const module of data.moduleList) {
     for (const component of module.components ?? []) {
-      for (const [index, item] of (component.itemList ?? []).entries()) {
+      const isReserve = component.typeName?.includes("SHOW_RESERVE") ?? false
+
+      for (const item of component.itemList ?? []) {
         const category = cleanText(item.action?.extra?.category) ?? fallbackCategory
         if (!item.title || !item.action_value || item.action_type !== "JUMP_TO_SHOW") continue
+        if (!isReserve && !hasCurrentPageSignal(item)) continue
 
-        rows.push({ item, index: index + 1, category })
+        rows.push({ item, category, isReserve })
       }
     }
   }
@@ -138,21 +147,46 @@ function allItems(data: YoukuInitialData | null, fallbackCategory: string): Arra
   return rows
 }
 
+function hasCurrentPageSignal(item: YoukuItem): boolean {
+  const mark = markText(item.mark)
+  const topLeft = markText(item.topLeftMark)
+
+  return mark === "首播" || ["新上线", "有更新", "热度榜"].includes(topLeft ?? "")
+}
+
 function sourceUrl(showId: string): string {
   return `https://www.youku.com/show_page/id_${showId}.html`
 }
 
-function parseReleaseDate(subtitle: string | null | undefined, today: string): { releaseDate: string | null, releaseTime: string | null } {
+function parseReleaseDate(
+  subtitle: string | null | undefined,
+  today: string,
+  isUpcoming: boolean
+): { releaseDate: string | null, releaseTime: string | null } {
   const text = cleanText(subtitle)
   if (!text) return { releaseDate: null, releaseTime: null }
+
+  const relativeMatch = text.match(/(今天|明天)(?:\s*(\d{1,2}):(\d{2}))?/)
+  if (relativeMatch) {
+    const date = new Date(`${today}T00:00:00`)
+    if (relativeMatch[1] === "明天") date.setDate(date.getDate() + 1)
+
+    return {
+      releaseDate: formatLocalDate(date),
+      releaseTime: relativeMatch[2] && relativeMatch[3]
+        ? `${relativeMatch[2].padStart(2, "0")}:${relativeMatch[3]}`
+        : null
+    }
+  }
 
   const match = text.match(/(\d{1,2})月(\d{1,2})日(?:\s*(\d{1,2}):(\d{2}))?/)
   if (!match) return { releaseDate: null, releaseTime: null }
 
-  const year = today.slice(0, 4)
+  let year = Number(today.slice(0, 4))
   const month = match[1].padStart(2, "0")
   const day = match[2].padStart(2, "0")
   const releaseTime = match[3] && match[4] ? `${match[3].padStart(2, "0")}:${match[4]}` : null
+  if (isUpcoming && `${year}-${month}-${day}` < today) year += 1
 
   return {
     releaseDate: `${year}-${month}-${day}`,
@@ -160,9 +194,10 @@ function parseReleaseDate(subtitle: string | null | undefined, today: string): {
   }
 }
 
-function mediaStatus(item: YoukuItem, releaseDate: string | null, today: string): "upcoming" | "released" | "ongoing" | "unknown" {
+function mediaStatus(item: YoukuItem, releaseDate: string | null, today: string, isReserve: boolean): "upcoming" | "released" | "ongoing" | "unknown" {
   const labels = [cleanText(item.subtitle), markText(item.mark), markText(item.topLeftMark)].filter(Boolean).join(" ")
 
+  if (isReserve) return "upcoming"
   if (releaseDate && releaseDate > today) return "upcoming"
   if (labels.includes("预告") || labels.includes("预约") || labels.includes("上线")) {
     if (!releaseDate || releaseDate > today) return "upcoming"
@@ -184,7 +219,7 @@ function releaseStatus(status: "upcoming" | "released" | "ongoing" | "unknown", 
 
 function releaseFromItem(item: YoukuItem, status: "upcoming" | "released" | "ongoing" | "unknown", today: string): ReleaseInput {
   const showId = item.action_value!
-  const { releaseDate, releaseTime } = parseReleaseDate(item.subtitle, today)
+  const { releaseDate, releaseTime } = parseReleaseDate(item.subtitle, today, status === "upcoming")
 
   return {
     platform: "优酷",
@@ -200,7 +235,7 @@ function releaseFromItem(item: YoukuItem, status: "upcoming" | "released" | "ong
   }
 }
 
-function signalFromItem(item: YoukuItem, index: number): PopularitySignalInput | null {
+function signalFromItem(item: YoukuItem): PopularitySignalInput | null {
   const showId = item.action_value!
   const reserveCount = item.reserve?.count ?? null
   const hotPoint = item.previewInfo?.hotPoint ?? null
@@ -214,7 +249,7 @@ function signalFromItem(item: YoukuItem, index: number): PopularitySignalInput |
     platform: "优酷",
     region: "CN",
     window: "current",
-    rank: index,
+    rank: null,
     rankDelta: null,
     value,
     valueLabel: reserveCount != null ? "Youku reservations" : "Youku heat",
@@ -222,16 +257,16 @@ function signalFromItem(item: YoukuItem, index: number): PopularitySignalInput |
   }
 }
 
-function itemToAdapterItem(item: YoukuItem, index: number, category: string, today: string): AdapterItem {
+function itemToAdapterItem(item: YoukuItem, category: string, today: string, isReserve: boolean): AdapterItem {
   const showId = item.action_value!
-  const { releaseDate } = parseReleaseDate(item.subtitle, today)
+  const { releaseDate } = parseReleaseDate(item.subtitle, today, isReserve)
   const classification = classifyMedia({
     source: "youku",
     sourceContentType: category,
     genres: [category]
   })
-  const status = mediaStatus(item, releaseDate, today)
-  const signal = signalFromItem(item, index)
+  const status = mediaStatus(item, releaseDate, today, isReserve)
+  const signal = signalFromItem(item)
   const releaseForm: ReleaseForm = classification.releaseForm === "tv_series" ? "web_series" : classification.releaseForm
 
   return {
@@ -259,6 +294,21 @@ function itemToAdapterItem(item: YoukuItem, index: number, category: string, tod
     },
     releases: [releaseFromItem(item, status, today)],
     popularitySignals: signal ? [signal] : []
+  }
+}
+
+function assignSignalRanks(items: AdapterItem[]) {
+  const signals = items
+    .flatMap((item) => item.popularitySignals)
+    .filter((signal) => signal.value != null)
+
+  for (const source of ["youku_reserve", "youku_hot"]) {
+    signals
+      .filter((signal) => signal.source === source)
+      .sort((left, right) => (right.value ?? 0) - (left.value ?? 0))
+      .forEach((signal, index) => {
+        signal.rank = index + 1
+      })
   }
 }
 
@@ -290,7 +340,7 @@ function mergeItem(items: Map<string, AdapterItem>, next: AdapterItem) {
   }
 }
 
-export function createYoukuAdapter(options: YoukuAdapterOptions = {}): SourceAdapter {
+export function createYoukuAdapter(options: YoukuAdapterOptions = {}): SourceAdapter<SourceFetchBatch> {
   const today = options.today ?? todayLocalDate
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
   const httpClient = options.httpClient ?? sourceHttpClient
@@ -317,11 +367,19 @@ export function createYoukuAdapter(options: YoukuAdapterOptions = {}): SourceAda
         const data = extractInitialData(html)
 
         for (const row of allItems(data, page.fallbackCategory)) {
-          mergeItem(items, itemToAdapterItem(row.item, row.index, row.category, currentDate))
+          mergeItem(items, itemToAdapterItem(row.item, row.category, currentDate, row.isReserve))
         }
       }
 
-      return Array.from(items.values())
+      const currentItems = Array.from(items.values())
+      assignSignalRanks(currentItems)
+
+      return {
+        items: currentItems,
+        completeMediaSources: ["youku"],
+        completePopularitySources: ["youku_hot", "youku_reserve"],
+        completeReleaseSources: ["youku"]
+      }
     }
   }
 }

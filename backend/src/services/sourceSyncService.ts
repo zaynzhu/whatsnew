@@ -112,6 +112,7 @@ async function upsertItem(
   const match = sourceRef
     ? candidates.find((candidate) => candidate.id === sourceRef.mediaItemId) ?? null
     : findBestMatch(item.media, candidates)
+  const hasStableSourceIdentity = sourceRef != null
   if (!match && item.createIfMissing === false) return null
 
   const titleAliases = match
@@ -161,7 +162,8 @@ async function upsertItem(
             ? item.media.firstReleaseDate
             : match.firstReleaseDate ?? item.media.firstReleaseDate,
           originalLanguage: match.originalLanguage ?? item.media.originalLanguage,
-          status: match.status === "unknown" && item.media.status && item.media.status !== "unknown"
+          status: item.media.status && item.media.status !== "unknown"
+            && (hasStableSourceIdentity || match.status === "unknown")
             ? item.media.status
             : match.status,
           tmdbId: match.tmdbId ?? item.media.tmdbId,
