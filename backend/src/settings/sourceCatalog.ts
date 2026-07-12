@@ -186,11 +186,11 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
   },
   youku: {
     signalKinds: ["release_calendar", "platform_rank"],
-    coverage: "优酷电影与剧集预约节点（实验采集）",
-    cadence: "找到可验证的独立待播接口后恢复",
+    coverage: "优酷电影与剧集独立待播片单及预约人数",
+    cadence: "小时级分页检查待播节点",
     access: "public_page",
-    freshnessNote: "当前仅能从首页内嵌数据识别预约组件，不作为生产排期来源",
-    riskNote: "已发现 App 待播节点但尚未定位稳定请求；生产调度和设置启用暂时关闭"
+    freshnessNote: "只代表优酷待播片单；敬请期待表示日期未公布，不代表已经上线",
+    riskNote: "使用优酷 MTop 内部结构化接口而非开放 API；令牌、签名或节点结构变化时必须停止入库"
   },
   iqiyi: {
     signalKinds: ["release_calendar", "platform_rank"],
@@ -293,7 +293,7 @@ export const SOURCE_CATALOG = [
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
   source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
   source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
-  source("youku", "优酷", "App 待播节点研究中", "china_platform", "blocked", "direct", false, false, "https://tv.youku.com/", [], ["hourly"], false),
+  source("youku", "优酷", "电影与剧集待播预约", "china_platform", "active", "direct", true, true, "https://acs.youku.com/", [], ["hourly"], false),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
   source("mango_tv", "芒果TV", "App 预约节点研究中", "china_platform", "blocked", "direct", false, false, "https://www.mgtv.com/tv/", [], ["hourly"], false),

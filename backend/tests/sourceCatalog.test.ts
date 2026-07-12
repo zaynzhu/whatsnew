@@ -13,6 +13,7 @@ describe("source catalog", () => {
       "hulu",
       "disney_plus",
       "apple_tv_plus",
+      "youku",
       "iqiyi",
       "bilibili",
       "douban"
@@ -90,9 +91,9 @@ describe("source catalog", () => {
       access: "restricted_page"
     })
     expect(getSourceDefinition("youku")).toMatchObject({
-      implementationStatus: "blocked",
-      supportsSync: false,
-      supportsEnable: false,
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
       defaultEnabled: false
     })
     expect(getSourceDefinition("mango_tv")).toMatchObject({
