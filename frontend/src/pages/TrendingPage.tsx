@@ -32,7 +32,7 @@ const SOURCE_OPTIONS = [
   ["douban_top", "豆瓣 TOP250"]
 ]
 
-const PLATFORM_OPTIONS = ["TMDb", "Trakt", "Youku", "iQIYI", "Netflix", "豆瓣"]
+const PLATFORM_OPTIONS = ["TMDb", "Trakt", "优酷", "爱奇艺", "Netflix", "豆瓣"]
 
 export function movementLabel(signal: PopularitySignal): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"

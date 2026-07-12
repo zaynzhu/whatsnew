@@ -607,6 +607,19 @@ describe("frontend pages", () => {
     )
   })
 
+  it("使用接口中的中文平台值筛选爱奇艺预约", async () => {
+    const fetchMock = mockFetch()
+    const user = userEvent.setup()
+    renderRoute("/trending")
+
+    await user.selectOptions(await screen.findByLabelText("热度来源"), "iqiyi_reserve")
+    await user.selectOptions(screen.getByLabelText("平台"), "爱奇艺")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trending?source=iqiyi_reserve&platform=%E7%88%B1%E5%A5%87%E8%89%BA"
+    )
+  })
+
   it("renders positive negative and new rank movement", async () => {
     mockFetch()
     renderRoute("/trending")
