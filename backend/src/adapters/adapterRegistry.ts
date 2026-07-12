@@ -77,7 +77,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "apple_tv_plus", scheduleGroup: "daily", adapter: appleTvPlusAdapter, healthPolicy: healthPolicy(["news_signal"], "daily", "popularity") },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "popularity") },
-  { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "release") },
+  { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
   { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "popularity") },
   { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
   { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating", "release_calendar"], "daily", "release") }

@@ -90,10 +90,16 @@ describe("iqiyiAdapter", () => {
       today: () => "2026-06-17"
     })
 
-    const items = await adapter.fetchItems()
+    const result = await adapter.fetchItems()
+    const items = result.items
 
     expect(fetchText).toHaveBeenCalledWith("iqiyi", "https://www.iqiyi.com/newOnlinePCW", expect.any(Object))
     expect(items).toHaveLength(3)
+    expect(result).toMatchObject({
+      completeMediaSources: ["iqiyi"],
+      completePopularitySources: ["iqiyi_reserve"],
+      completeReleaseSources: ["iqiyi"]
+    })
     expect(items[0].media).toMatchObject({
       source: "iqiyi",
       sourceId: "iqiyi-3071192221488000",
@@ -151,6 +157,47 @@ describe("iqiyiAdapter", () => {
       minIntervalMs: 0
     })
 
-    await expect(adapter.fetchItems()).resolves.toEqual([])
+    await expect(adapter.fetchItems()).resolves.toMatchObject({ items: [] })
+  })
+
+  it("将未定档预约识别为待播，并按预约人数生成全局排名", async () => {
+    const data = {
+      data: [{
+        allVideos: [
+          {
+            name: "明年待播作品",
+            cid: 2,
+            id: "next-year",
+            publishText: "01月03日上线",
+            isOnline: false,
+            sub: { count: 20 }
+          },
+          {
+            name: "日期待定作品",
+            cid: 1,
+            id: "undated",
+            isOnline: false,
+            sub: { count: 100 }
+          }
+        ]
+      }]
+    }
+    const adapter = createIqiyiAdapter({
+      httpClient: { fetchText: vi.fn(async () => htmlWithNuxt(data)) } as unknown as SourceHttpClient,
+      minIntervalMs: 0,
+      today: () => "2026-12-30"
+    })
+
+    const result = await adapter.fetchItems()
+
+    expect(result.items[0].media).toMatchObject({
+      firstReleaseDate: "2027-01-03",
+      status: "upcoming"
+    })
+    expect(result.items[1].media).toMatchObject({
+      firstReleaseDate: null,
+      status: "upcoming"
+    })
+    expect(result.items.map((item) => item.popularitySignals[0]?.rank)).toEqual([2, 1])
   })
 })

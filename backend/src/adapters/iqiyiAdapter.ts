@@ -1,6 +1,6 @@
 import type { ReleaseForm } from "@whatsnew/shared/media"
 import { classifyMedia } from "../domain/mediaClassifier.js"
-import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter } from "../domain/types.js"
+import type { AdapterItem, PopularitySignalInput, ReleaseInput, SourceAdapter, SourceFetchBatch } from "../domain/types.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
@@ -106,22 +106,27 @@ function videosFromNuxt(data: IqiyiNuxtData | null): IqiyiVideo[] {
   return data?.data?.[0]?.allVideos?.filter((video) => video.name && video.id) ?? []
 }
 
-function parseReleaseDate(publishText: string | null | undefined, today: string): string | null {
+function parseReleaseDate(publishText: string | null | undefined, today: string, isUpcoming: boolean): string | null {
   const text = cleanText(publishText)
   if (!text) return null
 
   const match = text.match(/(\d{1,2})月(\d{1,2})日/)
   if (!match) return null
 
-  return `${today.slice(0, 4)}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}`
+  let year = Number(today.slice(0, 4))
+  const month = match[1].padStart(2, "0")
+  const day = match[2].padStart(2, "0")
+  if (isUpcoming && `${year}-${month}-${day}` < today) year += 1
+
+  return `${year}-${month}-${day}`
 }
 
 function mediaStatus(video: IqiyiVideo, releaseDate: string | null, today: string): "upcoming" | "released" | "unknown" {
   if (video.isOnline) return "released"
-  if (releaseDate && releaseDate > today) return "upcoming"
-  if (releaseDate && releaseDate <= today) return "released"
+  if (releaseDate === today) return "released"
 
-  return "unknown"
+  // newOnlinePCW 是爱奇艺独立待播页；未上线且未公布日期的条目仍属于待播。
+  return "upcoming"
 }
 
 function releaseStatus(status: "upcoming" | "released" | "unknown", releaseDate: string | null, today: string): string {
@@ -155,7 +160,7 @@ function releaseFromVideo(video: IqiyiVideo, status: "upcoming" | "released" | "
   }
 }
 
-function signalFromVideo(video: IqiyiVideo, index: number): PopularitySignalInput | null {
+function signalFromVideo(video: IqiyiVideo): PopularitySignalInput | null {
   const count = video.sub?.count ?? null
   if (count == null) return null
 
@@ -165,7 +170,7 @@ function signalFromVideo(video: IqiyiVideo, index: number): PopularitySignalInpu
     platform: "爱奇艺",
     region: "CN",
     window: "current",
-    rank: index,
+    rank: null,
     rankDelta: null,
     value: count,
     valueLabel: "iQIYI reservations",
@@ -173,7 +178,7 @@ function signalFromVideo(video: IqiyiVideo, index: number): PopularitySignalInpu
   }
 }
 
-function videoToAdapterItem(video: IqiyiVideo, index: number, today: string): AdapterItem {
+function videoToAdapterItem(video: IqiyiVideo, today: string): AdapterItem {
   const category = categoryFromCid(video.cid)
   const classification = classifyMedia({
     source: "iqiyi",
@@ -181,9 +186,9 @@ function videoToAdapterItem(video: IqiyiVideo, index: number, today: string): Ad
     genres: [category]
   })
   const releaseForm = releaseFormForIqiyi(category, classification.releaseForm)
-  const releaseDate = parseReleaseDate(video.publishText, today)
+  const releaseDate = parseReleaseDate(video.publishText, today, !video.isOnline)
   const status = mediaStatus(video, releaseDate, today)
-  const signal = signalFromVideo(video, index)
+  const signal = signalFromVideo(video)
 
   return {
     media: {
@@ -213,7 +218,17 @@ function videoToAdapterItem(video: IqiyiVideo, index: number, today: string): Ad
   }
 }
 
-export function createIqiyiAdapter(options: IqiyiAdapterOptions = {}): SourceAdapter {
+function assignReservationRanks(items: AdapterItem[]) {
+  items
+    .flatMap((item) => item.popularitySignals)
+    .filter((signal) => signal.source === "iqiyi_reserve" && signal.value != null)
+    .sort((left, right) => (right.value ?? 0) - (left.value ?? 0))
+    .forEach((signal, index) => {
+      signal.rank = index + 1
+    })
+}
+
+export function createIqiyiAdapter(options: IqiyiAdapterOptions = {}): SourceAdapter<SourceFetchBatch> {
   const today = options.today ?? todayLocalDate
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
   const httpClient = options.httpClient ?? sourceHttpClient
@@ -232,8 +247,15 @@ export function createIqiyiAdapter(options: IqiyiAdapterOptions = {}): SourceAda
         settingsOverride
       }))
       const videos = videosFromNuxt(extractNuxtData(html))
+      const items = videos.map((video) => videoToAdapterItem(video, currentDate))
+      assignReservationRanks(items)
 
-      return videos.map((video, index) => videoToAdapterItem(video, index + 1, currentDate))
+      return {
+        items,
+        completeMediaSources: ["iqiyi"],
+        completePopularitySources: ["iqiyi_reserve"],
+        completeReleaseSources: ["iqiyi"]
+      }
     }
   }
 }

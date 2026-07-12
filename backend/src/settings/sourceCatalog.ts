@@ -193,12 +193,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "页面结构变化会影响采集"
   },
   iqiyi: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "中国电影、剧集、综艺、动漫和短剧",
-    cadence: "小时级平台内容页",
+    signalKinds: ["release_calendar", "platform_rank"],
+    coverage: "爱奇艺新片速递页中的电影、剧集、综艺、动漫、纪录片和短剧待播预约",
+    cadence: "小时级检查独立待播页",
     access: "public_page",
-    freshnessNote: "只代表爱奇艺站内口径，不代表全网",
-    riskNote: "页面稳定性低于优酷，需按已验证能力展示"
+    freshnessNote: "只代表爱奇艺新片速递页；未公布日期的预约条目仍为待播，不代表已经上线",
+    riskNote: "依赖页面内嵌 Nuxt 数据而非开放 API；结构变化时必须停止入库并保留上次成功快照"
   },
   tencent: {
     signalKinds: ["platform_catalog", "platform_rank"],
