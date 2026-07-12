@@ -13,9 +13,7 @@ describe("source catalog", () => {
       "hulu",
       "disney_plus",
       "apple_tv_plus",
-      "youku",
       "iqiyi",
-      "mango_tv",
       "bilibili",
       "douban"
     ])
@@ -91,6 +89,18 @@ describe("source catalog", () => {
     expect(getSourceDefinition("max").semantics).toMatchObject({
       access: "restricted_page"
     })
+    expect(getSourceDefinition("youku")).toMatchObject({
+      implementationStatus: "blocked",
+      supportsSync: false,
+      supportsEnable: false,
+      defaultEnabled: false
+    })
+    expect(getSourceDefinition("mango_tv")).toMatchObject({
+      implementationStatus: "blocked",
+      supportsSync: false,
+      supportsEnable: false,
+      defaultEnabled: false
+    })
     expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog"])
     expect(getSourceDefinition("apple_tv_plus").semantics.signalKinds).toEqual(["news_signal"])
     expect(getSourceDefinition("apple_tv_plus").supportsSync).toBe(true)
@@ -102,7 +112,7 @@ describe("source catalog", () => {
       access: "free_key"
     })
     expect((getSourceDefinition("youku") as any).semantics.signalKinds).toEqual(
-      expect.arrayContaining(["platform_catalog", "platform_rank"])
+      expect.arrayContaining(["release_calendar", "platform_rank"])
     )
     expect((getSourceDefinition("justwatch") as any).semantics.access).toBe("application")
     expect((getSourceDefinition("flixpatrol") as any).semantics.access).toBe("commercial")

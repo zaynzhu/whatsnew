@@ -145,7 +145,7 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tvmazeAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(3)
     expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
     expect(mocks.reconcileDuplicateTmdbIdentities).toHaveBeenCalledWith({
       database: mocks.db,
@@ -159,7 +159,7 @@ describe("scheduler", () => {
     await scheduledJob()
 
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(6)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
     expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
       database: mocks.db,
       limit: 40
@@ -231,16 +231,16 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
+      expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.huluAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.disneyPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.maxAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.mgtvAdapter)
+      expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.mgtvAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(14)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(12)
       expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
         database: mocks.db,
         limit: 40
@@ -279,9 +279,7 @@ describe("scheduler", () => {
       { sourceId: "disney_plus", scheduleGroup: "daily" },
       { sourceId: "max", scheduleGroup: "daily" },
       { sourceId: "apple_tv_plus", scheduleGroup: "daily" },
-      { sourceId: "youku", scheduleGroup: "hourly" },
       { sourceId: "iqiyi", scheduleGroup: "hourly" },
-      { sourceId: "mango_tv", scheduleGroup: "hourly" },
       { sourceId: "bilibili", scheduleGroup: "daily" },
       { sourceId: "douban", scheduleGroup: "daily" }
     ])

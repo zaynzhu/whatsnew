@@ -185,12 +185,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "tv.apple.com collection 本地 404，不硬接平台片库；RSS 仅近 10 条无分页"
   },
   youku: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "中国电影、剧集、综艺、动漫和短剧",
-    cadence: "小时级平台热度",
+    signalKinds: ["release_calendar", "platform_rank"],
+    coverage: "优酷电影与剧集预约节点（实验采集）",
+    cadence: "找到可验证的独立待播接口后恢复",
     access: "public_page",
-    freshnessNote: "只代表优酷站内口径，不代表全网",
-    riskNote: "页面结构变化会影响采集"
+    freshnessNote: "当前仅能从首页内嵌数据识别预约组件，不作为生产排期来源",
+    riskNote: "已发现 App 待播节点但尚未定位稳定请求；生产调度和设置启用暂时关闭"
   },
   iqiyi: {
     signalKinds: ["release_calendar", "platform_rank"],
@@ -209,12 +209,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "页面结构和登录态可能限制采集"
   },
   mango_tv: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "芒果TV 电视剧频道热播剧集与新剧速递",
-    cadence: "小时级平台热度",
+    signalKinds: ["release_calendar", "platform_rank"],
+    coverage: "芒果TV App 电影预约与待播节点（待接入）",
+    cadence: "找到可验证的 App 结构化接口后恢复",
     access: "public_page",
-    freshnessNote: "只代表芒果TV站内口径，不代表全网",
-    riskNote: "页面结构变化会影响采集；追更日历未提供日期数据，首版不接入"
+    freshnessNote: "电视剧网页的新剧速递混有杀青、花絮和历史作品，不作为排期来源",
+    riskNote: "公开网页没有可靠上线日期；生产调度和设置启用暂时关闭"
   },
   bilibili: {
     signalKinds: ["platform_rank"],
@@ -293,10 +293,10 @@ export const SOURCE_CATALOG = [
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
   source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
   source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
-  source("youku", "优酷", "电影、长剧、独播与热度", "china_platform", "active", "direct", true, true, "https://tv.youku.com/", [], ["hourly"], true),
+  source("youku", "优酷", "App 待播节点研究中", "china_platform", "blocked", "direct", false, false, "https://tv.youku.com/", [], ["hourly"], false),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
   source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
-  source("mango_tv", "芒果TV", "热播剧集与平台上新", "china_platform", "active", "direct", true, true, "https://www.mgtv.com/tv/", [], ["hourly"], true),
+  source("mango_tv", "芒果TV", "App 预约节点研究中", "china_platform", "blocked", "direct", false, false, "https://www.mgtv.com/tv/", [], ["hourly"], false),
   source("bilibili", "哔哩哔哩", "番剧、国创与纪录片榜单", "china_platform", "active", "direct", true, true, "https://api.bilibili.com/pgc/season/rank/web/list?season_type=1&day=3", [], ["daily"], true),
   source("douban", "豆瓣", "TOP250 口碑与即将播出", "china_platform", "active", "direct", true, true, "https://m.douban.com/rexxar/api/v2/tv/coming_soon", [], ["daily"], false, ["DOUBAN_COOKIE"]),
   source("maoyan_pro", "猫眼专业版", "票房、排片与网播热度", "china_platform", "planned", "direct", false, false, "https://piaofang.maoyan.com/dashboard"),

@@ -11,14 +11,12 @@ import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
 import { doubanAdapter } from "./doubanAdapter.js"
 import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
-import { mgtvAdapter } from "./mgtvAdapter.js"
 import { maxAdapter } from "./maxAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
 import { theTvdbAdapter } from "./theTvdbAdapter.js"
 import { tmdbAdapter } from "./tmdbAdapter.js"
 import { traktCalendarAdapter, traktPopularityAdapter } from "./traktAdapter.js"
 import { tvmazeAdapter } from "./tvmazeAdapter.js"
-import { youkuAdapter } from "./youkuAdapter.js"
 
 export type RegisteredAdapter = {
   sourceId: string
@@ -76,9 +74,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "disney_plus", scheduleGroup: "daily", adapter: disneyPlusAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "apple_tv_plus", scheduleGroup: "daily", adapter: appleTvPlusAdapter, healthPolicy: healthPolicy(["news_signal"], "daily", "popularity") },
-  { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "popularity") },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
-  { sourceId: "mango_tv", scheduleGroup: "hourly", adapter: mgtvAdapter, healthPolicy: healthPolicy(["platform_catalog", "platform_rank"], "hourly", "popularity") },
   { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
   { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating", "release_calendar"], "daily", "release") }
 ]
