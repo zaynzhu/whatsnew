@@ -54,6 +54,7 @@ describe("platformPageUtils", () => {
       releaseForm: "tv_series",
       titleDisplay: "The Bear: Complete Season 5",
       posterUrl: null,
+      originalLanguage: "en",
       firstReleaseDate: null,
       status: "released"
     })

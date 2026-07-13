@@ -274,7 +274,8 @@ describe("Max adapter", () => {
       source: "max",
       mediaType: "movie",
       releaseForm: "streaming_movie",
-      titleDisplay: "Sinners"
+      titleDisplay: "Sinners",
+      originalLanguage: null
     })
     expect(items[1].media).toMatchObject({
       mediaType: "series",

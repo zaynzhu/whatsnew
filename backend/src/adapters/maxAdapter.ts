@@ -29,7 +29,7 @@ const CONFIG: PlatformAdapterConfig = {
   source: "max",
   platform: "Max",
   region: "US",
-  defaultLanguage: "en",
+  defaultLanguage: null,
   defaultGenres: [],
   sourceUrl: MAX_PRESS_URL
 }

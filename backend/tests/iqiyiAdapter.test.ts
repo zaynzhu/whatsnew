@@ -110,8 +110,8 @@ describe("iqiyiAdapter", () => {
       titleDisplay: "镖人：风起大漠",
       overview: "大漠之上，多方势力暗潮涌动。",
       posterUrl: "https://pic9.iqiyipic.com/image/20260617/poster_579_772.jpg",
-      productionCountries: ["CN"],
-      originalLanguage: "zh",
+      productionCountries: [],
+      originalLanguage: null,
       genres: ["电影"],
       firstReleaseDate: "2026-06-18",
       status: "upcoming"

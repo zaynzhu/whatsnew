@@ -30,7 +30,7 @@ const CONFIG: PlatformAdapterConfig = {
   source: "apple_tv_plus",
   platform: "Apple TV+",
   region: "US",
-  defaultLanguage: "en",
+  defaultLanguage: null,
   defaultGenres: [],
   sourceUrl: APPLE_TV_PLUS_FEED_URL
 }

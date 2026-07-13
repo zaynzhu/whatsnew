@@ -155,6 +155,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 - Prime Video 从 About Amazon 娱乐频道发现最新月度上新文章，只保留美国区电影与剧集，排除直播体育、音乐和类型不明确的活动
 - Hulu 使用 `https://press.hulu.com/schedule/`
 - Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
+- 平台页面只证明上架地区，不证明作品原始语言或制片国家；无明确字段时这两项保持未知
 - Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度
 - Prime Video、Hulu 和 Disney+ 均为 daily schedule，默认关闭，需在设置页显式启用
 - 手动同步：
@@ -166,7 +167,8 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 ### 数据质量维护
 
 - 平台完整快照同步后，已不在最新快照中的来源关联会自动停用
-- 小时任务会按无冲突的 TMDb 外部身份合并重复作品；启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
+- 小时任务会合并无冲突的重复 TMDb 身份，并把“同类型、同名、发行年份兼容且只有一个外部身份锚点”的来源孤立记录并入该作品；存在多个身份候选时保持分离
+- 启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
 - 两项维护均可先预览再执行：`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
 
 ### Trakt

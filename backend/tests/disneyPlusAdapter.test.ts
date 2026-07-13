@@ -148,7 +148,8 @@ describe("Disney+ adapter", () => {
       source: "disney_plus",
       mediaType: "movie",
       releaseForm: "streaming_movie",
-      titleDisplay: "Ocean Movie"
+      titleDisplay: "Ocean Movie",
+      originalLanguage: null
     })
     expect(items[1].media).toMatchObject({
       mediaType: "series",

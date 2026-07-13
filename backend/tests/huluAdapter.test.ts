@@ -193,6 +193,7 @@ describe("Hulu adapter", () => {
       releaseForm: "tv_series",
       titleDisplay: "The Bear",
       titleAliases: ["The Bear: Complete Season 5"],
+      originalLanguage: null,
       firstReleaseDate: null
     })
     expect(items[0].releases[0]).toMatchObject({

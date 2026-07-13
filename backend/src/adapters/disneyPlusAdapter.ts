@@ -29,7 +29,7 @@ const CONFIG: PlatformAdapterConfig = {
   source: "disney_plus",
   platform: "Disney+",
   region: "US",
-  defaultLanguage: "en",
+  defaultLanguage: null,
   defaultGenres: [],
   sourceUrl: DISNEY_PLUS_URL
 }

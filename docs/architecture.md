@@ -81,7 +81,9 @@ Youku uses the signed MTop `kuflix_node_page` reservation node for paginated mov
 
 Platform catalog additions use `releasePattern=catalog_addition` and do not overwrite a work's `firstReleaseDate`. Calendar counts are unique works per day, while the selected-day response can retain multiple underlying release rows for provenance.
 
-`completeMediaSources` marks a source sync as a complete catalog snapshot. References absent from the next complete snapshot become inactive. After scheduled syncs, duplicate TMDb identities are reconciled when external IDs do not conflict; startup and daily maintenance additionally remove platform-only records only when every source reference is inactive and the work has neither releases nor popularity signals.
+`completeMediaSources` marks a source sync as a complete catalog snapshot. References absent from the next complete snapshot become inactive. After scheduled syncs, duplicate TMDb identities are reconciled when external IDs do not conflict. A second conservative pass merges source-only records only when normalized title and media type match, release years and trustworthy languages are compatible, and exactly one external-identity anchor exists; ambiguous titles remain separate. Startup and daily maintenance additionally remove platform-only records only when every source reference is inactive and the work has neither releases nor popularity signals.
+
+Platform schedule or reservation pages do not prove a work's original language or production country. Hulu, Disney+, Prime Video, Apple TV+, Max, Youku and iQIYI leave unknown locale metadata null instead of deriving it from page language or market. Stable source-owned legacy rows clear those inferred values on resync unless another source has already supplied an external identity.
 
 ## Status Semantics
 

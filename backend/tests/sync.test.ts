@@ -564,6 +564,76 @@ describe("runSourceSync", () => {
     ])
   })
 
+  it("clears legacy inferred language on a source-owned platform record", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const platformItem = {
+      ...base,
+      media: {
+        ...base.media,
+        source: "hulu",
+        sourceId: "hulu-language",
+        tmdbId: null,
+        tvmazeId: null,
+        imdbId: null,
+        traktId: null,
+        tvdbId: null,
+        originalLanguage: "en"
+      },
+      popularitySignals: []
+    }
+    await runSourceSync(prisma, { source: "hulu", async fetchItems() { return [platformItem] } })
+    await runSourceSync(prisma, {
+      source: "hulu",
+      async fetchItems() {
+        return [{
+          ...platformItem,
+          media: { ...platformItem.media, originalLanguage: null }
+        }]
+      }
+    })
+
+    expect(await prisma.mediaItem.findFirstOrThrow()).toMatchObject({ originalLanguage: null })
+  })
+
+  it("clears legacy inferred locale metadata on a source-owned catalog record", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const catalogItem = {
+      ...base,
+      media: {
+        ...base.media,
+        source: "youku",
+        sourceId: "youku-locale",
+        tmdbId: null,
+        tvmazeId: null,
+        imdbId: null,
+        traktId: null,
+        tvdbId: null,
+        productionCountries: ["CN"],
+        originalLanguage: "zh"
+      },
+      popularitySignals: []
+    }
+    await runSourceSync(prisma, { source: "youku", async fetchItems() { return [catalogItem] } })
+    await runSourceSync(prisma, {
+      source: "youku",
+      async fetchItems() {
+        return [{
+          ...catalogItem,
+          media: {
+            ...catalogItem.media,
+            productionCountries: [],
+            originalLanguage: null
+          }
+        }]
+      }
+    })
+
+    expect(await prisma.mediaItem.findFirstOrThrow()).toMatchObject({
+      productionCountries: "[]",
+      originalLanguage: null
+    })
+  })
+
   it("does not create an unmatched enrichment-only item", async () => {
     const [base] = await demoSeedAdapter.fetchItems()
     await runSourceSync(prisma, {

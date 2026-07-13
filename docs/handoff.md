@@ -30,6 +30,7 @@ This file is the short operational handoff for the current branch.
 - The iQIYI poster upgrade passed an isolated sandbox resync on 2026-07-13: all 155 recognized low-resolution URLs became stored `579×772` URLs, zero recognized low-resolution URLs remained, and a 20-image verification sample measured exactly `579×772` with 20 healthy/adequate results.
 - The corrected iQIYI adapter was then synced to the main database on 2026-07-13: 156 upgraded posters all passed real pixel verification at `579×772`, reducing system-wide undersized artwork from 160 to 7. The remainder is four inactive iQIYI history-only rows and three zero-heat TVmaze programmes, not active iQIYI catalog artwork.
 - Douban now runs as two daily scopes instead of one ambiguous `all` scope: `popularity` fetches TOP250 only and `upcoming` fetches movie/TV coming-soon only. A real main-database check on 2026-07-13 reported both scopes fresh and passed with 20 and 206 items respectively; TOP250 health samples were verified to come only from `douban_top`.
+- Platform schedule and reservation adapters no longer infer original language or production country from the page market. Conservative unique-title reconciliation now merges a source-only record only into one unambiguous external identity anchor. Main-database validation on 2026-07-13 merged 19 duplicate records across Douban, Hulu, Disney+, Youku and iQIYI; the follow-up dry run found zero remaining safe merges, zero inferred locale rows for enabled platform sources, and all 12 runnable scopes passed health checks.
 
 ## Source Coverage
 
@@ -63,7 +64,7 @@ This file is the short operational handoff for the current branch.
 - Tencent Video validates the exact TV `iyear=1` and movie `iyear=999` “即将上线” filter contract before accepting data. Its `publish_date` is not stored as a Tencent release date.
 - Max is intentionally non-runnable while the official WBD page is access-restricted; do not re-enable it until a public request succeeds.
 - Platform catalog additions are not work premieres. The calendar exposes release-pattern labels and counts unique works per day.
-- Scheduled quality maintenance reconciles conflict-free duplicate TMDb identities; startup and daily runs also remove strict inactive platform orphans.
+- Scheduled quality maintenance reconciles conflict-free duplicate TMDb identities plus conservative unique-title records with exactly one external identity anchor; startup and daily runs also remove strict inactive platform orphans.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
 - Poster enrichment safely merges a unique recent local Netflix match or a compatible TMDb identity. External-ID conflicts and candidates without a clear confidence lead still retain placeholders until better metadata appears.
 - Poster proxy responses without `width` keep the upstream image bytes and content type. Supported width requests normally return bounded WebP and fall back to the original bytes only when conversion fails.

@@ -44,6 +44,7 @@ describe("PrimeVideoAdapter", () => {
         mediaType: "movie",
         releaseForm: "streaming_movie",
         titleDisplay: "The Amateur",
+        originalLanguage: null,
         firstReleaseDate: "2025"
       },
       releases: [{

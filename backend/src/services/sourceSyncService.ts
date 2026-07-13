@@ -23,6 +23,8 @@ export function isSourceSyncInFlight(source: string): boolean {
   return sourceSyncTails.has(source)
 }
 const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max", "prime_video"])
+const UNKNOWN_LANGUAGE_SOURCES = new Set([...PLATFORM_SNAPSHOT_SOURCES, "apple_tv_plus", "iqiyi", "youku"])
+const UNKNOWN_PRODUCTION_COUNTRY_SOURCES = new Set(["iqiyi", "youku"])
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
@@ -123,6 +125,18 @@ async function upsertItem(
   const replacePlatformFirstReleaseDate = match
     ? shouldReplacePlatformFirstReleaseDate(item, match)
     : false
+  const clearInferredSourceLanguage = match
+    ? hasStableSourceIdentity
+      && UNKNOWN_LANGUAGE_SOURCES.has(item.media.source)
+      && !hasExternalIdentity(match)
+      && item.media.originalLanguage == null
+    : false
+  const clearInferredProductionCountries = match
+    ? hasStableSourceIdentity
+      && UNKNOWN_PRODUCTION_COUNTRY_SOURCES.has(item.media.source)
+      && !hasExternalIdentity(match)
+      && item.media.productionCountries.length === 0
+    : false
   const acceptIqiyiPosterUpgrade = match
     ? hasStableSourceIdentity
       && item.media.source === "iqiyi"
@@ -162,10 +176,12 @@ async function upsertItem(
             posterHeight: null,
             posterQuality: "unknown"
           } : {}),
-          productionCountries: toJsonArray(uniqueValues([
-            ...parseJsonArray(match.productionCountries),
-            ...item.media.productionCountries
-          ])),
+          productionCountries: clearInferredProductionCountries
+            ? toJsonArray([])
+            : toJsonArray(uniqueValues([
+                ...parseJsonArray(match.productionCountries),
+                ...item.media.productionCountries
+              ])),
           genres: toJsonArray(uniqueValues([
             ...parseJsonArray(match.genres),
             ...item.media.genres
@@ -173,7 +189,9 @@ async function upsertItem(
           firstReleaseDate: replacePlatformFirstReleaseDate
             ? item.media.firstReleaseDate
             : match.firstReleaseDate ?? item.media.firstReleaseDate,
-          originalLanguage: match.originalLanguage ?? item.media.originalLanguage,
+          originalLanguage: clearInferredSourceLanguage
+            ? null
+            : match.originalLanguage ?? item.media.originalLanguage,
           status: item.media.status && item.media.status !== "unknown"
             && (hasStableSourceIdentity || match.status === "unknown")
             ? item.media.status

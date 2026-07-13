@@ -2,7 +2,10 @@ import cron from "node-cron"
 import { getEnabledAdapters } from "./adapters/adapterRegistry.js"
 import { db } from "./config/db.js"
 import { env } from "./config/env.js"
-import { reconcileDuplicateTmdbIdentities } from "./services/duplicateIdentityService.js"
+import {
+  reconcileDuplicateTmdbIdentities,
+  reconcileUniqueTitleIdentities
+} from "./services/duplicateIdentityService.js"
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
 import { verifyPosterImages } from "./services/posterVerificationService.js"
 import { prunePosterVariantCache } from "./services/posterVariantCacheMaintenanceService.js"
@@ -25,6 +28,7 @@ let schedulerStarted = false
 async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
     await reconcileDuplicateTmdbIdentities({ database: db, apply: true })
+    await reconcileUniqueTitleIdentities({ database: db, apply: true })
     if (cleanPlatformOrphans) {
       await cleanupOrphanedMedia({
         database: db,

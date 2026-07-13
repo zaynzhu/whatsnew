@@ -29,7 +29,7 @@ const CONFIG: PlatformAdapterConfig = {
   source: "hulu",
   platform: "Hulu",
   region: "US",
-  defaultLanguage: "en",
+  defaultLanguage: null,
   defaultGenres: [],
   sourceUrl: HULU_SCHEDULE_URL
 }

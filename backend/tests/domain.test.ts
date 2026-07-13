@@ -215,4 +215,62 @@ describe("findBestMatch", () => {
 
     expect(findBestMatch(catalogInput, candidates)?.id).toBe("tvmaze-project-runway")
   })
+
+  it("matches an unknown-language platform item only to one unique external identity", () => {
+    const catalogInput: NormalizedMediaInput = {
+      ...input,
+      source: "disney_plus",
+      sourceId: "disney-shop-for-killers",
+      titleDisplay: "A Shop for Killers",
+      titleOriginal: null,
+      titleAliases: [],
+      firstReleaseDate: null,
+      originalLanguage: null,
+      tmdbId: null
+    }
+    const candidates: ExistingMediaCandidate[] = [{
+      ...candidateMetadata,
+      id: "canonical",
+      mediaType: "series",
+      titleDisplay: "A Shop for Killers",
+      titleAliases: [],
+      firstReleaseDate: "2024-01-17",
+      originalLanguage: "ko",
+      tmdbId: 215072,
+      tvmazeId: null,
+      imdbId: "tt26450613",
+      traktId: null
+    }]
+
+    expect(findBestMatch(catalogInput, candidates)?.id).toBe("canonical")
+  })
+
+  it("does not guess when an unknown-language title has multiple external identities", () => {
+    const catalogInput: NormalizedMediaInput = {
+      ...input,
+      source: "hulu",
+      sourceId: "hulu-love-island",
+      titleDisplay: "Love Island",
+      titleOriginal: null,
+      titleAliases: [],
+      firstReleaseDate: null,
+      originalLanguage: null,
+      tmdbId: null
+    }
+    const candidates: ExistingMediaCandidate[] = [2015, 2019].map((year) => ({
+      ...candidateMetadata,
+      id: `love-island-${year}`,
+      mediaType: "series",
+      titleDisplay: "Love Island",
+      titleAliases: [],
+      firstReleaseDate: `${year}-01-01`,
+      originalLanguage: "en",
+      tmdbId: year,
+      tvmazeId: null,
+      imdbId: null,
+      traktId: null
+    }))
+
+    expect(findBestMatch(catalogInput, candidates)).toBeNull()
+  })
 })

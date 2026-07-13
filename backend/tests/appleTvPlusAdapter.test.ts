@@ -59,6 +59,7 @@ describe("appleTvPlusAdapter", () => {
       mediaType: "series",
       releaseForm: "tv_series",
       titleDisplay: "Sugar Season 2 debuts on Apple TV+",
+      originalLanguage: null,
       firstReleaseDate: "2026-06-22",
       status: "released"
     })

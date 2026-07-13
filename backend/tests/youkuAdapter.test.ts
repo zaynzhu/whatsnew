@@ -106,6 +106,8 @@ describe("youkuAdapter", () => {
       mediaType: "series",
       releaseForm: "web_series",
       titleDisplay: "九门",
+      productionCountries: [],
+      originalLanguage: null,
       firstReleaseDate: null,
       status: "upcoming"
     })

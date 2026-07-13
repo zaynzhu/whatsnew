@@ -33,7 +33,7 @@ const CONFIG: PlatformAdapterConfig = {
   source: "prime_video",
   platform: "Prime Video",
   region: "US",
-  defaultLanguage: "en",
+  defaultLanguage: null,
   defaultGenres: [],
   sourceUrl: PRIME_VIDEO_INDEX_URL
 }

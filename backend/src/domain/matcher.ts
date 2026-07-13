@@ -29,6 +29,14 @@ function hasSharedAlias(input: NormalizedMediaInput, candidate: ExistingMediaCan
   return inputTitles.some((title) => candidateTitles.includes(title))
 }
 
+function hasExternalIdentity(candidate: ExistingMediaCandidate): boolean {
+  return candidate.tmdbId != null
+    || candidate.tvmazeId != null
+    || candidate.imdbId != null
+    || candidate.traktId != null
+    || candidate.tvdbId != null
+}
+
 export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingMediaCandidate[]): ExistingMediaCandidate | null {
   const byExternalId = candidates.find((candidate) => {
     const sameMediaType = candidate.mediaType === input.mediaType
@@ -46,17 +54,20 @@ export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingM
   const inputYear = year(input.firstReleaseDate)
   const inputTitle = normalizeTitle(input.titleDisplay)
 
-  return (
-    candidates.find((candidate) => {
-      const sameTitle = normalizeTitle(candidate.titleDisplay) === inputTitle || hasSharedAlias(input, candidate)
-      const sameYear = inputYear != null && year(candidate.firstReleaseDate) === inputYear
-      const hasUnknownDate = input.firstReleaseDate == null || candidate.firstReleaseDate == null
-      const inputLanguage = normalizeLanguage(input.originalLanguage)
-      const candidateLanguage = normalizeLanguage(candidate.originalLanguage)
-      const sameLanguage = inputLanguage != null && candidateLanguage === inputLanguage
-      const sameMediaType = candidate.mediaType === input.mediaType
+  const inputLanguage = normalizeLanguage(input.originalLanguage)
+  const titleMatches = candidates.filter((candidate) => {
+    const sameTitle = normalizeTitle(candidate.titleDisplay) === inputTitle || hasSharedAlias(input, candidate)
+    const sameYear = inputYear != null && year(candidate.firstReleaseDate) === inputYear
+    const hasUnknownDate = input.firstReleaseDate == null || candidate.firstReleaseDate == null
+    const sameMediaType = candidate.mediaType === input.mediaType
 
-      return sameTitle && sameLanguage && sameMediaType && (sameYear || hasUnknownDate)
-    }) ?? null
-  )
+    return sameTitle && sameMediaType && (sameYear || hasUnknownDate)
+  })
+
+  if (inputLanguage != null) {
+    return titleMatches.find((candidate) => normalizeLanguage(candidate.originalLanguage) === inputLanguage) ?? null
+  }
+
+  const identityMatches = titleMatches.filter(hasExternalIdentity)
+  return identityMatches.length === 1 ? identityMatches[0] : null
 }

@@ -230,3 +230,5 @@ npm run cleanup:platform-orphans --workspace backend
 npm run reconcile:duplicate-identities --workspace backend -- --apply
 npm run cleanup:platform-orphans --workspace backend -- --apply
 ```
+
+`reconcile:duplicate-identities` reports `tmdbIdentity` and `uniqueTitle` separately. The title pass applies only when one external identity is uniquely anchored; `ambiguous` entries are never merged automatically. Always inspect the dry-run samples before using `--apply` on a new dataset.
