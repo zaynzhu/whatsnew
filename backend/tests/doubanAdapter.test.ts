@@ -298,6 +298,50 @@ describe("doubanAdapter", () => {
     expect(result.completeReleaseSources).toEqual([])
   })
 
+  it("replaces a generic coming-soon image from the same Douban subject detail", async () => {
+    const placeholderSubject = {
+      id: "38545558",
+      title: "余下的恋爱",
+      type: "tv",
+      subtype: "tv",
+      cover_url: "https://img1.doubanio.com/f/frodo/hash/pics/subject/tv_large.jpg",
+      pubdate: ["2026-08-20(韩国)"],
+      url: "https://movie.douban.com/subject/38545558/"
+    }
+    const fetchText = vi.fn(async (_sourceId: string, url: string) => {
+      if (url.endsWith("/tv/38545558")) {
+        return JSON.stringify({
+          ...placeholderSubject,
+          title: "我剩下的恋爱",
+          cover_url: "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2934049189.jpg",
+          intro: "在经历人生终点后寻找真爱。"
+        })
+      }
+      if (url.includes("/tv/coming_soon") && new URL(url).searchParams.get("sortby") !== "hot") {
+        return JSON.stringify({ start: 0, count: 1, total: 1, subjects: [placeholderSubject] })
+      }
+      return JSON.stringify({ start: 0, count: 0, total: 0, subjects: [] })
+    })
+    const adapter = createDoubanAdapter({
+      scope: "upcoming",
+      httpClient: { fetchText } as unknown as SourceHttpClient,
+      minIntervalMs: 0
+    })
+
+    const result = await adapter.fetchItems()
+
+    expect(fetchText).toHaveBeenCalledTimes(5)
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0].media).toMatchObject({
+      sourceId: "douban-38545558",
+      titleDisplay: "余下的恋爱",
+      titleAliases: ["我剩下的恋爱"],
+      overview: "在经历人生终点后寻找真爱。",
+      posterUrl: "https://img1.doubanio.com/view/photo/l_ratio_poster/public/p2934049189.jpg",
+      firstReleaseDate: "2026-08-20"
+    })
+  })
+
   it("fetches only upcoming pages in upcoming scope", async () => {
     const fetchText = vi.fn(async (_sourceId: string, _url: string) => JSON.stringify({
       start: 0,

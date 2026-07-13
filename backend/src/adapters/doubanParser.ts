@@ -1,6 +1,9 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput } from "../domain/types.js"
-import { normalizeDoubanPosterUrl } from "../utils/doubanPosterUrl.js"
+import {
+  isDoubanPlaceholderPosterUrl,
+  normalizeDoubanPosterUrl
+} from "../utils/doubanPosterUrl.js"
 
 type DoubanChartItem = {
   rating?: [string, string] | null
@@ -124,6 +127,12 @@ function posterUrlFromSubject(item: DoubanMobileSubject): string | null {
   return normalizeDoubanPosterUrl(item.cover_url)
     ?? normalizeDoubanPosterUrl(item.pic?.large)
     ?? normalizeDoubanPosterUrl(item.pic?.normal)
+}
+
+function hasOnlyPlaceholderArtwork(item: DoubanMobileSubject): boolean {
+  const candidates = [item.cover_url, item.pic?.large, item.pic?.normal]
+  return posterUrlFromSubject(item) == null
+    && candidates.some((candidate) => isDoubanPlaceholderPosterUrl(candidate))
 }
 
 function releaseFromSubject(
@@ -315,12 +324,12 @@ export function parseDoubanComingSoonPage(
   kind: "movie" | "tv",
   today: string,
   rankOffset = 0
-): { items: AdapterItem[], total: number, count: number } {
+): { items: AdapterItem[], total: number, count: number, placeholderSourceIds: string[] } {
   let page: DoubanComingSoonPage
   try {
     page = JSON.parse(json) as DoubanComingSoonPage
   } catch {
-    return { items: [], total: 0, count: 0 }
+    return { items: [], total: 0, count: 0, placeholderSourceIds: [] }
   }
 
   const subjects = Array.isArray(page.subjects) ? page.subjects : []
@@ -330,8 +339,27 @@ export function parseDoubanComingSoonPage(
       .map((item, index) => mobileSubjectToAdapterItem(item, groupTitle, rankOffset + index, today))
       .filter((item): item is AdapterItem => Boolean(item)),
     total: typeof page.total === "number" ? page.total : subjects.length,
-    count: subjects.length
+    count: subjects.length,
+    placeholderSourceIds: subjects
+      .filter((item) => item.id && hasOnlyPlaceholderArtwork(item))
+      .map((item) => `douban-${item.id}`)
   }
+}
+
+export function parseDoubanSubjectDetail(
+  json: string,
+  kind: "movie" | "tv",
+  today: string
+): AdapterItem | null {
+  let subject: DoubanMobileSubject
+  try {
+    subject = JSON.parse(json) as DoubanMobileSubject
+  } catch {
+    return null
+  }
+
+  const groupTitle = kind === "movie" ? "豆瓣电影即将上映" : "豆瓣剧集即将播出"
+  return mobileSubjectToAdapterItem(subject, groupTitle, 0, today)
 }
 
 export function parseDoubanComingSoonHotPage(

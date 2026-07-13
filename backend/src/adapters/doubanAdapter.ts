@@ -2,7 +2,8 @@ import type { AdapterItem, SourceAdapter, SourceFetchBatch } from "../domain/typ
 import {
   parseDoubanChart,
   parseDoubanComingSoonHotPage,
-  parseDoubanComingSoonPage
+  parseDoubanComingSoonPage,
+  parseDoubanSubjectDetail
 } from "./doubanParser.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
@@ -15,6 +16,7 @@ type DoubanAdapterOptions = {
   url?: string
   movieComingSoonUrl?: string
   tvComingSoonUrl?: string
+  detailBaseUrl?: string
   minIntervalMs?: number
   httpClient?: SourceHttpClient
   settings?: RuntimeSettingsService
@@ -25,6 +27,7 @@ type DoubanAdapterOptions = {
 const DOUBAN_CHART_URL = "https://movie.douban.com/j/chart/top_list"
 const DOUBAN_MOVIE_COMING_SOON_URL = "https://m.douban.com/rexxar/api/v2/movie/coming_soon"
 const DOUBAN_TV_COMING_SOON_URL = "https://m.douban.com/rexxar/api/v2/tv/coming_soon"
+const DOUBAN_DETAIL_BASE_URL = "https://m.douban.com/rexxar/api/v2"
 const DOUBAN_TYPE = "24"
 const DOUBAN_LIMIT = 20
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
@@ -90,7 +93,42 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
             sensitiveValues: [cookie]
           }))
           const page = parseDoubanComingSoonPage(json, kind, today, start)
-          items.push(...page.items)
+          const placeholderSourceIds = new Set(page.placeholderSourceIds)
+          for (const item of page.items) {
+            if (!placeholderSourceIds.has(item.media.sourceId)) {
+              items.push(item)
+              continue
+            }
+
+            const subjectId = item.media.sourceId.replace(/^douban-/, "")
+            const detailUrl = `${options.detailBaseUrl ?? DOUBAN_DETAIL_BASE_URL}/${kind}/${encodeURIComponent(subjectId)}`
+            try {
+              const detailJson = await limiter.run(() => httpClient.fetchText("douban", detailUrl, {
+                headers: headersWithCookie({
+                  ...MOBILE_REQUEST_HEADERS,
+                  referer: kind === "tv" ? "https://m.douban.com/tv" : "https://m.douban.com/movie"
+                }, cookie),
+                timeoutMs: DOUBAN_TIMEOUT_MS,
+                settingsOverride,
+                sensitiveValues: [cookie]
+              }))
+              const detail = parseDoubanSubjectDetail(detailJson, kind, today)
+              const detailTitle = detail?.media.titleDisplay.trim()
+              items.push({
+                ...item,
+                media: {
+                  ...item.media,
+                  posterUrl: detail?.media.posterUrl ?? item.media.posterUrl,
+                  overview: item.media.overview ?? detail?.media.overview ?? null,
+                  titleAliases: detailTitle && detailTitle !== item.media.titleDisplay
+                    ? [...new Set([...item.media.titleAliases, detailTitle])]
+                    : item.media.titleAliases
+                }
+              })
+            } catch {
+              items.push(item)
+            }
+          }
           if (page.count === 0 || start + page.count >= page.total) break
         }
         return items

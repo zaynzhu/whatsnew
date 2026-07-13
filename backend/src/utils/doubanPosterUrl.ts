@@ -31,7 +31,7 @@ export function normalizeDoubanPosterUrl(value: string | null | undefined): stri
   if (!isDoubanImageUrl(url)) return url
   if (isDoubanPlaceholderPosterUrl(url)) return null
 
-  return url.replace("/view/photo/s_ratio_poster/", "/view/photo/l_ratio_poster/")
+  return url.replace(/\/view\/photo\/(?:s|m)_ratio_poster\//, "/view/photo/l_ratio_poster/")
 }
 
 export function isDoubanPosterUpgrade(
