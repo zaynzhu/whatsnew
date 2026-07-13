@@ -2,9 +2,11 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { RequestInit as UndiciRequestInit } from "undici"
+import type { Dispatcher, RequestInit as UndiciRequestInit } from "undici"
 import { Response } from "undici"
 import { PosterImageService } from "../src/services/posterImageService.js"
+import { EnvFileStore } from "../src/settings/envFileStore.js"
+import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
 
 let tempDir: string | null = null
 
@@ -70,6 +72,38 @@ describe("PosterImageService", () => {
     expect(transport.mock.calls[0]?.[1]?.headers).toMatchObject({
       referer: "https://img3.doubanio.com/"
     })
+  })
+
+  it("routes known poster hosts through their source proxy mode", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const settings = new RuntimeSettingsService(new EnvFileStore("/tmp/unused-poster-proxy-env"), {
+      HTTPS_PROXY: "http://global-proxy.test:7890",
+      SOURCE_DOUBAN_PROXY_MODE: "direct",
+      SOURCE_TMDB_PROXY_MODE: "inherit"
+    })
+    const dispatcher = {} as Dispatcher
+    const createDispatcher = vi.fn(() => dispatcher)
+    const transport = vi.fn(async (_url: string, _options?: UndiciRequestInit) => {
+      return new Response(Buffer.from("image-bytes"), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      })
+    })
+    const service = new PosterImageService({
+      cacheDir: tempDir,
+      settings,
+      transport,
+      createDispatcher,
+      minIntervalMs: 0
+    })
+
+    await service.getPoster("https://img3.doubanio.com/view/photo/l_ratio_poster/public/p1.jpg")
+    await service.getPoster("https://image.tmdb.org/t/p/w500/p2.jpg")
+
+    expect(transport.mock.calls[0]?.[1]?.dispatcher).toBeUndefined()
+    expect(transport.mock.calls[1]?.[1]?.dispatcher).toBe(dispatcher)
+    expect(createDispatcher).toHaveBeenCalledOnce()
+    expect(createDispatcher).toHaveBeenCalledWith("http://global-proxy.test:7890")
   })
 
   it("starts the request timeout after a poster leaves the rate-limit queue", async () => {

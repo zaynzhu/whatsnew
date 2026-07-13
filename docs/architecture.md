@@ -67,6 +67,8 @@ iQIYI `newOnlinePCW` poster URLs on `iqiyipic.com` are normalized at adapter ing
 
 Douban poster URLs on `doubanio.com` are normalized from `s_ratio_poster` or `m_ratio_poster` to the same asset's `l_ratio_poster` path at ingestion. Existing low-resolution rows accept that replacement only through the same stable Douban source identity and an exactly equivalent normalized URL. When a coming-soon row contains generic `/pics/subject/movie*.jpg` or `/pics/subject/tv*.jpg` artwork, the adapter reads that same subject ID's public mobile detail once through the shared limiter and uses only a real same-subject asset, overview and alternate title. Remaining generic assets normalize to `null`; a stable Douban resync also clears previously stored copies and resets their lookup state so they enter strict enrichment as missing artwork.
 
+Poster fetching maps known CDN hosts back to their owning source before choosing a network route. TMDb, TVmaze, TheTVDB, Douban, iQIYI, Youku, Tencent and Bilibili artwork therefore follows that source's `direct`, `inherit` or `custom` proxy mode. Unknown hosts retain the global protocol-based proxy fallback for compatibility.
+
 ## Source Registry
 
 `backend/src/settings/sourceCatalog.ts` is the source-of-truth catalog. `backend/src/adapters/adapterRegistry.ts` maps implemented adapters to schedule groups.

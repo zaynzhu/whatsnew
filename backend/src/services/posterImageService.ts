@@ -9,6 +9,7 @@ import {
   type RequestInit as UndiciRequestInit,
   type Response
 } from "undici"
+import { resolveProxy } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
 
@@ -44,11 +45,24 @@ type PosterImageServiceOptions = {
 }
 
 export const POSTER_CACHE_DIR = join(process.cwd(), ".cache", "posters")
-const DEFAULT_TIMEOUT_MS = 15000
+const DEFAULT_TIMEOUT_MS = 45000
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024
 const DEFAULT_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 const DEFAULT_FAILURE_COOLDOWN_MS = 60 * 1000
 const EXTERNAL_SERVICE_INTERVAL_MS = 2000
+
+const POSTER_SOURCE_HOSTS = [
+  ["image.tmdb.org", "tmdb"],
+  ["static.tvmaze.com", "tvmaze"],
+  ["artworks.thetvdb.com", "thetvdb"],
+  ["doubanio.com", "douban"],
+  ["iqiyipic.com", "iqiyi"],
+  ["ykimg.com", "youku"],
+  ["alicdn.com", "youku"],
+  ["qpic.cn", "tencent"],
+  ["gtimg.com", "tencent"],
+  ["hdslb.com", "bilibili"]
+] as const
 
 type CachedPoster = PosterImage & {
   expired: boolean
@@ -68,7 +82,16 @@ function originReferer(url: string): string {
   return `${parsed.origin}/`
 }
 
+function sourceForPosterUrl(url: string): string | null {
+  const hostname = new URL(url).hostname.toLowerCase()
+  const match = POSTER_SOURCE_HOSTS.find(([host]) => hostname === host || hostname.endsWith(`.${host}`))
+  return match?.[1] ?? null
+}
+
 function proxyFor(settings: RuntimeSettingsService, url: string): string | null {
+  const sourceId = sourceForPosterUrl(url)
+  if (sourceId) return resolveProxy(settings, sourceId, url)
+
   const protocol = new URL(url).protocol
   if (protocol === "https:") return settings.get("HTTPS_PROXY") || settings.get("HTTP_PROXY") || null
   if (protocol === "http:") return settings.get("HTTP_PROXY") || null

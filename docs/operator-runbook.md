@@ -156,6 +156,8 @@ Hourly batches verify up to 20 high-priority poster URLs; startup sync and daily
 
 Frontend poster requests use responsive `GET /api/media/:id/poster?width=320|640|960` URLs. The backend stores the upstream image body and metadata under `backend/.cache/posters/`, then stores bounded WebP derivatives under `backend/.cache/poster-variants/`. Both directories are ignored by Git and can be removed safely when the services are stopped. The next request rebuilds the missing cache entry.
 
+Known poster CDN hosts follow the owning source's proxy mode from Settings. For example, `doubanio.com` follows Douban and `image.tmdb.org` follows TMDb. A source sync and its poster fetch must use the same intended network path; when sync succeeds but verification degrades otherwise valid artwork, inspect the source proxy mode before changing poster URLs or identity matching. The poster transfer timeout is 45 seconds because some valid direct CDN responses stream large originals slowly; failures still enter the short in-memory cooldown.
+
 ```bash
 find backend/.cache/posters -type f | wc -l
 du -sh backend/.cache/posters
