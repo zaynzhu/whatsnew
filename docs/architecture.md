@@ -45,7 +45,7 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 ## Poster Pipeline
 
 1. Adapters persist their source-provided `posterUrl` when available.
-2. `enrichMissingPosters()` selects missing-poster titles by heat, then update time.
+2. `enrichMissingPosters()` selects missing-poster titles with at least one active source reference by heat, then update time. Inactive history-only records remain stored but stay outside poster health and maintenance queues.
 3. Netflix titles first reuse one safe local candidate: a recent same-type film or a same-type active series with compatible language and no conflicting external IDs.
 4. Existing TMDb IDs use direct metadata lookup. Titles without IDs accept one unique normalized exact-title match; Netflix may also accept a recent type/language-compatible candidate when it is unique or has at least a fourfold TMDb popularity lead.
 5. If the chosen TMDb identity already belongs to a safe same-title record, source refs, releases, popularity signals and events move transactionally to that canonical record. Unsafe identity conflicts and unresolved ambiguity are skipped.
@@ -58,7 +58,7 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 12. Disk entries are validated on read and written through temporary files. Concurrent cold requests for one URL or one variant share one operation.
 13. Original cache entries refresh after 30 days. A failed refresh serves the previous bytes as `stale`; uncached failures use a one-minute in-memory cooldown.
 14. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
-15. Hourly maintenance verifies up to 20 high-heat eligible posters; startup sync and daily maintenance verify up to 100. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability. Degraded items wait one day and broken items seven days before retry.
+15. Hourly maintenance verifies up to 20 high-heat eligible posters from currently active source records; startup sync and daily maintenance verify up to 100. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability. Degraded items wait one day and broken items seven days before retry.
 16. Missing, broken and undersized posters enter the strict TMDb enrichment queue. Identity requirements are unchanged; unmatched records retry only after the seven-day cooldown. `/api/poster-health` derives `not_attempted`, `cooldown` and `retry_eligible` lookup states from `posterLookupAttemptedAt` without treating an attempted lookup as a successful match.
 
 iQIYI `newOnlinePCW` poster URLs on `iqiyipic.com` are normalized at adapter ingestion when they use the known `120×160` or `141×188` portrait suffix. The stored URL requests `579×772`, so every page can use the normal proxy and responsive variant pipeline. Existing low-resolution rows accept this replacement only through the same stable iQIYI source identity and matching asset ID; the heat page keeps its direct-first URL upgrade only as a legacy-data fallback.

@@ -64,14 +64,17 @@ describe("TMDb poster enrichment", () => {
 
     expect(findMany.mock.calls[0]?.[0]).toMatchObject({
       where: {
-        AND: [{
-          OR: [
-            { posterUrl: null },
-            { posterUrl: "" },
-            { posterStatus: "broken" },
-            { posterQuality: "undersized" }
-          ]
-        }]
+        AND: [
+          { sourceRefs: { some: { isActive: true } } },
+          {
+            OR: [
+              { posterUrl: null },
+              { posterUrl: "" },
+              { posterStatus: "broken" },
+              { posterQuality: "undersized" }
+            ]
+          }
+        ]
       }
     })
   })
@@ -150,6 +153,7 @@ describe("TMDb poster enrichment", () => {
     expect(database.mediaItem.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         AND: [
+          { sourceRefs: { some: { isActive: true } } },
           {
             OR: [
               { posterUrl: null },

@@ -59,7 +59,7 @@ describe("PosterHealthService", () => {
       sourceRefs: [{ source: "netflix" }]
     }
     const count = vi.fn(async ({ where }: any = {}) => {
-      if (!where) return 10
+      if (where?.sourceRefs && Object.keys(where).length === 1) return 10
       if (where.OR) return 2
       if (where.AND) {
         const isReplacement = where.AND[0]?.posterQuality === "undersized"
@@ -73,7 +73,7 @@ describe("PosterHealthService", () => {
       const statusCounts: Record<string, number> = { unverified: 5, healthy: 3, degraded: 1, broken: 1 }
       return statusCounts[String(where.posterStatus)] ?? 0
     })
-    const findMany = vi.fn(async () => [sample])
+    const findMany = vi.fn(async (_args?: any) => [sample])
     const service = createPosterHealthService({
       database: { mediaItem: { count, findMany } } as never,
       cacheDir: originalCacheDir,
@@ -110,5 +110,12 @@ describe("PosterHealthService", () => {
         undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }]
       }
     })
+    expect(count.mock.calls.every(([args]) => (
+      args.where?.sourceRefs?.some?.isActive === true
+      || args.where?.AND?.[0]?.sourceRefs?.some?.isActive === true
+    ))).toBe(true)
+    expect(findMany.mock.calls.every(([args]) => (
+      args.where?.sourceRefs?.some?.isActive === true
+    ))).toBe(true)
   })
 })

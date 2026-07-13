@@ -86,6 +86,7 @@ describe("verifyPosterImages", () => {
       take: 3,
       orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
       where: expect.objectContaining({
+        sourceRefs: { some: { isActive: true } },
         OR: expect.arrayContaining([
           { posterStatus: "unverified" },
           expect.objectContaining({ posterStatus: "degraded" }),
@@ -130,6 +131,7 @@ describe("verifyPosterImages", () => {
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
+        sourceRefs: { some: { isActive: true } },
         OR: [
           { posterStatus: "unverified" },
           { posterStatus: "degraded" },

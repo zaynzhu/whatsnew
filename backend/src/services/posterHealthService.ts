@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
@@ -183,10 +184,12 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         }
       } as const
       const withPosterWhere = {
+        ...ACTIVE_MEDIA_WHERE,
         posterUrl: { not: null },
         NOT: { posterUrl: "" }
       } as const
       const missingPosterWhere: Prisma.MediaItemWhereInput = {
+        ...ACTIVE_MEDIA_WHERE,
         OR: [{ posterUrl: null }, { posterUrl: "" }]
       }
       const undersizedPosterWhere: Prisma.MediaItemWhereInput = {
@@ -216,7 +219,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         cache,
         variantCache
       ] = await Promise.all([
-        database.mediaItem.count(),
+        database.mediaItem.count({ where: ACTIVE_MEDIA_WHERE }),
         database.mediaItem.count({ where: missingPosterWhere }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "unverified" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "healthy" } }),
@@ -232,13 +235,13 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         database.mediaItem.count({ where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] } }),
         database.mediaItem.count({ where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { lt: retryBefore } }] } }),
         database.mediaItem.findMany({
-          where: { posterStatus: "broken" },
+          where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "broken" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
           take: 8,
           select: sampleSelect
         }),
         database.mediaItem.findMany({
-          where: { posterStatus: "degraded" },
+          where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "degraded" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
           take: 8,
           select: sampleSelect

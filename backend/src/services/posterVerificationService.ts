@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { posterImageService, type PosterImageService } from "./posterImageService.js"
 import {
   markPosterDegraded,
@@ -62,6 +63,7 @@ export async function verifyPosterImages(
       ]
   const items = await options.database.mediaItem.findMany({
     where: {
+      ...ACTIVE_MEDIA_WHERE,
       posterUrl: { not: null },
       NOT: { posterUrl: "" },
       OR: retryableStates

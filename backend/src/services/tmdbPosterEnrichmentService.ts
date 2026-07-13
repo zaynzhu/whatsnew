@@ -1,4 +1,5 @@
 import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import {
@@ -273,6 +274,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   const items = await enrichmentDatabase.mediaItem.findMany({
     where: {
       AND: [
+        ACTIVE_MEDIA_WHERE,
         {
           OR: [
             { posterUrl: null },
@@ -361,6 +363,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
 
   const localCandidates = await enrichmentDatabase.mediaItem.findMany({
     where: {
+      ...ACTIVE_MEDIA_WHERE,
       posterUrl: { not: null },
       NOT: { posterUrl: "" }
     }
