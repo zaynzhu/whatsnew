@@ -2101,16 +2101,15 @@ h1 {
 }
 
 .trendingList {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .trendingCard {
   --signal-accent: var(--amber);
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(124px, 0.38fr) minmax(0, 1fr);
-  min-height: 248px;
+  display: block;
+  min-height: 0;
   border-color: rgba(70, 83, 92, 0.78);
   background: #0a1116;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
@@ -2147,22 +2146,35 @@ h1 {
 
 .trendingPosterLink,
 .trendingPoster {
-  height: 100%;
-  min-height: 248px;
+  height: auto;
+  min-height: 0;
 }
 
 .trendingPoster {
-  aspect-ratio: auto;
+  aspect-ratio: 2 / 3;
 }
 
 .trendingPoster::after {
-  inset: 58% 0 0;
+  inset: 52% 0 0;
+}
+
+.trendingPosterRank {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+  bottom: 8px;
+  color: #fff;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.82);
 }
 
 .trendingCardBody {
   align-content: start;
-  gap: 10px;
-  padding: 17px 18px 16px;
+  gap: 8px;
+  padding: 11px 12px 12px;
 }
 
 .trendingRankLine {
@@ -2172,18 +2184,24 @@ h1 {
   align-items: baseline;
 }
 
-.trendingRankLine .rankPosition {
-  color: var(--signal-accent);
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1;
+.trendingMetricRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: end;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.trendingMetricRow .rankSource {
+  justify-items: end;
+  text-align: right;
 }
 
 .trendingPrimaryMetric {
   color: var(--mist);
   font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -3257,13 +3275,13 @@ select:focus-visible {
 
 @media (max-width: 1180px) {
   .trendingList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 920px) {
   .trendingList {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -3484,6 +3502,7 @@ select:focus-visible {
   }
 
   .trendingCard {
+    display: grid;
     grid-template-columns: 112px minmax(0, 1fr);
     min-height: 214px;
   }
@@ -3495,6 +3514,10 @@ select:focus-visible {
 
   .trendingCardBody {
     padding: 12px;
+  }
+
+  .trendingPosterRank {
+    font-size: 27px;
   }
 
   .trendingCardProvenance {

@@ -243,6 +243,7 @@ export function TrendingPage() {
                     <span className="trendingMediaType">
                       {mediaTypeLabel(mediaItem.mediaType)}
                     </span>
+                    <strong className="trendingPosterRank">#{primarySignal.rank ?? index + 1}</strong>
                   </div>
                 </Link>
 
@@ -252,18 +253,19 @@ export function TrendingPage() {
                     <time dateTime={primarySignal.capturedAt}>{capturedAtLabel(primarySignal.capturedAt)}</time>
                   </div>
                   <div className="trendingRankLine">
-                    <strong className="rankPosition">#{primarySignal.rank ?? index + 1}</strong>
                     <span className={movementClass(primarySignal)}>{movementLabel(primarySignal)}</span>
+                    <small className="trendingCompositeHeat">Heat {Math.round(mediaItem.heatScore)}</small>
                   </div>
                   <Link className="rankTitle" to={`/media/${mediaItem.id}`}>
                     <strong>{mediaItem.titleDisplay}</strong>
                     <span>{primarySignal.platform ?? primarySignal.region ?? "全局"}</span>
-                    <small className="trendingCompositeHeat">Heat {Math.round(mediaItem.heatScore)}</small>
                   </Link>
-                  <strong className="trendingPrimaryMetric">{signalMetric(primarySignal)}</strong>
-                  <span className="rankSource trendingPrimarySource">
-                    <SourceLink source={primarySignal.source} sourceUrl={primarySignal.sourceUrl} prefix={null} />
-                  </span>
+                  <div className="trendingMetricRow">
+                    <strong className="trendingPrimaryMetric">{signalMetric(primarySignal)}</strong>
+                    <span className="rankSource trendingPrimarySource">
+                      <SourceLink source={primarySignal.source} sourceUrl={primarySignal.sourceUrl} prefix={null} />
+                    </span>
+                  </div>
                   <div className="trendingSignalList">
                     {signals.slice(1).map((signal) => (
                       <div className="trendingSignalRow" key={signal.id}>
