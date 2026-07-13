@@ -58,6 +58,8 @@ npm run sandbox:sync -- douban
 
 Each run reports global row deltas, newly created versus matched works, missing posters, missing source dates, media-type distribution and suspicious programme-like titles. Re-run `sandbox:prepare` between sources for isolated comparisons.
 
+The ordinary domestic-source commands (`sync:youku`, `sync:iqiyi`, `sync:tencent`, `sync:bilibili`, `sync:mango-tv` and `sync:douban`) now require that source to be enabled in the main settings. A disabled source fails before any request or database write. Use `npm run sandbox:sync -- <source>` for isolated validation; do not temporarily enable a main source just to bypass this guard.
+
 For source-only Douban, iQIYI, Youku and Tencent records, a repeated stable source identity can update a moved upcoming date. Records with TMDb, TVmaze, IMDb, Trakt or TheTVDB identity keep their canonical first-release date; the platform date stays on the `Release` row. After changing this policy, re-sync the affected source and compare the media detail date with its latest same-source release.
 
 Inspect the sandbox UI in two terminals:
