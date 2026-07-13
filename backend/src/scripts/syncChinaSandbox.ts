@@ -2,6 +2,7 @@ import { bilibiliAdapter } from "../adapters/bilibiliAdapter.js"
 import { doubanAdapter } from "../adapters/doubanAdapter.js"
 import { iqiyiAdapter } from "../adapters/iqiyiAdapter.js"
 import { mgtvAdapter } from "../adapters/mgtvAdapter.js"
+import { tencentVideoAdapter } from "../adapters/tencentVideoAdapter.js"
 import { youkuAdapter } from "../adapters/youkuAdapter.js"
 import { db } from "../config/db.js"
 import { env } from "../config/env.js"
@@ -14,6 +15,7 @@ const adapters: Record<string, SourceAdapter<SourceFetchResult>> = {
   youku: youkuAdapter,
   iqiyi: iqiyiAdapter,
   mango_tv: mgtvAdapter,
+  tencent: tencentVideoAdapter,
   bilibili: bilibiliAdapter,
   douban: doubanAdapter
 }

@@ -27,12 +27,13 @@ const SOURCE_OPTIONS = [
   ["trakt_anticipated", "Trakt 期待榜"],
   ["youku_reserve", "优酷预约"],
   ["iqiyi_reserve", "爱奇艺预约"],
+  ["tencent_reserve", "腾讯视频预约"],
   ["netflix_top10", "Netflix Top 10"],
   ["douban_upcoming", "豆瓣即将播出"],
   ["douban_top", "豆瓣 TOP250"]
 ]
 
-const PLATFORM_OPTIONS = ["TMDb", "Trakt", "优酷", "爱奇艺", "Netflix", "豆瓣"]
+const PLATFORM_OPTIONS = ["TMDb", "Trakt", "优酷", "爱奇艺", "腾讯视频", "Netflix", "豆瓣"]
 
 export function movementLabel(signal: PopularitySignal): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
@@ -68,7 +69,7 @@ function mediaTypeLabel(mediaType: string): string {
 }
 
 function sourceTone(source: string): string {
-  if (source.startsWith("iqiyi") || source.startsWith("youku")) return "domestic"
+  if (source.startsWith("iqiyi") || source.startsWith("youku") || source.startsWith("tencent")) return "domestic"
   if (source.startsWith("trakt")) return "trakt"
   if (source.startsWith("tmdb")) return "tmdb"
   if (source.startsWith("netflix")) return "netflix"
@@ -84,6 +85,7 @@ function compactNumber(value: number): string {
 }
 
 function signalMetric(signal: PopularitySignal): string {
+  if (signal.source === "tencent_reserve" && signal.valueLabel) return signal.valueLabel
   if (signal.source.endsWith("_reserve") && signal.value != null) {
     return `${compactNumber(signal.value)} 人预约`
   }

@@ -16,7 +16,7 @@
 </div>
 
 > [!TIP]
-> WhatsNew 聚合 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷、爱奇艺等多来源信号，按 `作品 + 来源 + 平台 + 地区 + 窗口` 保留独立口径的热度历史，适合部署在家庭局域网或 NAS 私有网络中自用。
+> WhatsNew 聚合 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷、爱奇艺、腾讯视频等多来源信号，按 `作品 + 来源 + 平台 + 地区 + 窗口` 保留独立口径的热度历史，适合部署在家庭局域网或 NAS 私有网络中自用。
 
 ---
 
@@ -84,11 +84,11 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-国内来源请勿直接在主库试跑。使用 `npm run sandbox:prepare` 克隆当前基线到 `whatsnew_china_sandbox`，再通过 `npm run sandbox:sync -- youku` 等命令逐个来源验收；沙盒前后端分别使用 `npm run sandbox:backend` 和 `npm run sandbox:frontend`，访问 `http://127.0.0.1:19995/`。
+国内来源请勿直接在主库试跑。使用 `npm run sandbox:prepare` 克隆当前基线到 `whatsnew_china_sandbox`，再通过 `npm run sandbox:sync -- youku`、`npm run sandbox:sync -- tencent` 等命令逐个来源验收；沙盒前后端分别使用 `npm run sandbox:backend` 和 `npm run sandbox:frontend`，访问 `http://127.0.0.1:19995/`。
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 
-Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
+Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
 
 ## ⚙️ 系统设置
 
@@ -98,7 +98,7 @@ Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Prime Video、Hulu、Disney+、Apple TV+、优酷、爱奇艺、哔哩哔哩和豆瓣；Max 与芒果TV 当前受限，IMDb 使用本地 datasets 手动导入
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Prime Video、Hulu、Disney+、Apple TV+、优酷、爱奇艺、腾讯视频、哔哩哔哩和豆瓣；Max 与芒果TV 当前受限，IMDb 使用本地 datasets 手动导入
 - 已接入且凭据完整的数据源即使保持关闭，也可先预览本次原始采集摘要和样例；预览不会写入影视数据或同步运行记录
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
@@ -190,12 +190,13 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 - 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
 - 手动同步：`npm run sync:thetvdb --workspace backend`
 
-### 优酷与爱奇艺预约
+### 优酷、爱奇艺与腾讯视频预约
 
 - 优酷通过 `mtop.youku.columbus.gateway.new.execute` 的独立待播节点分页读取电影和剧集，保存预约人数、待播状态、作品链接与来源排名，不再使用频道首页
 - 爱奇艺读取 `https://www.iqiyi.com/newOnlinePCW` 的完整待播列表，保存预约人数；未上线且没有明确日期的条目仍按待播处理
-- 两个来源均属于小时组，进入主库前必须先在国内源沙盒验收；关闭来源不会删除已经采集的快照
-- 手动同步：`npm run sync:youku --workspace backend`、`npm run sync:iqiyi --workspace backend`
+- 腾讯视频向 `getMVLPage` 结构化接口提交电影和剧集频道的“即将上线”筛选，分页保存待播片单及“预约破 N 万”等下限信号；接口的 `publish_date` 只补充作品首发日期，不作为腾讯上线日期
+- 三个来源均属于小时组，进入主库前必须先在国内源沙盒验收；关闭来源不会删除已经采集的快照
+- 手动同步：`npm run sync:youku --workspace backend`、`npm run sync:iqiyi --workspace backend`、`npm run sync:tencent --workspace backend`
 
 ### 芒果TV
 

@@ -86,8 +86,8 @@ curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trendi
 | Query | Meaning |
 |---|---|
 | `movement` | `new`, `rising`, `falling`, `stable`. |
-| `source` | Source-specific signal, for example `trakt_trending`, `netflix_top10`, `youku_reserve` or `iqiyi_reserve`. |
-| `platform` | Stored signal platform label such as `Netflix`, `Trakt`, `优酷` or `爱奇艺`; use the Chinese values for domestic reservation sources. |
+| `source` | Source-specific signal, for example `trakt_trending`, `netflix_top10`, `youku_reserve`, `iqiyi_reserve` or `tencent_reserve`. |
+| `platform` | Stored signal platform label such as `Netflix`, `Trakt`, `优酷`, `爱奇艺` or `腾讯视频`; use the Chinese values for domestic reservation sources. |
 | `region` | Region code or `GLOBAL`. |
 | `mediaType` | Media type filter. |
 | `releaseForm` | Release form filter. |
@@ -125,6 +125,7 @@ Preview one active source before enabling it:
 
 ```bash
 curl -X POST http://127.0.0.1:19993/api/sources/prime_video/preview
+curl -X POST http://127.0.0.1:19993/api/sources/tencent/preview
 ```
 
 The response summarizes item counts, media types, release patterns, source scopes, date coverage, poster coverage and up to 12 samples. Preview requires complete credentials when the source needs them, but does not require the source switch to be enabled. It calls the registered adapters without creating media, release, popularity or sync-run records.

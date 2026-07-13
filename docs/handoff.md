@@ -13,7 +13,7 @@ This file is the short operational handoff for the current branch.
 - Full-stack monorepo with Express backend, Prisma/MySQL, React frontend and shared types.
 - Core entities are `MediaItem`, `MediaSourceRef`, `Release`, `PopularitySignal`, `SourceSyncRun` and `ChangeEvent`.
 - Detail route is `/media/:id`; do not use the early `show` or `/shows/:id` naming.
-- Settings page manages proxies, source enablement, source credentials, connectivity tests and manual sync.
+- Settings page manages proxies, source enablement, source credentials, connectivity tests, read-only source previews and manual sync.
 - Data source status pages poll every 5 seconds.
 - Backend startup recovers interrupted `running` source runs.
 - Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
@@ -43,6 +43,7 @@ This file is the short operational handoff for the current branch.
 | Apple TV+ | Official Press RSS feed (news_signal, filtered to film/TV). |
 | Youku | Signed MTop movie/series upcoming reservation pages (`youku_reserve`). |
 | iQIYI | Complete `newOnlinePCW` upcoming reservation page (`iqiyi_reserve`). |
+| Tencent Video | Paginated movie/series “即将上线” channel filters and reservation lower bounds (`tencent_reserve`), disabled by default. |
 | MangoTV | Blocked; the former channel-homepage modules are not accepted as upcoming/reservation data. |
 | Bilibili | China pgc bangumi/guochuang/documentary rankings (3-day composite). |
 | Douban | Movie TOP250 signal plus paginated mobile movie/TV coming-soon timelines. |
@@ -55,6 +56,7 @@ This file is the short operational handoff for the current branch.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
 - Hulu and Disney+ are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
 - Prime Video discovers the latest US monthly lineup from About Amazon, excludes sports and music, and defaults to disabled; use per-source direct mode when the inherited proxy cannot reach Amazon domains.
+- Tencent Video validates the exact TV `iyear=1` and movie `iyear=999` “即将上线” filter contract before accepting data. Its `publish_date` is not stored as a Tencent release date.
 - Max is intentionally non-runnable while the official WBD page is access-restricted; do not re-enable it until a public request succeeds.
 - Platform catalog additions are not work premieres. The calendar exposes release-pattern labels and counts unique works per day.
 - Scheduled quality maintenance reconciles conflict-free duplicate TMDb identities; startup and daily runs also remove strict inactive platform orphans.

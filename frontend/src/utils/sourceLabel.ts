@@ -9,6 +9,8 @@ const SOURCE_LABELS: Record<string, string> = {
   youku_hot: "优酷热度",
   youku_reserve: "优酷预约",
   iqiyi_reserve: "爱奇艺预约",
+  tencent: "腾讯视频",
+  tencent_reserve: "腾讯视频预约",
   netflix_top10: "Netflix Top 10",
   prime_video: "Prime Video",
   douban: "豆瓣",

@@ -16,6 +16,7 @@ describe("source catalog", () => {
       "apple_tv_plus",
       "youku",
       "iqiyi",
+      "tencent",
       "bilibili",
       "douban"
     ])
@@ -59,7 +60,14 @@ describe("source catalog", () => {
       })
     ])
     expect(getSourceDefinition("justwatch").implementationStatus).toBe("commercial")
-    expect(getSourceDefinition("tencent").supportsSync).toBe(false)
+    expect(getSourceDefinition("tencent")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["hourly"],
+      testUrl: "https://v.qq.com/channel/tv/list"
+    })
     expect(getSourceDefinition("hulu")).toMatchObject({
       implementationStatus: "active",
       supportsSync: true,
@@ -124,6 +132,9 @@ describe("source catalog", () => {
     expect((getSourceDefinition("youku") as any).semantics.signalKinds).toEqual(
       expect.arrayContaining(["release_calendar", "platform_rank"])
     )
+    expect((getSourceDefinition("tencent") as any).semantics.signalKinds).toEqual(
+      expect.arrayContaining(["release_calendar", "platform_rank"])
+    )
     expect((getSourceDefinition("justwatch") as any).semantics.access).toBe("application")
     expect((getSourceDefinition("flixpatrol") as any).semantics.access).toBe("commercial")
   })
@@ -148,9 +159,9 @@ describe("source catalog", () => {
 
   it("assigns sources to schedule groups with safe defaults", () => {
     expect(getSourceDefinition("netflix").scheduleGroups).toEqual(["daily"])
-    expect(["tvmaze", "tmdb", "youku", "iqiyi"].map((sourceId) => {
+    expect(["tvmaze", "tmdb", "youku", "iqiyi", "tencent"].map((sourceId) => {
       return getSourceDefinition(sourceId).scheduleGroups
-    })).toEqual([["hourly"], ["hourly"], ["hourly"], ["hourly"]])
+    })).toEqual([["hourly"], ["hourly"], ["hourly"], ["hourly"], ["hourly"]])
     expect(getSourceDefinition("tmdb").defaultEnabled).toBe(true)
     expect(getSourceDefinition("trakt").defaultEnabled).toBe(true)
     expect(getSourceDefinition("trakt").scheduleGroups).toEqual(["hourly", "daily"])
@@ -158,6 +169,7 @@ describe("source catalog", () => {
 
   it("defaults domestic sources to direct and international sources to inherited proxy", () => {
     expect(getSourceDefinition("youku").defaultProxyMode).toBe("direct")
+    expect(getSourceDefinition("tencent").defaultProxyMode).toBe("direct")
     expect(getSourceDefinition("tmdb").defaultProxyMode).toBe("inherit")
   })
 

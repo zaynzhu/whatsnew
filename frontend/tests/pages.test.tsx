@@ -118,6 +118,21 @@ const newSignal = {
   valueLabel: "88 list_count"
 }
 
+const tencentSignal = {
+  ...signal,
+  id: "signal-4",
+  source: "tencent_reserve",
+  sourceCategory: "official_platform",
+  platform: "腾讯视频",
+  region: "CN",
+  window: "upcoming",
+  rank: 2,
+  previousRank: 3,
+  rankDelta: 1,
+  value: 500000,
+  valueLabel: "预约破50万"
+}
+
 const sourceRun = {
   id: "source-1",
   source: "tvmaze",
@@ -280,7 +295,7 @@ const responses: Record<string, unknown> = {
     nextCursor: null
   },
   "/api/trending": {
-    items: [signal, risingSignal, newSignal]
+    items: [signal, risingSignal, newSignal, tencentSignal]
   },
   "/api/calendar": {
     items: [traktRelease, movieRelease],
@@ -496,12 +511,14 @@ describe("frontend pages", () => {
     expect(await screen.findByText("Trakt 趋势榜", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByText("TMDb 电影趋势", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getAllByRole("img", { name: "星际回声" })).toHaveLength(1)
-    expect(screen.getByText("3 个榜单")).toBeInTheDocument()
+    expect(screen.getByText("4 个榜单")).toBeInTheDocument()
     expect(screen.getByText("Heat 91")).toBeInTheDocument()
     expect(screen.getByText("#4")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
     expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByText("88 list_count")).toBeInTheDocument()
+    expect(screen.getByText("预约破50万")).toBeInTheDocument()
+    expect(screen.getByText("腾讯视频预约", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute(
       "href",
       "https://example.com/trending"
@@ -618,6 +635,19 @@ describe("frontend pages", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/trending?source=iqiyi_reserve&platform=%E7%88%B1%E5%A5%87%E8%89%BA"
+    )
+  })
+
+  it("使用接口中的中文平台值筛选腾讯视频预约", async () => {
+    const fetchMock = mockFetch()
+    const user = userEvent.setup()
+    renderRoute("/trending")
+
+    await user.selectOptions(await screen.findByLabelText("热度来源"), "tencent_reserve")
+    await user.selectOptions(screen.getByLabelText("平台"), "腾讯视频")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trending?source=tencent_reserve&platform=%E8%85%BE%E8%AE%AF%E8%A7%86%E9%A2%91"
     )
   })
 

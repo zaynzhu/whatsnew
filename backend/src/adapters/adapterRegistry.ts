@@ -15,6 +15,7 @@ import { maxAdapter } from "./maxAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
 import { primeVideoAdapter } from "./primeVideoAdapter.js"
 import { theTvdbAdapter } from "./theTvdbAdapter.js"
+import { tencentVideoAdapter } from "./tencentVideoAdapter.js"
 import { tmdbAdapter } from "./tmdbAdapter.js"
 import { traktCalendarAdapter, traktPopularityAdapter } from "./traktAdapter.js"
 import { tvmazeAdapter } from "./tvmazeAdapter.js"
@@ -79,6 +80,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "apple_tv_plus", scheduleGroup: "daily", adapter: appleTvPlusAdapter, healthPolicy: healthPolicy(["news_signal"], "daily", "popularity") },
   { sourceId: "youku", scheduleGroup: "hourly", adapter: youkuAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
+  { sourceId: "tencent", scheduleGroup: "hourly", adapter: tencentVideoAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
   { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
   { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating", "release_calendar"], "daily", "release") }
 ]

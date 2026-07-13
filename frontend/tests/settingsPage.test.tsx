@@ -209,7 +209,20 @@ const sourceFixtures = [
     }
   }),
   sourceFixture("iqiyi", "爱奇艺", { group: "china_platform", implementationStatus: "active", enabled: true, supportsSync: true, supportsEnable: true }),
-  sourceFixture("tencent", "腾讯视频", { group: "china_platform" }),
+  sourceFixture("tencent", "腾讯视频", {
+    group: "china_platform",
+    implementationStatus: "active",
+    supportsSync: true,
+    supportsEnable: true,
+    semantics: {
+      signalKinds: ["release_calendar", "platform_rank"],
+      coverage: "腾讯视频电影与剧集频道中的即将上线片单及预约下限",
+      cadence: "小时级分页检查即将上线筛选",
+      access: "public_page",
+      freshnessNote: "只代表腾讯视频频道的即将上线筛选",
+      riskNote: "网页内部结构化接口变化时停止入库"
+    }
+  }),
   sourceFixture("mango_tv", "芒果TV", { group: "china_platform" }),
   sourceFixture("bilibili", "哔哩哔哩", { group: "china_platform" }),
   sourceFixture("douban", "豆瓣", { group: "china_platform" }),

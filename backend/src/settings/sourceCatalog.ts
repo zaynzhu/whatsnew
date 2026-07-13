@@ -201,12 +201,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "依赖页面内嵌 Nuxt 数据而非开放 API；结构变化时必须停止入库并保留上次成功快照"
   },
   tencent: {
-    signalKinds: ["platform_catalog", "platform_rank"],
-    coverage: "腾讯视频剧集、综艺、动漫和热榜候选",
-    cadence: "待核对公开页面",
+    signalKinds: ["release_calendar", "platform_rank"],
+    coverage: "腾讯视频电影与剧集频道中的即将上线片单及预约下限",
+    cadence: "小时级分页检查即将上线筛选",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "页面结构和登录态可能限制采集"
+    freshnessNote: "只代表腾讯视频频道的即将上线筛选；publish_date 是作品首发日期，不作为腾讯上线日期",
+    riskNote: "使用腾讯视频网页内部结构化接口；频道 ID、筛选值或分页结构变化时必须停止入库"
   },
   mango_tv: {
     signalKinds: ["release_calendar", "platform_rank"],
@@ -295,7 +295,7 @@ export const SOURCE_CATALOG = [
   source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
   source("youku", "优酷", "电影与剧集待播预约", "china_platform", "active", "direct", true, true, "https://acs.youku.com/", [], ["hourly"], false),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], true),
-  source("tencent", "腾讯视频", "影视频道与热榜", "china_platform", "planned", "direct", false, false, "https://v.qq.com/p/tv/"),
+  source("tencent", "腾讯视频", "电影与剧集即将上线预约", "china_platform", "active", "direct", true, true, "https://v.qq.com/channel/tv/list", [], ["hourly"], false),
   source("mango_tv", "芒果TV", "App 预约节点研究中", "china_platform", "blocked", "direct", false, false, "https://www.mgtv.com/tv/", [], ["hourly"], false),
   source("bilibili", "哔哩哔哩", "番剧、国创与纪录片榜单", "china_platform", "active", "direct", true, true, "https://api.bilibili.com/pgc/season/rank/web/list?season_type=1&day=3", [], ["daily"], true),
   source("douban", "豆瓣", "TOP250 口碑与即将播出", "china_platform", "active", "direct", true, true, "https://m.douban.com/rexxar/api/v2/tv/coming_soon", [], ["daily"], false, ["DOUBAN_COOKIE"]),

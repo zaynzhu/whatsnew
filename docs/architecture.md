@@ -67,15 +67,15 @@ The heat page has one scoped exception: `iqiyi_reserve` poster URLs from `newOnl
 | Group | Active syncable sources |
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
-| International platforms | Netflix, Hulu, Disney+, Apple TV+ |
-| China platforms | Youku, iQIYI, Bilibili, Douban |
+| International platforms | Netflix, Prime Video, Hulu, Disney+, Apple TV+ |
+| China platforms | Youku, iQIYI, Tencent Video, Bilibili, Douban |
 | Local enrichment | IMDb datasets cache, manual only |
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.
 
 Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure.
 
-Youku uses the signed MTop `kuflix_node_page` reservation node for paginated movie and series upcoming lists. iQIYI uses the complete `newOnlinePCW` upcoming page. MangoTV is blocked because the former channel-homepage modules did not provide a trustworthy upcoming/reservation contract.
+Youku uses the signed MTop `kuflix_node_page` reservation node for paginated movie and series upcoming lists. iQIYI uses the complete `newOnlinePCW` upcoming page. Tencent Video posts to the `getMVLPage` structured page service and validates the exact “即将上线” option before accepting paginated movie and series cards; its `publish_date` is work metadata, not a Tencent availability date. MangoTV is blocked because the former channel-homepage modules did not provide a trustworthy upcoming/reservation contract.
 
 ## Identity And Release Semantics
 

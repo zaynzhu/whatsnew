@@ -51,6 +51,7 @@ Run one source at a time. The command hard-fails unless both `APP_ENVIRONMENT=ch
 ```bash
 npm run sandbox:sync -- youku
 npm run sandbox:sync -- iqiyi
+npm run sandbox:sync -- tencent
 npm run sandbox:sync -- bilibili
 npm run sandbox:sync -- douban
 ```
@@ -90,7 +91,7 @@ Every active source also has:
 - `SOURCE_<ID>_HTTP_PROXY`
 - `SOURCE_<ID>_HTTPS_PROXY`
 
-Platform page adapters may also use source base URL overrides such as `SOURCE_PRIME_VIDEO_BASE_URL`, `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL` and `SOURCE_NETFLIX_BASE_URL`.
+Platform page adapters may also use source base URL overrides such as `SOURCE_PRIME_VIDEO_BASE_URL`, `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL`, `SOURCE_NETFLIX_BASE_URL` and `SOURCE_TENCENT_BASE_URL`.
 
 ## Manual Sync
 
@@ -106,6 +107,7 @@ npm run sync:disney-plus --workspace backend
 npm run sync:max --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
+npm run sync:tencent --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
 npm run sync:douban --workspace backend
@@ -127,7 +129,7 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 
 | Group | Default cron | Sources |
 |---|---|---|
-| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI |
+| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI, Tencent Video |
 | Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Prime Video, Hulu, Disney+, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
@@ -139,6 +141,8 @@ Max is currently classified as restricted because WBD Pressroom requires login o
 Prime Video discovers the newest official monthly article from the About Amazon entertainment page, then imports only dated US movie and series entries. Live sports, live music and entries with ambiguous media types are intentionally skipped. The source defaults to disabled and may need a per-source direct network mode when the inherited proxy cannot reach Amazon domains.
 
 MangoTV is also blocked. Its former channel-homepage modules did not provide a stable upcoming/reservation contract; do not run `sync:mango-tv` as a production source.
+
+Tencent Video is disabled by default. It reads the internal `getMVLPage` page service with the exact TV `channel_id=100113, iyear=1` and movie `channel_id=100173, iyear=999` “即将上线” filters. The adapter stops instead of importing when those labels, filter values or pagination context change. `publish_date` is retained only as possible work-premiere metadata; Tencent release rows remain undated until the platform exposes a trustworthy availability date.
 
 All normal source reads use the shared HTTP client with a two-second minimum interval per origin. Safe `GET`, `HEAD` and `OPTIONS` requests make at most two attempts when the first attempt fails because of a network error, timeout, HTTP 408, HTTP 429 or HTTP 5xx. Ordinary HTTP 4xx responses and non-idempotent requests are not retried automatically.
 
