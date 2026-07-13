@@ -46,6 +46,7 @@ npm run prisma:push --workspace backend
 - 所有外部 API 请求必须使用统一限频机制，同一服务连续请求间隔不低于 2 秒
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
+- Netflix 当前榜单优先读取 Tudum 四个页面路由；只有四类同周且每类完整包含 1–10 名时才采用，否则整批回退官方 XLSX。XLSX 距当前时间超过 14 天时必须拒绝降级同步，不能覆盖更新的现有快照。页面发行年份允许以 `YYYY` 精度写入匹配字段，横版 `sdpArt` / `storyArt` 不得写入竖版海报字段；完整榜单同步必须停用已下榜的 Netflix 来源引用
 - TVmaze 普通电视排期与 Web 排期可能返回同一 episode，合并结果必须按稳定 episode ID 去重后再写入 `Release`
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
 - 国内来源先在 `whatsnew_china_sandbox` 验收；沙盒强制关闭调度和全部来源，禁止把沙盒业务数据复制回主库

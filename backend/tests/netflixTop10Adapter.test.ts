@@ -21,6 +21,12 @@ const COLUMNS = [
   "weekly_views",
   "cumulative_weeks_in_top_10"
 ]
+const PAGE_CATEGORY_KEYS: Record<string, string> = {
+  "Films (English)": "ENGLISH_MOVIES",
+  "Films (Non-English)": "NONENGLISH_MOVIES",
+  "TV (English)": "ENGLISH_SERIES",
+  "TV (Non-English)": "NONENGLISH_SERIES"
+}
 
 function fakeSettings(values: Record<string, string>): RuntimeSettingsService {
   return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-whatsnew-env"), values)
@@ -45,6 +51,65 @@ async function workbookBuffer(options: {
   }
 
   return Buffer.from(await workbook.xlsx.writeBuffer())
+}
+
+function pageWithRows(
+  category: keyof typeof PAGE_CATEGORY_KEYS,
+  options: { count?: number; week?: string } = {}
+): string {
+  const count = options.count ?? 10
+  const isSeries = category.startsWith("TV (")
+  const prefix = category === "Films (English)"
+    ? "English Film"
+    : category === "Films (Non-English)"
+      ? "International Film"
+      : category === "TV (English)"
+        ? "English Series"
+        : "International Series"
+  const data = Object.fromEntries(Array.from({ length: count }, (_, index) => {
+    const rank = index + 1
+    const displayTitle = `${prefix} ${rank}`
+    const title = isSeries ? `${displayTitle}: Season 2` : displayTitle
+    return [`item-${rank}`, {
+      __typename: "PulseTop10ItemEntity",
+      top10: {
+        weekEndDate: options.week ?? "2026-07-05",
+        category: PAGE_CATEGORY_KEYS[category],
+        weeklyRank: rank,
+        weeklyHoursViewed: 20_000_000 - rank,
+        runtime: 2,
+        weeklyViews: 10_000_000 - rank,
+        cumulativeWeeksInTop10: rank,
+        videoId: 81_000_000 + rank
+      },
+      top10Video: {
+        title,
+        releaseYear: 2026,
+        shortSynopsis: `${displayTitle} synopsis`
+      },
+      displayVideo: {
+        title: displayTitle,
+        titlePageSlug: `/title-${rank}`
+      },
+      artwork: {
+        sdpArt: {
+          'urlsSized({"sizes":{"height":219,"width":390}})': [{
+            url: `https://dnm.nflximg.net/${rank}.jpg`
+          }]
+        }
+      }
+    }]
+  }))
+  const payload = JSON.stringify({ data })
+  const encoded = JSON.stringify(payload).slice(1, -1).replaceAll("'", "\\'")
+  return `<script>netflix.reactContext.models.graphql = JSON.parse('${encoded}');</script>`
+}
+
+function categoryForPageUrl(url: string): keyof typeof PAGE_CATEGORY_KEYS {
+  if (url.endsWith("/films-non-english")) return "Films (Non-English)"
+  if (url.endsWith("/tv-non-english")) return "TV (Non-English)"
+  if (url.endsWith("/tv")) return "TV (English)"
+  return "Films (English)"
 }
 
 afterEach(() => {
@@ -84,9 +149,12 @@ describe("Netflix Top 10 parser", () => {
 })
 
 describe("Netflix Top 10 adapter", () => {
-  it("maps all four official categories to movies and series", async () => {
+  it("maps four complete page categories with identity metadata", async () => {
     const httpClient = {
-      fetchBuffer: vi.fn(async () => workbookBuffer())
+      fetchText: vi.fn(async (_source: string, url: string) => {
+        return pageWithRows(categoryForPageUrl(url))
+      }),
+      fetchBuffer: vi.fn()
     } as unknown as SourceHttpClient
     const adapter = createNetflixTop10Adapter({
       httpClient,
@@ -94,23 +162,21 @@ describe("Netflix Top 10 adapter", () => {
       minIntervalMs: 0
     })
 
-    const items = await adapter.fetchItems()
+    const batch = await adapter.fetchItems()
+    const items = batch.items
 
-    expect(items).toHaveLength(4)
-    expect(items.map((item) => item.media.mediaType)).toEqual([
-      "movie",
-      "movie",
-      "series",
-      "series"
-    ])
-    expect(items.map((item) => item.media.releaseForm)).toEqual([
-      "streaming_movie",
-      "streaming_movie",
-      "tv_series",
-      "tv_series"
-    ])
-    expect(items[2].media.titleAliases).toEqual(["Series One: Season 2"])
-    expect(items[2].popularitySignals[0]).toMatchObject({
+    expect(items).toHaveLength(40)
+    expect(items.slice(0, 20).every((item) => item.media.mediaType === "movie")).toBe(true)
+    expect(items.slice(20).every((item) => item.media.mediaType === "series")).toBe(true)
+    expect(items[20].media).toMatchObject({
+      sourceId: "netflix:TV (English):English Series 1:English Series 1: Season 2",
+      titleDisplay: "English Series 1",
+      titleAliases: ["English Series 1: Season 2"],
+      overview: "English Series 1 synopsis",
+      firstReleaseDate: "2026",
+      posterUrl: null
+    })
+    expect(items[20].popularitySignals[0]).toMatchObject({
       source: "netflix_top10",
       sourceCategory: "official_platform",
       platform: "Netflix",
@@ -118,47 +184,97 @@ describe("Netflix Top 10 adapter", () => {
       window: "week",
       rankingScope: "tv_english",
       rank: 1,
-      value: 12_500_000,
-      capturedAt: new Date("2026-06-14T00:00:00.000Z")
+      value: 9_999_999,
+      sourceUrl: "https://www.netflix.com/tudum/top10/tv",
+      capturedAt: new Date("2026-07-05T00:00:00.000Z")
     })
-    expect(items[2].popularitySignals[0].valueLabel).toContain("12,500,000 次观看")
-    expect(httpClient.fetchBuffer).toHaveBeenCalledWith(
+    expect(items[20].popularitySignals[0].valueLabel).toContain("9,999,999 次观看")
+    expect(httpClient.fetchText).toHaveBeenCalledTimes(4)
+    expect(httpClient.fetchText).toHaveBeenNthCalledWith(
+      4,
       "netflix",
-      "https://www.netflix.com/tudum/top10/data/all-weeks-global.xlsx",
+      "https://www.netflix.com/tudum/top10/tv-non-english",
       {
-        timeoutMs: 10000,
+        timeoutMs: 30000,
         settingsOverride: expect.objectContaining({
           HTTPS_PROXY: "http://proxy.test:7890",
           SOURCE_NETFLIX_PROXY_MODE: "inherit"
         })
       }
     )
+    expect(httpClient.fetchBuffer).not.toHaveBeenCalled()
+    expect(batch.completeMediaSources).toEqual(["netflix"])
+    expect(batch.completePopularitySources).toEqual(["netflix_top10"])
   })
 
-  it("starts consecutive downloads at least two seconds apart", async () => {
+  it("falls back to the workbook when any page category is incomplete", async () => {
+    const httpClient = {
+      fetchText: vi.fn(async () => pageWithRows("Films (English)", { count: 9 })),
+      fetchBuffer: vi.fn(async () => workbookBuffer())
+    } as unknown as SourceHttpClient
+    const adapter = createNetflixTop10Adapter({
+      httpClient,
+      settings: fakeSettings({}),
+      minIntervalMs: 0,
+      now: () => new Date("2026-06-21T00:00:00.000Z")
+    })
+
+    const items = (await adapter.fetchItems()).items
+
+    expect(items).toHaveLength(4)
+    expect(httpClient.fetchText).toHaveBeenCalledTimes(1)
+    expect(httpClient.fetchBuffer).toHaveBeenCalledWith(
+      "netflix",
+      "https://www.netflix.com/tudum/top10/data/all-weeks-global.xlsx",
+      expect.objectContaining({ timeoutMs: 10000 })
+    )
+    expect(items.every((item) => item.media.firstReleaseDate == null)).toBe(true)
+  })
+
+  it("rejects a stale workbook fallback instead of regressing the current snapshot", async () => {
+    const httpClient = {
+      fetchText: vi.fn(async () => pageWithRows("Films (English)", { count: 9 })),
+      fetchBuffer: vi.fn(async () => workbookBuffer())
+    } as unknown as SourceHttpClient
+    const adapter = createNetflixTop10Adapter({
+      httpClient,
+      settings: fakeSettings({}),
+      minIntervalMs: 0,
+      now: () => new Date("2026-07-14T00:00:00.000Z")
+    })
+
+    await expect(adapter.fetchItems()).rejects.toThrow("Netflix Top 10 官方 XLSX 回退数据过旧")
+  })
+
+  it("starts consecutive page requests at least two seconds apart", async () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] })
     vi.setSystemTime(new Date("2026-06-21T00:00:10Z"))
     const starts: number[] = []
-    const buffer = await workbookBuffer()
     const httpClient = {
-      fetchBuffer: vi.fn(async () => {
+      fetchText: vi.fn(async (_source: string, url: string) => {
         starts.push(Date.now())
-        return buffer
-      })
+        return pageWithRows(categoryForPageUrl(url))
+      }),
+      fetchBuffer: vi.fn()
     } as unknown as SourceHttpClient
     const adapter = createNetflixTop10Adapter({
       httpClient,
       settings: fakeSettings({})
     })
 
-    await adapter.fetchItems()
-    const second = adapter.fetchItems()
+    const result = adapter.fetchItems()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(starts).toHaveLength(1)
     await vi.advanceTimersByTimeAsync(1999)
     expect(starts).toHaveLength(1)
     await vi.advanceTimersByTimeAsync(1)
-    await second
-
     expect(starts).toHaveLength(2)
-    expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(2000)
+    await vi.advanceTimersByTimeAsync(4000)
+    await result
+
+    expect(starts).toHaveLength(4)
+    for (let index = 1; index < starts.length; index += 1) {
+      expect(starts[index] - starts[index - 1]).toBeGreaterThanOrEqual(2000)
+    }
   })
 })

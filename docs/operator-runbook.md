@@ -95,7 +95,7 @@ Every active source also has:
 - `SOURCE_<ID>_HTTP_PROXY`
 - `SOURCE_<ID>_HTTPS_PROXY`
 
-Platform page adapters may also use source base URL overrides such as `SOURCE_PRIME_VIDEO_BASE_URL`, `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL`, `SOURCE_NETFLIX_BASE_URL` and `SOURCE_TENCENT_BASE_URL`.
+Platform page adapters may also use source base URL overrides such as `SOURCE_PRIME_VIDEO_BASE_URL`, `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL`, `SOURCE_NETFLIX_BASE_URL` and `SOURCE_TENCENT_BASE_URL`. Netflix uses the fixed Tudum Top 10 page routes as its primary current-week feed; `SOURCE_NETFLIX_BASE_URL` overrides only the official XLSX fallback.
 
 ## Manual Sync
 

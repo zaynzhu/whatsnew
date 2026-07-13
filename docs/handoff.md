@@ -61,7 +61,7 @@ This file is the short operational handoff for the current branch.
 | TMDb | Movies, TV, trends and metadata. |
 | Trakt | Popularity and 14-day movie/series calendar. |
 | TheTVDB | Free-only metadata updates, disabled by default. |
-| Netflix | Official global weekly Top 10 XLSX. |
+| Netflix | Current Tudum Top 10 pages with complete four-chart validation; official global XLSX fallback. |
 | Prime Video | Official About Amazon US monthly movie and series lineup. |
 | Hulu | Official press schedule. |
 | Disney+ | Official New to Disney+ article. |
