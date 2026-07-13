@@ -2825,6 +2825,49 @@ h1 {
   color: var(--red);
 }
 
+.posterSourceBreakdown {
+  margin-top: 18px;
+}
+
+.posterSourceBreakdown > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.posterSourceRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.8fr) minmax(120px, 3fr) 36px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.posterSourceRow > span {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.posterSourceRow > strong {
+  text-align: right;
+}
+
+.posterSourceTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.posterSourceTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--amber);
+}
+
 .posterHealthSamples {
   margin-top: 18px;
 }

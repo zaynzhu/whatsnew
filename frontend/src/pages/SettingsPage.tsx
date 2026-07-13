@@ -326,6 +326,12 @@ export function SettingsPage() {
   const posterHealth = typeof posterHealthQuery.data?.coveragePercent === "number"
     ? posterHealthQuery.data
     : null
+  const largestMissingSourceCount = posterHealth?.missingBySource[0]?.count ?? 0
+  const sourceNames = new Map(settingsQuery.data.sources.map((source) => [source.id, source.name]))
+
+  function sourceName(sourceId: string): string {
+    return sourceNames.get(sourceId) ?? sourceId
+  }
 
   return (
     <main className="page settingsLayout">
@@ -668,6 +674,23 @@ export function SettingsPage() {
                 孤立文件 {posterHealth.cache.orphanedFiles + posterHealth.cache.variants.orphanedFiles}
               </span>
             </div>
+
+            {posterHealth.missingBySource.length > 0 ? (
+              <section className="posterSourceBreakdown" aria-labelledby="missing-poster-sources-heading">
+                <strong id="missing-poster-sources-heading">缺图来源分布</strong>
+                <div>
+                  {posterHealth.missingBySource.map((item) => (
+                    <div className="posterSourceRow" key={item.source}>
+                      <span>{sourceName(item.source)}</span>
+                      <div className="posterSourceTrack" aria-hidden="true">
+                        <i style={{ width: `${largestMissingSourceCount > 0 ? item.count / largestMissingSourceCount * 100 : 0}%` }} />
+                      </div>
+                      <strong>{item.count}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {posterHealth.samples.missing.length > 0 ? (
               <div className="posterHealthSamples">

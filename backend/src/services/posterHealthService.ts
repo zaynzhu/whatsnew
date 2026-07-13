@@ -29,6 +29,10 @@ export type PosterHealthResponse = {
   withPoster: number
   missing: number
   coveragePercent: number
+  missingBySource: Array<{
+    source: string
+    count: number
+  }>
   statuses: {
     unverified: number
     healthy: number
@@ -169,6 +173,18 @@ function cooldownExpiry(row: { posterLookupAttemptedAt: Date | null } | null): s
   return new Date(row.posterLookupAttemptedAt.getTime() + POSTER_LOOKUP_RETRY_DAYS * DAY_MS).toISOString()
 }
 
+function countMissingBySource(rows: Array<{ sourceRefs: Array<{ source: string }> }>): PosterHealthResponse["missingBySource"] {
+  const counts = new Map<string, number>()
+  for (const row of rows) {
+    for (const source of new Set(row.sourceRefs.map((sourceRef) => sourceRef.source))) {
+      counts.set(source, (counts.get(source) ?? 0) + 1)
+    }
+  }
+  return [...counts.entries()]
+    .map(([source, count]) => ({ source, count }))
+    .sort((left, right) => right.count - left.count || left.source.localeCompare(right.source))
+}
+
 export function createPosterHealthService(options: PosterHealthServiceOptions) {
   const database = options.database
   const cacheDir = options.cacheDir ?? POSTER_CACHE_DIR
@@ -221,6 +237,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         replacementRetryEligible,
         nextLookupCooldown,
         nextReplacementCooldown,
+        missingSourceRows,
         brokenSamples,
         degradedSamples,
         missingSamples,
@@ -252,6 +269,15 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] },
           orderBy: { posterLookupAttemptedAt: "asc" },
           select: { posterLookupAttemptedAt: true }
+        }),
+        database.mediaItem.findMany({
+          where: missingPosterWhere,
+          select: {
+            sourceRefs: {
+              where: { isActive: true },
+              select: { source: true }
+            }
+          }
         }),
         database.mediaItem.findMany({
           where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "broken" },
@@ -287,6 +313,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         withPoster,
         missing,
         coveragePercent: total > 0 ? Math.round(withPoster / total * 1000) / 10 : 0,
+        missingBySource: countMissingBySource(missingSourceRows),
         statuses: { unverified, healthy, degraded, broken },
         quality: {
           unknown: qualityUnknown,

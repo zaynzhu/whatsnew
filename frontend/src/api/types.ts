@@ -46,6 +46,10 @@ export type PosterHealthResponse = {
   withPoster: number
   missing: number
   coveragePercent: number
+  missingBySource: Array<{
+    source: string
+    count: number
+  }>
   statuses: {
     unverified: number
     healthy: number

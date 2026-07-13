@@ -91,6 +91,7 @@ describe("PosterHealthService", () => {
       withPoster: 8,
       missing: 2,
       coveragePercent: 80,
+      missingBySource: [{ source: "netflix", count: 1 }],
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
       quality: { unknown: 4, adequate: 3, undersized: 1 },
       lookup: {

@@ -82,6 +82,7 @@ describe("api routes", () => {
       withPoster: 0,
       missing: 4,
       coveragePercent: 0,
+      missingBySource: expect.any(Array),
       statuses: {
         unverified: 0,
         healthy: 0,

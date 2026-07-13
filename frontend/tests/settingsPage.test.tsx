@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
@@ -249,6 +249,11 @@ const posterHealthResponse: PosterHealthResponse = {
   withPoster: 707,
   missing: 150,
   coveragePercent: 82.5,
+  missingBySource: [
+    { source: "hulu", count: 109 },
+    { source: "douban", count: 29 },
+    { source: "trakt", count: 12 }
+  ],
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
   quality: { unknown: 630, adequate: 70, undersized: 7 },
   lookup: {
@@ -390,6 +395,10 @@ describe("SettingsPage", () => {
     expect(screen.getByText("418 张")).toBeInTheDocument()
     expect(screen.getByText("30 / 512 MB")).toBeInTheDocument()
     expect(screen.getByText("孤立文件 1")).toBeInTheDocument()
+    const sourceBreakdown = screen.getByRole("region", { name: "缺图来源分布" })
+    expect(within(sourceBreakdown).getByText("Hulu")).toBeInTheDocument()
+    expect(within(sourceBreakdown).getByText("109")).toBeInTheDocument()
+    expect(within(sourceBreakdown).getByText("豆瓣")).toBeInTheDocument()
     expect(screen.getByText("低清 7")).toBeInTheDocument()
     expect(screen.getByText("缺图冷却中")).toBeInTheDocument()
     expect(screen.getByText("130")).toBeInTheDocument()
