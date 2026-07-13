@@ -78,7 +78,8 @@ export function MediaDetailPage() {
             mediaId={data.id}
             posterUrl={data.posterUrl}
             title={data.titleDisplay}
-            fallbackLabel={data.mediaType}
+            fallbackLabel={data.titleDisplay}
+            status={data.status}
             sizes="164px"
           />
         </div>

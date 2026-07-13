@@ -115,6 +115,7 @@ Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默�
 - 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
 - 显式人工复核后可忽略 3 天窗口重试：`npm run enrich:posters --workspace backend -- --limit=20 --force`；匹配规则不会因此放宽
 - 前端所有海报默认通过 `srcset` 请求 `GET /api/media/:id/poster?width=320|640|960`；浏览器按展示位和屏幕像素密度选择尺寸，代理失败时回退原始地址
+- 全站缺图位区分三种真实状态：待播作品没有官方素材时显示“海报待发布”，普通缺图显示“暂无海报”，代理与原图均加载失败时显示“图片暂不可用”
 - 后端原图按图片 URL 缓存到 `backend/.cache/posters/`，响应式 WebP 变体缓存到 `backend/.cache/poster-variants/`；变体只缩小、不放大，避免把低清原图伪装成高清图
 - 原图缓存默认限制为 2 GB，响应式缓存默认限制为 512 MB；启动同步和每日调度会在超限时按最旧条目清理到各自上限的 90%，一小时写入保护期避免误删正在生成的文件
 - 爱奇艺 adapter 会把官方图域上已知的 `120×160` / `141×188` 竖版缩略图规范为 `579×772` 后入库，让后续同步的数据在全站使用高清原图；已有低清记录只接受同一稳定来源身份、同一素材 ID 的高清替换。热度页继续保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案

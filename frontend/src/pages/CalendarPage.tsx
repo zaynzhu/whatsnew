@@ -255,6 +255,7 @@ export function CalendarPage() {
                         mediaId={featured.mediaItem.id}
                         posterUrl={featured.mediaItem.posterUrl}
                         title={featured.mediaItem.titleDisplay}
+                        status={featured.mediaItem.status}
                       />
                     </div>
                   ) : null}
@@ -281,6 +282,7 @@ export function CalendarPage() {
                             mediaId={release.mediaItem.id}
                             posterUrl={release.mediaItem.posterUrl}
                             title={release.mediaItem.titleDisplay}
+                            status={release.mediaItem.status}
                           />
                         </span>
                       ))}
@@ -323,6 +325,7 @@ export function CalendarPage() {
                         mediaId={release.mediaItem.id}
                         posterUrl={release.mediaItem.posterUrl}
                         title={release.mediaItem.titleDisplay}
+                        status={release.mediaItem.status}
                       />
                       <span>{platformLabel(release.platform)}</span>
                     </Link>

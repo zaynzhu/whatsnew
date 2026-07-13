@@ -17,6 +17,7 @@ export function MediaCard({ item }: { item: MediaCardItem }) {
             posterUrl={item.posterUrl}
             title={item.titleDisplay}
             fallbackLabel={item.titleDisplay}
+            status={item.status}
           />
         </div>
         <div className="mediaCardBody">

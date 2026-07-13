@@ -64,6 +64,7 @@ export function DashboardPage() {
               posterUrl={heroItem.posterUrl}
               title={heroItem.titleDisplay}
               fallbackLabel={heroItem.titleDisplay}
+              status={heroItem.status}
               priority
               proxyFirst
               sizes="100vw"
@@ -97,6 +98,7 @@ export function DashboardPage() {
                   posterUrl={heroItem.posterUrl}
                   title={heroItem.titleDisplay}
                   fallbackLabel={heroItem.titleDisplay}
+                  status={heroItem.status}
                   priority
                   proxyFirst
                   sizes="(max-width: 760px) 88vw, 42vw"
@@ -126,6 +128,7 @@ export function DashboardPage() {
                     posterUrl={item.posterUrl}
                     title={item.titleDisplay}
                     fallbackLabel={item.titleDisplay}
+                    status={item.status}
                   />
                 </div>
               </Link>

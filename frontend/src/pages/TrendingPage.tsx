@@ -286,6 +286,7 @@ export function TrendingPage() {
                       posterUrl={posterUrl}
                       title={mediaItem.titleDisplay}
                       fallbackLabel={mediaItem.titleDisplay}
+                      status={mediaItem.status}
                       priority={index < 5}
                       proxyFirst={primarySignal.source !== "iqiyi_reserve"}
                     />

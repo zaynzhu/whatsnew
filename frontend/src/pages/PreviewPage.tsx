@@ -236,6 +236,7 @@ function PreviewPoster({
           posterUrl={release.mediaItem.posterUrl}
           title={release.mediaItem.titleDisplay}
           fallbackLabel={release.mediaItem.titleDisplay}
+          status={release.mediaItem.status}
         />
         {isHot ? (
           <span className="previewHotBadge">
@@ -270,6 +271,7 @@ function PreviewDrawer({ release, onClose }: { release: PreviewReleaseRow, onClo
             posterUrl={release.mediaItem.posterUrl}
             title={release.mediaItem.titleDisplay}
             fallbackLabel={release.mediaItem.titleDisplay}
+            status={release.mediaItem.status}
             priority
           />
         </div>

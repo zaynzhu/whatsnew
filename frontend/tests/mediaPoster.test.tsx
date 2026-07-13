@@ -54,6 +54,33 @@ describe("MediaPoster", () => {
     fireEvent.error(directImage)
 
     expect(screen.getByText("movie")).toBeInTheDocument()
+    expect(screen.getByText("图片暂不可用")).toBeInTheDocument()
+  })
+
+  it("distinguishes an unpublished upcoming poster from a missing released poster", () => {
+    const { rerender } = render(
+      <MediaPoster
+        mediaId="media-upcoming"
+        posterUrl={null}
+        title="未来新剧"
+        fallbackLabel="未来新剧"
+        status="upcoming"
+      />
+    )
+
+    expect(screen.getByRole("img", { name: "海报待发布：未来新剧" })).toBeInTheDocument()
+
+    rerender(
+      <MediaPoster
+        mediaId="media-released"
+        posterUrl={null}
+        title="已上映电影"
+        fallbackLabel="已上映电影"
+        status="released"
+      />
+    )
+
+    expect(screen.getByRole("img", { name: "暂无海报：已上映电影" })).toBeInTheDocument()
   })
 
   it("keeps direct-first posters free from proxy variants", () => {

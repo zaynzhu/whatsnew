@@ -114,6 +114,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 3 days
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
 - Frontend posters use `srcset` with `GET /api/media/:id/poster?width=320|640|960`; the browser selects a suitable size and falls back to the original URL if the proxy fails
+- Poster slots distinguish unpublished upcoming artwork, ordinary missing artwork and a poster that failed through both proxy and direct delivery
 - Original images cache under `backend/.cache/posters/`; responsive WebP variants cache separately under `backend/.cache/poster-variants/`, only shrink and never upscale a low-resolution source
 - The original cache defaults to 2 GB and the responsive cache to 512 MB. Startup and daily maintenance evict each cache's oldest complete entries to 90% when over capacity while protecting files written within the last hour
 - The iQIYI adapter normalizes known `120×160` and `141×188` official portrait thumbnails to `579×772` before persistence. Existing rows accept that upgrade only for the same stable source identity and asset ID; direct-first loading on the heat page is only a legacy fallback

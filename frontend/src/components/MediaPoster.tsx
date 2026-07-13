@@ -1,3 +1,4 @@
+import type { MediaStatus } from "@whatsnew/shared/media"
 import { useEffect, useState } from "react"
 
 type PosterMode = "direct" | "proxy" | "failed"
@@ -7,6 +8,7 @@ type MediaPosterProps = {
   posterUrl: string | null
   title: string
   fallbackLabel: string
+  status?: MediaStatus
   priority?: boolean
   proxyFirst?: boolean
   sizes?: string
@@ -17,6 +19,7 @@ export function MediaPoster({
   posterUrl,
   title,
   fallbackLabel,
+  status,
   priority = false,
   proxyFirst = true,
   sizes = "(max-width: 760px) 50vw, 20vw"
@@ -29,7 +32,23 @@ export function MediaPoster({
     setMode(posterUrl ? primaryMode : "failed")
   }, [mediaId, posterUrl, primaryMode])
 
-  if (!posterUrl || mode === "failed") return <span>{fallbackLabel}</span>
+  if (!posterUrl || mode === "failed") {
+    const fallbackHint = mode === "failed" && posterUrl
+      ? "图片暂不可用"
+      : status === "upcoming"
+        ? "海报待发布"
+        : "暂无海报"
+    return (
+      <span
+        aria-label={`${fallbackHint}：${title}`}
+        className="mediaPosterFallback"
+        role="img"
+      >
+        <small>{fallbackHint}</small>
+        <strong>{fallbackLabel}</strong>
+      </span>
+    )
+  }
 
   const proxyBaseUrl = `/api/media/${mediaId}/poster`
   const src = mode === "proxy" ? `${proxyBaseUrl}?width=640` : posterUrl
