@@ -499,6 +499,29 @@ describe("runSourceSync", () => {
     expect((await prisma.release.findFirstOrThrow()).episodeTitle).toBe("新的开始")
   })
 
+  it("写入前按日期规范排期状态", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-13T08:00:00+08:00"))
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-12", "upcoming"))
+    await expect(prisma.release.findFirstOrThrow()).resolves.toMatchObject({
+      releaseDate: "2026-07-12",
+      releaseStatus: "available"
+    })
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-13", "upcoming"))
+    await expect(prisma.release.findFirstOrThrow()).resolves.toMatchObject({
+      releaseDate: "2026-07-13",
+      releaseStatus: "airing_today"
+    })
+
+    await runSourceSync(prisma, adapterWithFutureRelease("2026-07-20", "available"))
+    await expect(prisma.release.findFirstOrThrow()).resolves.toMatchObject({
+      releaseDate: "2026-07-20",
+      releaseStatus: "upcoming"
+    })
+  })
+
   it("deactivates an explicitly complete empty popularity snapshot", async () => {
     await runSourceSync(prisma, adapterWithRank(2))
     await runSourceSync(prisma, {

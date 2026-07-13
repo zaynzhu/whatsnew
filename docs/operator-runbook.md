@@ -210,6 +210,7 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | IMDb says missing cache dir | Set `IMDB_DATASET_CACHE_DIR`, run `download:imdb`, then `sync:imdb`. |
 | TheTVDB asks for paid access | Do not implement paid fallback. Only free project API Key is allowed. |
 | A past premiere still shows `即将上线` | Run `reconcile:media-statuses` as a dry run, inspect transitions, then apply it. Platform availability dates remain separate release rows. |
+| A past release row still shows `即将上线` or `今日播出` | Run `reconcile:release-statuses` as a dry run, inspect transitions, then apply it. Explicit delayed and ended rows are preserved. |
 | A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles wait 7 days and intentionally keep the placeholder. |
 | Poster endpoint returns `502` | Check global proxy connectivity and the remote image host. Remove that URL's cache only after confirming the stored response is invalid. |
 | Poster health shows `degraded` | An expired cache copy is still usable or the first upstream attempt failed. Let the cooldown expire before retrying. |
@@ -230,13 +231,17 @@ Preview data-quality maintenance before applying it manually:
 
 ```bash
 npm run reconcile:media-statuses --workspace backend
+npm run reconcile:release-statuses --workspace backend
 npm run reconcile:duplicate-identities --workspace backend
 npm run cleanup:platform-orphans --workspace backend
 npm run reconcile:media-statuses --workspace backend -- --apply
+npm run reconcile:release-statuses --workspace backend -- --apply
 npm run reconcile:duplicate-identities --workspace backend -- --apply
 npm run cleanup:platform-orphans --workspace backend -- --apply
 ```
 
 `reconcile:media-statuses` repairs only exact-date contradictions: a future first release becomes `upcoming`, and an `upcoming` work whose first-release date has arrived becomes `released`. It does not infer `ongoing`, `returning` or `ended`, and it does not alter platform-specific release rows. The same reconciliation runs automatically after initial, hourly and daily source batches.
+
+`reconcile:release-statuses` advances exact-dated release rows to `upcoming`, `airing_today` or `available` according to the current local date. Explicit same-day `available`, `delayed` and `ended` states are retained. The same rule is applied before every release write and during scheduled data-quality maintenance.
 
 `reconcile:duplicate-identities` reports `tmdbIdentity`, `uniqueTitle` and `sharedDateTitle` separately. `uniqueTitle` applies only when one external identity is uniquely anchored; `sharedDateTitle` requires at least two independent sources to agree on exact title, type and first-release date. `ambiguous` entries are never merged automatically. Always inspect the dry-run samples before using `--apply` on a new dataset.

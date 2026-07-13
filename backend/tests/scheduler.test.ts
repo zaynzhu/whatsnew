@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   reconcileMediaStatuses: vi.fn(async () => ({ scanned: 0, matched: 0, updated: 0 })),
+  reconcileReleaseStatuses: vi.fn(async () => ({ scanned: 0, matched: 0, updated: 0 })),
   reconcileDuplicateTmdbIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   reconcileUniqueTitleIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   reconcileSharedDateTitles: vi.fn(async () => ({ groups: 0, merged: 0 })),
@@ -133,6 +134,10 @@ vi.mock("../src/services/mediaStatusReconciliationService.js", () => ({
   reconcileMediaStatuses: mocks.reconcileMediaStatuses
 }))
 
+vi.mock("../src/services/releaseStatusReconciliationService.js", () => ({
+  reconcileReleaseStatuses: mocks.reconcileReleaseStatuses
+}))
+
 vi.mock("../src/services/duplicateIdentityService.js", () => ({
   reconcileDuplicateTmdbIdentities: mocks.reconcileDuplicateTmdbIdentities,
   reconcileUniqueTitleIdentities: mocks.reconcileUniqueTitleIdentities,
@@ -187,6 +192,10 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
+      database: mocks.db,
+      apply: true
+    })
+    expect(mocks.reconcileReleaseStatuses).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
     })
@@ -253,6 +262,10 @@ describe("scheduler", () => {
       limit: 40
     })
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
+      database: mocks.db,
+      apply: true
+    })
+    expect(mocks.reconcileReleaseStatuses).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
     })
@@ -339,6 +352,10 @@ describe("scheduler", () => {
         limit: 40
       })
       expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
+        database: mocks.db,
+        apply: true
+      })
+      expect(mocks.reconcileReleaseStatuses).toHaveBeenCalledWith({
         database: mocks.db,
         apply: true
       })

@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client"
 import { findBestMatch } from "../domain/matcher.js"
 import { normalizeMediaStatusForDate } from "../domain/mediaStatus.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
+import { normalizeReleaseStatusForDate } from "../domain/releaseStatus.js"
 import type {
   AdapterItem,
   ExistingMediaCandidate,
@@ -303,7 +304,15 @@ async function upsertItem(
     }
   })
 
-  const releaseSources = uniqueValues(item.releases.map((release) => release.source))
+  const normalizedReleases = item.releases.map((release) => ({
+    ...release,
+    releaseStatus: normalizeReleaseStatusForDate(
+      release.releaseStatus,
+      release.releaseDate,
+      formatLocalDate(startedAt)
+    )
+  }))
+  const releaseSources = uniqueValues(normalizedReleases.map((release) => release.source))
   if (releaseSources.length > 0) {
     // 在全量替换前读出旧 release 作为对比基线，用于生成定档 / 改档事件
     const previousReleases = await prisma.release.findMany({
@@ -329,7 +338,7 @@ async function upsertItem(
     })
 
     await prisma.release.createMany({
-      data: item.releases.map((release) => ({
+      data: normalizedReleases.map((release) => ({
         mediaItemId: mediaItem.id,
         ...release,
         episodeTitle: release.episodeTitle ?? null
@@ -340,7 +349,7 @@ async function upsertItem(
       prisma,
       mediaItem.id,
       mediaItem.titleDisplay,
-      item.releases,
+      normalizedReleases,
       previousReleases,
       startedAt
     )

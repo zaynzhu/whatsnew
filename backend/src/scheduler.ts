@@ -11,6 +11,7 @@ import { reconcileMediaStatuses } from "./services/mediaStatusReconciliationServ
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
 import { verifyPosterImages } from "./services/posterVerificationService.js"
 import { prunePosterVariantCache } from "./services/posterVariantCacheMaintenanceService.js"
+import { reconcileReleaseStatuses } from "./services/releaseStatusReconciliationService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
@@ -30,6 +31,7 @@ let schedulerStarted = false
 async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
     await reconcileMediaStatuses({ database: db, apply: true })
+    await reconcileReleaseStatuses({ database: db, apply: true })
     await reconcileDuplicateTmdbIdentities({ database: db, apply: true })
     await reconcileUniqueTitleIdentities({ database: db, apply: true })
     await reconcileSharedDateTitles({ database: db, apply: true })
