@@ -52,6 +52,7 @@ npm run prisma:push --workspace backend
 - 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；腾讯视频只使用 `getMVLPage` 的频道“即将上线”筛选，电视剧固定 `channel_id=100113, iyear=1`，电影固定 `channel_id=100173, iyear=999`，不得把 `publish_date` 当作腾讯上线日期；芒果TV 当前为 blocked，不得按旧频道首页方案恢复
 - 平台页面的语言和地区不得直接推断为作品原始语言或制片国家；缺少作品级字段时保持未知
 - `MediaItem.status` 表示作品生命周期，不表示某个平台的可看状态；精确首发日在未来时必须为 `upcoming`，首发日已到且仍为 `upcoming` 或 `unknown` 时保守回退为 `released`；无精确日期的 `unknown` 不得猜测，平台待播与上架语义继续保留在 `Release`
+- 豆瓣、爱奇艺、优酷和腾讯的来源自有记录在同一稳定 `source + sourceId` 再次同步时，允许用最新待播日期替换旧日期；只限没有 TMDb、TVmaze、IMDb、Trakt、TheTVDB 外部身份的记录，已有外部身份时不得把平台排期覆盖成作品首发日期
 - 有精确日期的 `Release.releaseStatus` 必须随日期推进：未来为 `upcoming`，当天通常为 `airing_today`，过去为 `available`；来源明确给出当天已上线时保留 `available`，`delayed` 与 `ended` 不按日期覆盖
 - 定时数据质量维护必须覆盖 TMDb、TVmaze、IMDb、Trakt 与 TheTVDB 全部稳定外部 ID；同一作品大类内任一 ID 可建立归并关系，但连通组内任一外部 ID 冲突时必须整组跳过
 - 重复身份归并选择海报时先比较可用状态，再比较 `posterQuality`，两者相同时选择已测像素面积更大的图片；必须连同尺寸、检查状态和失败信息一起迁移，不能只替换 URL

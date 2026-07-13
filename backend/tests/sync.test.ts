@@ -814,6 +814,42 @@ describe("runSourceSync", () => {
     await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({ status: "released" })
   })
 
+  it("同一国内待播来源身份再次同步时更新来源自有日期", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const adapterForDate = (firstReleaseDate: string): SourceAdapter => ({
+      source: "douban",
+      async fetchItems() {
+        return [{
+          ...base,
+          media: {
+            ...base.media,
+            source: "douban",
+            sourceId: "douban-date-1",
+            firstReleaseDate,
+            tmdbId: null,
+            tvmazeId: null,
+            imdbId: null,
+            traktId: null,
+            tvdbId: null
+          },
+          releases: [{
+            ...base.releases[0],
+            source: "douban",
+            releaseDate: firstReleaseDate
+          }],
+          popularitySignals: []
+        }]
+      }
+    })
+
+    await runSourceSync(prisma, adapterForDate("2026-08-20"))
+    await runSourceSync(prisma, adapterForDate("2026-08-03"))
+
+    await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({
+      firstReleaseDate: "2026-08-03"
+    })
+  })
+
   it("按首发日期阻止矛盾的作品状态写入", async () => {
     vi.useFakeTimers({ toFake: ["Date"] })
     vi.setSystemTime(new Date("2026-07-13T08:00:00+08:00"))

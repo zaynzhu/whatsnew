@@ -34,6 +34,7 @@ export function isSourceSyncInFlight(source: string): boolean {
   return sourceSyncTails.has(source)
 }
 const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max", "prime_video"])
+const SOURCE_OWNED_SCHEDULE_SOURCES = new Set(["douban", "iqiyi", "youku", "tencent"])
 const UNKNOWN_LANGUAGE_SOURCES = new Set([...PLATFORM_SNAPSHOT_SOURCES, "apple_tv_plus", "iqiyi", "youku"])
 const UNKNOWN_PRODUCTION_COUNTRY_SOURCES = new Set(["iqiyi", "youku"])
 
@@ -69,7 +70,16 @@ function shouldAdoptCleanPlatformTitle(item: AdapterItem, match: ExistingMediaCa
     && item.media.titleAliases.includes(match.titleDisplay)
 }
 
-function shouldReplacePlatformFirstReleaseDate(item: AdapterItem, match: ExistingMediaCandidate): boolean {
+function shouldReplaceSourceOwnedFirstReleaseDate(
+  item: AdapterItem,
+  match: ExistingMediaCandidate,
+  hasStableSourceIdentity: boolean
+): boolean {
+  if (SOURCE_OWNED_SCHEDULE_SOURCES.has(item.media.source)) {
+    return hasStableSourceIdentity
+      && !hasExternalIdentity(match)
+      && item.media.firstReleaseDate != null
+  }
   if (!PLATFORM_SNAPSHOT_SOURCES.has(item.media.source) || hasExternalIdentity(match)) return false
   if (!item.releases.some((release) => release.releasePattern === "catalog_addition")) return false
 
@@ -133,8 +143,8 @@ async function upsertItem(
     ? compactTitleAliases([...match.titleAliases, ...item.media.titleAliases])
     : compactTitleAliases(item.media.titleAliases)
   const adoptCleanPlatformTitle = match ? shouldAdoptCleanPlatformTitle(item, match) : false
-  const replacePlatformFirstReleaseDate = match
-    ? shouldReplacePlatformFirstReleaseDate(item, match)
+  const replaceSourceOwnedFirstReleaseDate = match
+    ? shouldReplaceSourceOwnedFirstReleaseDate(item, match, hasStableSourceIdentity)
     : false
   const clearInferredSourceLanguage = match
     ? hasStableSourceIdentity
@@ -180,7 +190,7 @@ async function upsertItem(
   if (clearDoubanPlaceholder) nextPosterUrl = null
   const posterChanged = match?.posterUrl !== nextPosterUrl
   const nextFirstReleaseDate = match
-    ? replacePlatformFirstReleaseDate
+    ? replaceSourceOwnedFirstReleaseDate
       ? item.media.firstReleaseDate
       : match.firstReleaseDate ?? item.media.firstReleaseDate
     : item.media.firstReleaseDate
