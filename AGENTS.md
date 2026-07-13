@@ -9,10 +9,12 @@ WhatsNew 是独立的全球与中国电影、剧集上新及热度监控项目�
 - `backend/`：Express、Prisma、来源适配器、同步任务与设置 API
 - `frontend/`：React 管理界面，默认端口 `19992`
 - `shared/`：前后端共享类型
+- `CONTEXT.md`：项目统一术语表，修改来源健康、Heat、图片或关注度语义时同步核对
 - `docs/architecture.md`：数据模型、同步流、状态聚合和 API 路由
 - `docs/operator-runbook.md`：环境变量、运行命令、调度和排障
 - `docs/integration-guide.md`：私有 API 接入示例和错误语义
 - `docs/handoff.md`：当前分支、已接入来源和交接清单
+- `docs/adr/`：仍有效的架构决策及其理由
 - `docs/superpowers/specs/`：已归档的设计规格，只保留历史决策上下文
 - `docs/superpowers/plans/`：已归档的实施计划，不作为当前运行状态来源
 - `.superpowers/sdd/`：本机执行材料，大部分被 Git 忽略，同样不作为当前运行状态来源

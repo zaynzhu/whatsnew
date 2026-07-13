@@ -61,6 +61,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | 私有 JSON API、curl 示例和错误语义 |
 | [Operator Runbook](docs/operator-runbook.md) | 环境变量、运行命令、定时任务和排障 |
 | [Handoff](docs/handoff.md) | 当前分支、已接入来源、约束和交接清单 |
+| [Glossary](CONTEXT.md) | 来源健康、Heat、图片链路和内容关注度等统一术语 |
 | [Design Archive](docs/superpowers/README.md) | 历史设计规格和实施计划的权威边界 |
 
 ## 🚀 Quick Start
@@ -71,16 +72,15 @@ cp backend/.env.example backend/.env
 # 编辑 backend/.env，填入 NAS MySQL 的真实用户名和密码
 npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
-npm run sync:tvmaze --workspace backend
-npm run sync:tmdb --workspace backend
-npm run sync:trakt --workspace backend
-npm run sync:netflix --workspace backend
-npm run sync:youku --workspace backend
-npm run sync:iqiyi --workspace backend
-npm run sync:bilibili --workspace backend
-npm run sync:apple-tv-plus --workspace backend
-npm run sync:douban --workspace backend
+```
+
+在两个终端分别启动：
+
+```bash
 npm run dev:backend
+```
+
+```bash
 npm run dev:frontend
 ```
 
@@ -88,7 +88,9 @@ npm run dev:frontend
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 
-Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
+首次启动后在设置页检查来源开关、凭据和代理，先使用只读预览核对真实返回，再执行对应来源的手动同步。不要把一串来源同步命令当作数据库初始化步骤。
+
+Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
 
 ## ⚙️ 系统设置
 

@@ -16,7 +16,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 </div>
 
 > [!TIP]
-> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI and more, keeping per-source popularity history scoped by `title + source + platform + region + window`. Designed for self-hosting on a home LAN or private NAS.
+> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Youku, iQIYI, Tencent Video and more, keeping per-source popularity history scoped by `title + source + platform + region + window + ranking scope`. Designed for self-hosting on a home LAN or private NAS.
 
 ---
 
@@ -61,6 +61,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | Private JSON API, curl examples and error semantics |
 | [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
 | [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
+| [Glossary](CONTEXT.md) | Shared terminology for source health, Heat, artwork and attention weighting |
 | [Design Archive](docs/superpowers/README.md) | Authority boundary for historical specifications and implementation plans |
 
 ## 🚀 Quick Start
@@ -71,16 +72,15 @@ cp backend/.env.example backend/.env
 # Edit backend/.env with your NAS MySQL credentials
 npm run prisma:generate --workspace backend
 npm run prisma:push --workspace backend
-npm run sync:tvmaze --workspace backend
-npm run sync:tmdb --workspace backend
-npm run sync:trakt --workspace backend
-npm run sync:netflix --workspace backend
-npm run sync:youku --workspace backend
-npm run sync:iqiyi --workspace backend
-npm run sync:bilibili --workspace backend
-npm run sync:apple-tv-plus --workspace backend
-npm run sync:douban --workspace backend
+```
+
+Start the two services in separate terminals:
+
+```bash
 npm run dev:backend
+```
+
+```bash
 npm run dev:frontend
 ```
 
@@ -88,7 +88,9 @@ Never evaluate domestic adapters directly against the main database. Use `npm ru
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
 
-Hulu, Disney+, Apple TV+, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. Max is currently restricted because WBD Pressroom requires login or returns 403. IMDb requires a local datasets cache directory first.
+On first launch, verify source switches, credentials and proxy settings in the settings page. Use the read-only source preview before starting a manual sync. Source sync commands are operations, not database initialization steps.
+
+Prime Video, Hulu, Disney+, Apple TV+, Tencent Video, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. Max is currently restricted because WBD Pressroom requires login or returns 403. IMDb requires a local datasets cache directory first.
 
 ## ⚙️ System Settings
 
@@ -98,35 +100,43 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Youku, iQIYI, Bilibili and Douban; Max and MangoTV are currently blocked, while IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Prime Video, Hulu, Disney+, Apple TV+, Youku, iQIYI, Tencent Video, Bilibili and Douban; Max and MangoTV are currently blocked, while IMDb is manual local-datasets enrichment
+- An integrated source with complete credentials can be previewed while disabled; preview never writes media records or source runs
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 - The settings page controls the hourly interval and daily Beijing time. Saving immediately reschedules future jobs; defaults are every hour at minute `0` and daily at `09:15`
 
 ## 🖼️ Poster Acquisition And Delivery
 
-- Source adapters keep their own `posterUrl` when available; Netflix gaps first reuse one recent local film or active series, then use a TMDb ID, unique exact title or high-confidence recent candidate
+- Source adapters keep their own `posterUrl` when available; Netflix gaps first reuse one unique recent local film or active series, then use a TMDb ID, unique exact title or high-confidence recent candidate
 - After startup, hourly and daily scheduled sync batches, up to 40 eligible titles are processed when TMDb is enabled and credential-complete
 - Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 7 days
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
-- Every frontend poster requests `GET /api/media/:id/poster` by default; the backend caches the upstream response under `backend/.cache/posters/`, while the frontend falls back to the original URL if the proxy fails
-- The iQIYI reservation cards on the heat page are the only scoped exception: that page upgrades `141×188` source thumbnails to `579×772` and loads them direct-first; all other pages keep the shared proxy flow
+- Frontend posters use `srcset` with `GET /api/media/:id/poster?width=320|640|960`; the browser selects a suitable size and falls back to the original URL if the proxy fails
+- Original images cache under `backend/.cache/posters/`; responsive WebP variants cache separately under `backend/.cache/poster-variants/`, only shrink and never upscale a low-resolution source
+- The responsive cache defaults to 512 MB. Startup and daily maintenance evict oldest complete variants to 90% when over capacity while protecting files written within the last hour
+- The iQIYI adapter normalizes known `120×160` and `141×188` official portrait thumbnails to `579×772` before persistence. Existing rows accept that upgrade only for the same stable source identity and asset ID; direct-first loading on the heat page is only a legacy fallback
+- The Douban adapter upgrades `s_ratio_poster` to the same asset's `l_ratio_poster`; existing rows require the same stable Douban identity and equivalent asset path
 - Poster requests and verification persist measured pixel dimensions. Images below 300 pixels wide or 400 pixels high are marked `undersized` separately from network availability failures
 - Undersized artwork enters the same strict TMDb enrichment queue; replacement still requires a TMDb ID, unique exact title or an existing high-confidence rule, otherwise the original remains available and retries after 7 days
-- The proxy preserves the upstream response bytes and `Content-Type`; it does not guarantee a common transcoded format
+- Poster health separates availability from pixel quality. The settings page and `GET /api/poster-health` expose missing and undersized retry queues plus original/variant cache integrity
+- Requests without `width` preserve upstream bytes and `Content-Type`; supported width requests normally return WebP and safely fall back to the original on conversion failure
 
 > [!WARNING]
 > The settings endpoint has no authentication — it is meant only for trusted home LANs or private NAS networks. Do not expose port `19992`, `19993` or the settings endpoint to the public internet.
 
 ## 🔥 Popularity History
 
-- Popularity signals are stored scoped by `title + source + platform + region + window`; different platforms are never mixed into one "true combined chart"
+- Popularity signals are stored scoped by `title + source + platform + region + window + ranking scope`; different platforms and independent subcharts are never mixed into one "true combined chart"
+- Trakt keeps movie and series charts separate; Netflix keeps its four language/type charts separate
+- Douban upcoming date-group positions and TOP250 reputation ranks remain queryable source signals but do not contribute to Heat or popularity movement events
+- The unfiltered heat page selects 50 works by Heat and returns every current signal for each work. Signal-level filters switch to source-rank selection
 - Within a source, entries are linked to titles via a stable `sourceId`; signals absent from the next full chart become historical
 - `rankDelta = previousRank - currentRank`; positive means rising, negative means falling
 - Non-current snapshots are retained for 90 days by default; the current snapshot is never removed by the retention policy
 - `GET /api/trending` returns only current signals by default, filterable by `movement`, `source`, `platform`, `region`, `mediaType`
 - `GET /api/media/:id/popularity-history` supports bounded history queries of 1–90 days, up to 1000 records
-- `heatScore` uses only the strongest rank among a title's current sources for list sorting; the page still shows the original source, rank, value and collection time
+- `heatScore` uses only the strongest current dynamic rank for list sorting; every original source, rank, metric and collection time remains visible
 
 ## 📡 Data Sources
 
@@ -139,15 +149,18 @@ The Netflix source reads the official global weekly XLSX and syncs only the late
 - Downloads use the unified proxy settings, a 10-second timeout and a per-source 2-second rate limit
 - Manual sync: `npm run sync:netflix --workspace backend`
 
-### Hulu / Disney+ Official Releases And Max Restriction
+### Prime Video / Hulu / Disney+ Official Releases And Max Restriction
 
-Hulu and Disney+ sync official platform pages for release calendars and catalog additions. They do not create popularity rankings. The calendar distinguishes catalog additions, platform premieres and episode updates, so an older title added to a service is not treated as the work's first release.
+Prime Video, Hulu and Disney+ sync official platform pages for release calendars and catalog additions. They do not create popularity rankings. The calendar distinguishes catalog additions, platform premieres and episode updates, so an older title added to a service is not treated as the work's first release.
 
+- Prime Video discovers the latest US monthly lineup from About Amazon and excludes live sports, music and entries without a reliable film/series classification
 - Hulu uses `https://press.hulu.com/schedule/`
 - Disney+ uses `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
+- A platform page does not prove original language or production country; those fields remain unknown unless a work-level source provides them
 - The Max parser remains available, but WBD Pressroom currently requires login or returns 403, so the source is restricted and excluded from scheduling
-- Hulu and Disney+ are daily schedule sources and disabled by default
+- Prime Video, Hulu and Disney+ are daily schedule sources and disabled by default
 - Manual sync:
+  - `npm run sync:prime-video --workspace backend`
   - `npm run sync:hulu --workspace backend`
   - `npm run sync:disney-plus --workspace backend`
   - Do not run `npm run sync:max --workspace backend` until public WBD access returns
@@ -155,8 +168,11 @@ Hulu and Disney+ sync official platform pages for release calendars and catalog 
 ### Data Quality Maintenance
 
 - Full platform snapshots deactivate source references missing from the newest snapshot
-- Hourly jobs merge non-conflicting duplicate TMDb identities; startup and daily jobs also remove strictly orphaned platform-only works with no releases or popularity
-- Preview both operations before applying: `npm run reconcile:duplicate-identities --workspace backend` and `npm run cleanup:platform-orphans --workspace backend`; append `-- --apply` after review
+- Current dashboard, discovery, calendar, heat and preview views require at least one active source reference; direct detail remains available for retained history
+- Exact work and release dates are reconciled against lifecycle status without guessing undated records
+- Stable TMDb, TVmaze, IMDb, Trakt and TheTVDB identities merge only within the same movie/series work kind and only when the connected group has no external-ID conflict
+- Artwork selection during a safe merge prefers availability, quality and then measured pixel area while moving all image-health metadata together
+- Maintenance commands are dry-run by default: `reconcile:media-statuses`, `reconcile:release-statuses`, `reconcile:heat-scores`, `reconcile:popularity-scopes`, `reconcile:duplicate-identities` and `cleanup:platform-orphans`; append `-- --apply` only after review
 
 ### Trakt
 
@@ -179,12 +195,13 @@ TheTVDB supports only the free project API Key and never falls back to any paid 
 - Anywhere TheTVDB-provided data is shown on a page, the TheTVDB source attribution is displayed
 - Manual sync: `npm run sync:thetvdb --workspace backend`
 
-### Youku And iQIYI Reservations
+### Youku, iQIYI And Tencent Video Reservations
 
 - Youku reads paginated movie and series upcoming reservations from the signed `mtop.youku.columbus.gateway.new.execute` node, preserving reservation counts, upcoming status and source links; it no longer reads a channel homepage
 - iQIYI reads the complete `https://www.iqiyi.com/newOnlinePCW` upcoming list and preserves reservation counts; offline entries without a date remain upcoming
-- Both belong to the hourly group and must pass in the China sandbox before main-database sync. Disabling a source does not delete persisted snapshots
-- Manual sync: `npm run sync:youku --workspace backend`, `npm run sync:iqiyi --workspace backend`
+- Tencent Video uses the structured `getMVLPage` movie and series “coming soon” filters and preserves reservation lower bounds; `publish_date` is work metadata, not a Tencent availability date
+- All three belong to the hourly group and must pass in the China sandbox before main-database sync. Disabling a source does not delete persisted snapshots
+- Manual sync: `npm run sync:youku --workspace backend`, `npm run sync:iqiyi --workspace backend`, `npm run sync:tencent --workspace backend`
 
 ### MangoTV
 
@@ -211,10 +228,13 @@ The Apple TV+ source reads the official Press RSS feed (`https://www.apple.com/t
 
 ### Douban
 
-The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/top_list`) as a reputation rating signal, and also reads low-frequency mobile Rexxar modules for movie coming-soon and TV coming-soon calendars.
+The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/top_list`) as a reputation rating signal, and separately reads low-frequency paginated mobile movie and TV coming-soon feeds.
 
+- Daily scheduling and `sync:douban` run separate `popularity` and `upcoming` scopes with independent run and health records
 - TOP250 emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`)
-- Mobile modules emit release calendar rows and record the module order as the `douban_upcoming` interest signal
+- Coming-soon feeds emit release calendar rows and preserve page order plus wish counts as the `douban_upcoming` signal
+- `/preview` returns the complete current dated and undated Douban lineup without an arbitrary row cap
+- Douban TOP250 and coming-soon positions do not contribute to Heat or popularity movement events
 - Sync endpoints: `m.douban.com/rexxar/api/v2/movie/coming_soon`, `m.douban.com/rexxar/api/v2/tv/coming_soon`
 - Disabled by default; enable from the settings page before manual sync. `DOUBAN_COOKIE` is optional. Do not scrape at high frequency or bypass login/captcha
 - Manual sync: `npm run sync:douban --workspace backend`

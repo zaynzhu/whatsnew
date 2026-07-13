@@ -17,7 +17,7 @@ curl -s http://127.0.0.1:19993/api/health
 Expected:
 
 ```json
-{ "ok": true, "service": "whatsnew-backend" }
+{ "ok": true, "service": "whatsnew-backend", "environment": "main" }
 ```
 
 ## Media Browse
@@ -32,7 +32,7 @@ Common query fields:
 |---|---|
 | `mediaType` | `movie`, `series` or other stored media type. |
 | `releaseForm` | More specific form such as web series, anime, variety or documentary. |
-| `status` | Stored status such as `upcoming`, `available` or `unknown`. |
+| `status` | Stored work status such as `upcoming`, `released`, `ongoing`, `ended`, `returning` or `unknown`. |
 | `sort` | `heat`, `firstReleaseDate`, `updatedAt`. |
 | `limit` | Max 100. |
 
@@ -143,18 +143,18 @@ curl -s http://127.0.0.1:19993/api/source-health
 
 Returns a read-only source health matrix by adapter scope. It does not trigger sync. Use `POST /api/sync` or `POST /api/sources/:source/sync` before reading this endpoint when you want a fresh run.
 
-Top-level shape:
+Top-level shape (counts are illustrative and depend on current settings and run history):
 
 ```json
 {
   "generatedAt": "2026-07-08T04:00:00.000Z",
   "summary": {
-    "total": 23,
-    "passed": 8,
-    "degraded": 1,
+    "total": 24,
+    "passed": 10,
+    "degraded": 0,
     "failed": 2,
     "blocked": 12,
-    "runnable": 10,
+    "runnable": 12,
     "stale": 2
   },
   "items": []

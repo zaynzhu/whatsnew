@@ -136,5 +136,6 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `POST /api/sources/:source/test` | Test one source's configured connectivity. |
 | `POST /api/sources/:source/preview` | Fetch and summarize an active source without writing media data or sync runs; the source may remain disabled. |
 | `POST /api/sources/:source/sync` | Run enabled adapters for one source. |
+| `POST /api/sync` | Run every enabled adapter with complete credentials serially. |
 
 The settings routes currently have no authentication and must stay on a trusted LAN/NAS network.

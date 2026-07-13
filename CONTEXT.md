@@ -1,4 +1,4 @@
-# WhatsNew Context
+# WhatsNew Glossary
 
 WhatsNew tracks film and TV release, availability and popularity signals from multiple public sources while preserving each source's original meaning.
 
@@ -60,6 +60,14 @@ _Avoid_: demo validation, mock data check
 A source-specific popularity, catalog, release, rating, availability or news observation that keeps its original source, platform, region and time window.
 _Avoid_: unified ranking, global score
 
+**Ranking Scope**:
+A stable identity for one independent chart inside a source. Trakt uses separate movie and series scopes; Netflix uses four language/type scopes. It prevents several legitimate number-one entries from being presented as one shared chart.
+_Avoid_: category label, global rank
+
+**Auxiliary Heat**:
+A list-sorting value derived from a title's strongest current dynamic source rank. It is not a cross-source real chart. Douban coming-soon date-group positions and TOP250 reputation ranks remain visible source signals but contribute no Heat and create no popularity movement events.
+_Avoid_: comprehensive heat, objective popularity, global rank
+
 **Content Attention Weight**:
 A user-controlled preference from 0 to 100 for a broad content category, used to decide what deserves visual prominence without changing any source's popularity meaning.
 _Avoid_: heat score, source rank, global popularity
@@ -73,8 +81,8 @@ A metadata pass that first reuses one safe recent local title, then fills missin
 _Avoid_: image scraping, fuzzy poster matching, one-time backfill
 
 **Poster Proxy**:
-The backend route `/api/media/:id/poster`, which fetches a stored remote poster with configured network settings, validates the image response and caches its original bytes before returning it to the frontend.
-_Avoid_: image hosting service, guaranteed WebP conversion, frontend hotlink
+The backend route `/api/media/:id/poster`, which fetches a stored remote poster with configured network settings, validates and caches original bytes, and optionally serves bounded `160 / 320 / 640 / 960` WebP variants. Variants only shrink and safely fall back to the original when conversion fails.
+_Avoid_: image hosting service, guaranteed upscale, frontend hotlink
 
 **Content Attention Category**:
 A stable product grouping used by Content Attention Weight, such as scripted film and series, animation, documentary, reality and variety, talk and game shows, news, or sports.
