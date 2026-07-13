@@ -219,6 +219,7 @@ const posterHealthResponse: PosterHealthResponse = {
   coveragePercent: 82.5,
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
   quality: { unknown: 630, adequate: 70, undersized: 7 },
+  lookup: { notAttempted: 12, cooldown: 130, retryEligible: 8, retryAfterDays: 7 },
   cache: {
     entries: 209,
     bytes: 73_886_357,
@@ -241,7 +242,9 @@ const posterHealthResponse: PosterHealthResponse = {
       heatScore: 98,
       sources: ["netflix"],
       width: null,
-      height: null
+      height: null,
+      lookupState: "cooldown",
+      lastLookupAt: "2026-07-12T02:30:00.000Z"
     }],
     undersized: [{
       id: "media-low-resolution",
@@ -249,7 +252,9 @@ const posterHealthResponse: PosterHealthResponse = {
       heatScore: 91,
       sources: ["iqiyi"],
       width: 141,
-      height: 188
+      height: 188,
+      lookupState: "retry_eligible",
+      lastLookupAt: "2026-07-01T02:30:00.000Z"
     }]
   }
 }
@@ -315,6 +320,8 @@ describe("SettingsPage", () => {
     expect(screen.getByText("30 / 512 MB")).toBeInTheDocument()
     expect(screen.getByText("孤立文件 1")).toBeInTheDocument()
     expect(screen.getByText("低清 7")).toBeInTheDocument()
+    expect(screen.getByText("130")).toBeInTheDocument()
+    expect(screen.getByText("可以重试")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(
       "href",
       "/media/media-low-resolution"

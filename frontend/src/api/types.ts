@@ -36,6 +36,8 @@ export type PosterHealthSample = {
   sources: string[]
   width: number | null
   height: number | null
+  lookupState: "not_attempted" | "cooldown" | "retry_eligible"
+  lastLookupAt: string | null
 }
 
 export type PosterHealthResponse = {
@@ -53,6 +55,12 @@ export type PosterHealthResponse = {
     unknown: number
     adequate: number
     undersized: number
+  }
+  lookup: {
+    notAttempted: number
+    cooldown: number
+    retryEligible: number
+    retryAfterDays: number
   }
   cache: {
     entries: number

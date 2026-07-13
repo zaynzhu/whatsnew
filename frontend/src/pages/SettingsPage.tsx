@@ -64,6 +64,22 @@ const PROXY_MODE_LABELS: Record<ProxyMode, string> = {
   custom: "自定义"
 }
 const SOURCE_STATUS_REFETCH_MS = 5000
+const POSTER_LOOKUP_LABELS: Record<PosterHealthResponse["samples"]["missing"][number]["lookupState"], string> = {
+  not_attempted: "尚未尝试",
+  cooldown: "等待重试",
+  retry_eligible: "可以重试"
+}
+
+function posterLookupLabel(item: PosterHealthResponse["samples"]["missing"][number]): string {
+  const label = POSTER_LOOKUP_LABELS[item.lookupState]
+  if (!item.lastLookupAt) return label
+  return `${label} · ${new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(item.lastLookupAt))}`
+}
 
 type SourceTestResponse = {
   sourceId: string
@@ -558,6 +574,14 @@ export function SettingsPage() {
                 <strong>{posterHealth.missing}</strong>
               </div>
               <div>
+                <span>等待重试</span>
+                <strong>{posterHealth.lookup.cooldown}</strong>
+              </div>
+              <div>
+                <span>可以重试</span>
+                <strong>{posterHealth.lookup.retryEligible}</strong>
+              </div>
+              <div>
                 <span>损坏</span>
                 <strong className={posterHealth.statuses.broken > 0 ? "errorText" : "successText"}>
                   {posterHealth.statuses.broken}
@@ -603,6 +627,7 @@ export function SettingsPage() {
                 低清 {posterHealth.quality.undersized}
               </span>
               <span>尺寸待检测 {posterHealth.quality.unknown}</span>
+              <span>缺图未尝试 {posterHealth.lookup.notAttempted}</span>
               <span className={posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries > 0 ? "error" : ""}>
                 缓存损坏 {posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries}
               </span>
@@ -618,7 +643,9 @@ export function SettingsPage() {
                   {posterHealth.samples.missing.slice(0, 6).map((item) => (
                     <Link to={`/media/${item.id}`} key={item.id}>
                       <span>{item.title}</span>
-                      <small>Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"}</small>
+                      <small>
+                        Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
+                      </small>
                     </Link>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import type { Prisma, PrismaClient } from "@prisma/client"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
@@ -19,6 +19,8 @@ export type PosterHealthSample = {
   sources: string[]
   width: number | null
   height: number | null
+  lookupState: "not_attempted" | "cooldown" | "retry_eligible"
+  lastLookupAt: string | null
 }
 
 export type PosterHealthResponse = {
@@ -37,6 +39,12 @@ export type PosterHealthResponse = {
     adequate: number
     undersized: number
   }
+  lookup: {
+    notAttempted: number
+    cooldown: number
+    retryEligible: number
+    retryAfterDays: number
+  }
   cache: DiskCacheHealth & { variants: DiskCacheHealth & { maxBytes: number } }
   samples: {
     broken: PosterHealthSample[]
@@ -52,7 +60,11 @@ type PosterHealthServiceOptions = {
   database: PosterHealthDatabase
   cacheDir?: string
   variantCacheDir?: string
+  now?: () => Date
 }
+
+const POSTER_LOOKUP_RETRY_DAYS = 7
+const DAY_MS = 24 * 60 * 60 * 1000
 
 async function cacheHealth(
   cacheDir: string,
@@ -127,14 +139,19 @@ function sample(row: {
   sourceRefs: Array<{ source: string }>
   posterWidth: number | null
   posterHeight: number | null
-}): PosterHealthSample {
+  posterLookupAttemptedAt: Date | null
+}, retryBefore: Date): PosterHealthSample {
   return {
     id: row.id,
     title: row.titleDisplay,
     heatScore: row.heatScore,
     sources: [...new Set(row.sourceRefs.map((sourceRef) => sourceRef.source))],
     width: row.posterWidth,
-    height: row.posterHeight
+    height: row.posterHeight,
+    lookupState: row.posterLookupAttemptedAt == null
+      ? "not_attempted"
+      : row.posterLookupAttemptedAt < retryBefore ? "retry_eligible" : "cooldown",
+    lastLookupAt: row.posterLookupAttemptedAt?.toISOString() ?? null
   }
 }
 
@@ -145,12 +162,15 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
 
   return {
     async getHealth(): Promise<PosterHealthResponse> {
+      const now = (options.now ?? (() => new Date()))()
+      const retryBefore = new Date(now.getTime() - POSTER_LOOKUP_RETRY_DAYS * DAY_MS)
       const sampleSelect = {
         id: true,
         titleDisplay: true,
         heatScore: true,
         posterWidth: true,
         posterHeight: true,
+        posterLookupAttemptedAt: true,
         sourceRefs: {
           where: { isActive: true },
           select: { source: true }
@@ -160,6 +180,9 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         posterUrl: { not: null },
         NOT: { posterUrl: "" }
       } as const
+      const missingPosterWhere: Prisma.MediaItemWhereInput = {
+        OR: [{ posterUrl: null }, { posterUrl: "" }]
+      }
       const [
         total,
         missing,
@@ -170,6 +193,9 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         qualityUnknown,
         qualityAdequate,
         qualityUndersized,
+        lookupNotAttempted,
+        lookupCooldown,
+        lookupRetryEligible,
         brokenSamples,
         degradedSamples,
         missingSamples,
@@ -178,7 +204,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         variantCache
       ] = await Promise.all([
         database.mediaItem.count(),
-        database.mediaItem.count({ where: { OR: [{ posterUrl: null }, { posterUrl: "" }] } }),
+        database.mediaItem.count({ where: missingPosterWhere }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "unverified" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "healthy" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "degraded" } }),
@@ -186,6 +212,9 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "unknown" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "adequate" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "undersized" } }),
+        database.mediaItem.count({ where: { AND: [missingPosterWhere, { posterLookupAttemptedAt: null }] } }),
+        database.mediaItem.count({ where: { AND: [missingPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] } }),
+        database.mediaItem.count({ where: { AND: [missingPosterWhere, { posterLookupAttemptedAt: { lt: retryBefore } }] } }),
         database.mediaItem.findMany({
           where: { posterStatus: "broken" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
@@ -199,7 +228,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           select: sampleSelect
         }),
         database.mediaItem.findMany({
-          where: { OR: [{ posterUrl: null }, { posterUrl: "" }] },
+          where: missingPosterWhere,
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
           take: 8,
           select: sampleSelect
@@ -226,15 +255,21 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           adequate: qualityAdequate,
           undersized: qualityUndersized
         },
+        lookup: {
+          notAttempted: lookupNotAttempted,
+          cooldown: lookupCooldown,
+          retryEligible: lookupRetryEligible,
+          retryAfterDays: POSTER_LOOKUP_RETRY_DAYS
+        },
         cache: {
           ...cache,
           variants: { ...variantCache, maxBytes: DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES }
         },
         samples: {
-          broken: brokenSamples.map(sample),
-          degraded: degradedSamples.map(sample),
-          missing: missingSamples.map(sample),
-          undersized: undersizedSamples.map(sample)
+          broken: brokenSamples.map((row) => sample(row, retryBefore)),
+          degraded: degradedSamples.map((row) => sample(row, retryBefore)),
+          missing: missingSamples.map((row) => sample(row, retryBefore)),
+          undersized: undersizedSamples.map((row) => sample(row, retryBefore))
         }
       }
     }

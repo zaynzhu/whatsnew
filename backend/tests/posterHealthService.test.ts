@@ -55,11 +55,18 @@ describe("PosterHealthService", () => {
       heatScore: 98,
       posterWidth: 240,
       posterHeight: 360,
+      posterLookupAttemptedAt: new Date("2026-07-10T00:00:00.000Z"),
       sourceRefs: [{ source: "netflix" }]
     }
     const count = vi.fn(async ({ where }: any = {}) => {
       if (!where) return 10
       if (where.OR) return 2
+      if (where.AND) {
+        const lookup = where.AND[1]?.posterLookupAttemptedAt
+        if (lookup === null) return 0
+        if (lookup?.gte) return 2
+        if (lookup?.lt) return 0
+      }
       const qualityCounts: Record<string, number> = { unknown: 4, adequate: 3, undersized: 1 }
       if (where.posterQuality) return qualityCounts[String(where.posterQuality)] ?? 0
       const statusCounts: Record<string, number> = { unverified: 5, healthy: 3, degraded: 1, broken: 1 }
@@ -69,7 +76,8 @@ describe("PosterHealthService", () => {
     const service = createPosterHealthService({
       database: { mediaItem: { count, findMany } } as never,
       cacheDir: originalCacheDir,
-      variantCacheDir
+      variantCacheDir,
+      now: () => new Date("2026-07-13T00:00:00.000Z")
     })
 
     await expect(service.getHealth()).resolves.toEqual({
@@ -79,6 +87,7 @@ describe("PosterHealthService", () => {
       coveragePercent: 80,
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
       quality: { unknown: 4, adequate: 3, undersized: 1 },
+      lookup: { notAttempted: 0, cooldown: 2, retryEligible: 0, retryAfterDays: 7 },
       cache: {
         entries: 2,
         bytes: 5,
@@ -93,10 +102,10 @@ describe("PosterHealthService", () => {
         }
       },
       samples: {
-        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
-        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
-        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
-        undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }]
+        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }]
       }
     })
   })

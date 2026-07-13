@@ -88,6 +88,12 @@ describe("api routes", () => {
         degraded: 0,
         broken: 0
       },
+      lookup: {
+        notAttempted: 4,
+        cooldown: 0,
+        retryEligible: 0,
+        retryAfterDays: 7
+      },
       cache: expect.objectContaining({
         entries: expect.any(Number),
         bytes: expect.any(Number)
