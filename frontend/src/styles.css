@@ -2642,6 +2642,92 @@ h1 {
   gap: 10px;
 }
 
+.schedulerSettings {
+  margin-top: 24px;
+  border: 1px solid rgba(59, 73, 84, 0.74);
+  border-top: 3px solid var(--teal);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(11, 17, 22, 0.74);
+}
+
+.schedulerHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.schedulerRuntime {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.schedulerRuntime.active {
+  border-color: rgba(73, 213, 196, 0.42);
+  color: var(--teal);
+}
+
+.schedulerControlGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.schedulerControlGrid label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #090f13;
+}
+
+.schedulerControlGrid label > span {
+  color: var(--mist);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.schedulerControlGrid select,
+.schedulerControlGrid input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #0d151b;
+  color: var(--mist);
+  font: inherit;
+}
+
+.schedulerControlGrid small,
+.schedulerActions p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.schedulerActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.schedulerActions p {
+  margin: 0;
+}
+
 .posterHealthSettings {
   margin-top: 24px;
   border: 1px solid var(--glass-border);
@@ -3403,6 +3489,19 @@ select:focus-visible {
   .attentionActions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .schedulerControlGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedulerActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .schedulerActions button {
+    width: 100%;
   }
 
   .attentionActions > div {

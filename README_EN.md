@@ -101,7 +101,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Youku, iQIYI, Bilibili and Douban; Max and MangoTV are currently blocked, while IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
-- Hourly scopes run at minute `0`; daily scopes run at `09:15` in `Asia/Shanghai`. These are code-defined schedules, not settings-page fields
+- The settings page controls the hourly interval and daily Beijing time. Saving immediately reschedules future jobs; defaults are every hour at minute `0` and daily at `09:15`
 
 ## 🖼️ Poster Acquisition And Delivery
 

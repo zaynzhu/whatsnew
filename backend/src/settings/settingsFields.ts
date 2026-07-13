@@ -1,5 +1,9 @@
 import { SOURCE_CATALOG } from "./sourceCatalog.js"
 import { CONTENT_WEIGHT_DEFINITIONS } from "./contentAttentionSettings.js"
+import {
+  SCHEDULER_DAILY_TIME_KEY,
+  SCHEDULER_HOURLY_INTERVAL_KEY
+} from "./schedulerSettings.js"
 
 export type SourceSettingSuffix = "ENABLED" | "PROXY_MODE" | "HTTP_PROXY" | "HTTPS_PROXY"
 
@@ -41,6 +45,8 @@ export const GLOBAL_SETTING_KEYS = new Set([
   "IMDB_DATASET_CACHE_DIR",
   "DOUBAN_COOKIE",
   "DOUBAN_BASE_URL",
+  SCHEDULER_HOURLY_INTERVAL_KEY,
+  SCHEDULER_DAILY_TIME_KEY,
   ...CONTENT_WEIGHT_DEFINITIONS.map((definition) => definition.key)
 ])
 

@@ -185,7 +185,7 @@ curl -s -X PUT http://127.0.0.1:19993/api/settings \
 
 Settings are persisted to `backend/.env` and become effective immediately. Sensitive values are masked on read.
 
-Scheduler times are not part of the settings API. Hourly scopes currently run at minute `0`; daily scopes run at `09:15` in `Asia/Shanghai`. `SCHEDULER_ENABLED=false` disables registration at process startup, as used by the China sandbox.
+`GET /api/settings` includes `scheduler` with runtime enablement, hourly interval, daily time, timezone and next-run timestamps. Update `SCHEDULER_HOURLY_INTERVAL_HOURS` (`1, 2, 3, 4, 6, 12`) or `SCHEDULER_DAILY_TIME` (`HH:mm`) through the same `PUT` route; accepted changes reschedule future jobs immediately. `SCHEDULER_ENABLED=false` still disables registration at process startup, as used by the China sandbox.
 
 Proxy test:
 

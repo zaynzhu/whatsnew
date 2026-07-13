@@ -3,6 +3,7 @@ import type { MediaSummary } from "@whatsnew/shared/media"
 export type {
   ConnectionTestResult,
   ProxyMode,
+  SchedulerSettingsView,
   SettingsFieldView,
   SettingsResponse,
   SettingsUpdateRequest,

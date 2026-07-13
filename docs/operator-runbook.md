@@ -78,7 +78,9 @@ Open `http://127.0.0.1:19995/`. The backend health response and frontend header 
 | `TRAKT_CLIENT_ID` | Required for Trakt public sync. |
 | `THETVDB_API_KEY` | Required for TheTVDB when enabled. |
 | `IMDB_DATASET_CACHE_DIR` | Local cache directory for IMDb datasets. |
-| `SCHEDULER_ENABLED` | `true` registers the fixed hourly and daily cron jobs; `false` disables them. |
+| `SCHEDULER_ENABLED` | `true` registers hourly and daily cron jobs; `false` disables them. |
+| `SCHEDULER_HOURLY_INTERVAL_HOURS` | Hourly-group interval: `1`, `2`, `3`, `4`, `6` or `12`; default `1`. |
+| `SCHEDULER_DAILY_TIME` | Daily-group Beijing time in `HH:mm`; default `09:15`. |
 | `SYNC_ON_START` | `true` runs enabled adapters once on backend startup; `false` disables it. Boolean strings are parsed explicitly. |
 
 Every active source also has:
@@ -122,14 +124,14 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 
 ## Scheduled Sync
 
-| Group | Cron | Sources |
+| Group | Default cron | Sources |
 |---|---|---|
 | Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI |
 | Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
 
-These cron expressions are currently fixed in `backend/src/scheduler.ts`; the settings page cannot edit them. The China sandbox writes `SCHEDULER_ENABLED=false`, so enabling a source there still does not create automatic refreshes.
+The settings page can change the hourly interval and daily time. Saving stops the old future jobs and immediately registers the new schedule without restarting the backend or re-running startup sync. It also shows the next hourly and daily execution times. The China sandbox writes `SCHEDULER_ENABLED=false`, so its controls are disabled and enabling a source there still does not create automatic refreshes.
 
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
 

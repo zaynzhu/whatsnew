@@ -8,10 +8,17 @@ import { verifyPosterImages } from "./services/posterVerificationService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
+import {
+  schedulerConfig,
+  schedulerSettingsView,
+  SCHEDULER_TIMEZONE
+} from "./settings/schedulerSettings.js"
 
 const AUTOMATIC_POSTER_LIMIT = 40
 const AUTOMATIC_POSTER_VERIFICATION_LIMIT = 20
 const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max"]
+const scheduledTasks: Array<{ stop(): void }> = []
+let schedulerStarted = false
 
 async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
@@ -61,27 +68,57 @@ export async function runInitialSync() {
   await verifyPostersAfterSync()
 }
 
-export function registerScheduler() {
-  cron.schedule("0 * * * *", async () => {
+function stopScheduledTasks() {
+  for (const task of scheduledTasks.splice(0)) task.stop()
+}
+
+function scheduleRecurringJobs() {
+  stopScheduledTasks()
+  const config = schedulerConfig(runtimeSettings)
+
+  scheduledTasks.push(cron.schedule(config.hourlyCron, async () => {
     for (const entry of getEnabledAdapters("hourly")) {
       await runSourceSync(db, entry.adapter)
     }
     await maintainDataQuality(false)
     await enrichPostersAfterSync()
-  })
+  }, { timezone: SCHEDULER_TIMEZONE }))
 
-  cron.schedule("15 9 * * *", async () => {
+  scheduledTasks.push(cron.schedule(config.dailyCron, async () => {
     for (const entry of getEnabledAdapters("daily")) {
       await runSourceSync(db, entry.adapter)
     }
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
     await verifyPostersAfterSync()
-  }, { timezone: "Asia/Shanghai" })
+  }, { timezone: SCHEDULER_TIMEZONE }))
+}
+
+export function refreshScheduler() {
+  if (!schedulerStarted) return
+  scheduleRecurringJobs()
+}
+
+export function schedulerView() {
+  return schedulerSettingsView(
+    runtimeSettings,
+    schedulerStarted,
+    env.APP_ENVIRONMENT === "china_sandbox"
+  )
+}
+
+export function registerScheduler() {
+  schedulerStarted = true
+  scheduleRecurringJobs()
 
   if (env.SYNC_ON_START) {
     runInitialSync().catch((error) => {
       console.error("Initial sync failed", error)
     })
   }
+}
+
+export const schedulerControl = {
+  view: schedulerView,
+  refresh: refreshScheduler
 }

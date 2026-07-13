@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
-import type { SourceLocalStateView } from "@whatsnew/shared/settings"
+import type { SchedulerSettingsView, SourceLocalStateView } from "@whatsnew/shared/settings"
 import { Router } from "express"
 import { z } from "zod"
 import { db } from "../config/db.js"
@@ -10,6 +10,11 @@ import {
 import { SOURCE_CATALOG } from "../settings/sourceCatalog.js"
 import { contentWeightViews } from "../settings/contentAttentionSettings.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
+import {
+  SCHEDULER_DAILY_TIME_KEY,
+  SCHEDULER_HOURLY_INTERVAL_KEY,
+  schedulerSettingsView
+} from "../settings/schedulerSettings.js"
 import {
   GLOBAL_PROXY_FIELDS,
   sourceEnvKey
@@ -46,11 +51,15 @@ type SettingsRouterDependencies = {
   settings?: RuntimeSettingsService
   connectionTester?: ConnectionTestService
   database?: Pick<PrismaClient, "sourceSyncRun">
+  scheduler?: {
+    view(): SchedulerSettingsView
+    refresh(): void
+  }
 }
 
 function validationError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : ""
-  return ["未知配置项", "配置值不能包含换行", "代理模式无效", "启用状态无效", "关注权重无效"]
+  return ["未知配置项", "配置值不能包含换行", "代理模式无效", "启用状态无效", "关注权重无效", "调度间隔无效", "调度时间无效"]
     .some((text) => message.includes(text))
 }
 
@@ -71,6 +80,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
   const settings = dependencies.settings ?? runtimeSettings
   const connectionTester = dependencies.connectionTester ?? connectionTestService
   const database = dependencies.database ?? db
+  const scheduler = dependencies.scheduler
 
   router.get("/", async (_req, res) => {
     const runs = await database.sourceSyncRun.findMany({
@@ -123,6 +133,7 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
     res.json({
       proxyFields: GLOBAL_PROXY_FIELDS.map((field) => settings.fieldView(field.key, field.label)),
       contentWeights: contentWeightViews(settings),
+      scheduler: scheduler?.view() ?? schedulerSettingsView(settings, false, false),
       sources
     })
   })
@@ -136,6 +147,9 @@ export function createSettingsRouter(dependencies: SettingsRouterDependencies = 
 
     try {
       await settings.update(parsed.data.values, parsed.data.clearKeys)
+      const schedulerChanged = [SCHEDULER_HOURLY_INTERVAL_KEY, SCHEDULER_DAILY_TIME_KEY]
+        .some((key) => key in parsed.data.values || parsed.data.clearKeys.includes(key))
+      if (schedulerChanged) scheduler?.refresh()
       res.json({ success: true, effectiveImmediately: true })
     } catch (error) {
       if (validationError(error)) {

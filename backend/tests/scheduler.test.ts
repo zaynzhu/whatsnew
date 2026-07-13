@@ -17,14 +17,21 @@ const mocks = vi.hoisted(() => ({
   huluAdapter: { source: "hulu" },
   disneyPlusAdapter: { source: "disney_plus" },
   maxAdapter: { source: "max" },
-  env: { SYNC_ON_START: false },
-  settings: { sourceRunnable: vi.fn((_sourceId: string) => true) },
+  env: { SYNC_ON_START: false, APP_ENVIRONMENT: "main" },
+  settings: {
+    get: vi.fn((_key: string, fallback = "") => fallback),
+    sourceRunnable: vi.fn((_sourceId: string) => true)
+  },
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   reconcileDuplicateTmdbIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
-  schedule: vi.fn()
+  schedule: vi.fn((
+    _expression: string,
+    _callback: () => Promise<void>,
+    _options?: { timezone: string }
+  ) => ({ stop: vi.fn() }))
 }))
 
 vi.mock("node-cron", () => ({
@@ -126,6 +133,7 @@ beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   mocks.env.SYNC_ON_START = false
+  mocks.settings.get.mockImplementation((_key: string, fallback = "") => fallback)
   mocks.settings.sourceRunnable.mockImplementation((_sourceId: string) => true)
 })
 
@@ -135,7 +143,11 @@ describe("scheduler", () => {
     const { registerScheduler } = await import("../src/scheduler.js")
 
     registerScheduler()
-    expect(mocks.schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function))
+    expect(mocks.schedule).toHaveBeenCalledWith(
+      "0 * * * *",
+      expect.any(Function),
+      { timezone: "Asia/Shanghai" }
+    )
     const scheduledJob = mocks.schedule.mock.calls.find((call) => {
       return call[0] === "0 * * * *"
     })?.[1] as () => Promise<void>
@@ -215,6 +227,33 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
+  })
+
+  it("re-registers future jobs when schedule settings change", async () => {
+    const { refreshScheduler, registerScheduler } = await import("../src/scheduler.js")
+    registerScheduler()
+    const firstHourlyTask = mocks.schedule.mock.results[0]?.value as { stop: ReturnType<typeof vi.fn> }
+    const firstDailyTask = mocks.schedule.mock.results[1]?.value as { stop: ReturnType<typeof vi.fn> }
+
+    mocks.settings.get.mockImplementation((key: string, fallback = "") => {
+      if (key === "SCHEDULER_HOURLY_INTERVAL_HOURS") return "3"
+      if (key === "SCHEDULER_DAILY_TIME") return "06:40"
+      return fallback
+    })
+    refreshScheduler()
+
+    expect(firstHourlyTask.stop).toHaveBeenCalledOnce()
+    expect(firstDailyTask.stop).toHaveBeenCalledOnce()
+    expect(mocks.schedule).toHaveBeenCalledWith(
+      "0 */3 * * *",
+      expect.any(Function),
+      { timezone: "Asia/Shanghai" }
+    )
+    expect(mocks.schedule).toHaveBeenCalledWith(
+      "40 6 * * *",
+      expect.any(Function),
+      { timezone: "Asia/Shanghai" }
+    )
   })
 
   it("resolves enabled adapters for initial sync", async () => {

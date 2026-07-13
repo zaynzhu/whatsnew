@@ -2,6 +2,7 @@ import type { ProxyMode, SettingsFieldView } from "@whatsnew/shared/settings"
 import { settingsEnvPath } from "../config/env.js"
 import { EnvFileStore } from "./envFileStore.js"
 import { getSourceDefinition } from "./sourceCatalog.js"
+import { validateSchedulerSetting } from "./schedulerSettings.js"
 import {
   KNOWN_SETTING_KEYS,
   SOURCE_PROXY_MODES,
@@ -51,6 +52,7 @@ function validateChanges(values: Record<string, string>): void {
         throw new Error(`关注权重无效: ${value}`)
       }
     }
+    validateSchedulerSetting(key, value)
   }
 }
 

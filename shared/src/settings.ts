@@ -94,6 +94,16 @@ export type ContentWeightView = {
   defaultValue: number
 }
 
+export type SchedulerSettingsView = {
+  enabled: boolean
+  forcedDisabled: boolean
+  hourlyIntervalHours: number
+  dailyTime: string
+  timezone: "Asia/Shanghai"
+  nextHourlyRunAt: string | null
+  nextDailyRunAt: string | null
+}
+
 export type SourceSettingsView = {
   id: string
   name: string
@@ -124,6 +134,7 @@ export type SourceSettingsView = {
 export type SettingsResponse = {
   proxyFields: SettingsFieldView[]
   contentWeights: ContentWeightView[]
+  scheduler: SchedulerSettingsView
   sources: SourceSettingsView[]
 }
 

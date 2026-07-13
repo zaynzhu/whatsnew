@@ -58,13 +58,12 @@ This file is the short operational handoff for the current branch.
 - Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.
 - Startup and daily maintenance verify 20 high-priority posters. Manual operators can audit, verify or force a strict enrichment retry with the documented npm commands.
 - `backend/.env` contains secrets and must not be committed.
-- Scheduler cron is fixed in `backend/src/scheduler.ts`: hourly at minute `0`, daily at `09:15` Asia/Shanghai. The settings page does not configure it yet.
+- Scheduler settings support hourly intervals of `1, 2, 3, 4, 6, 12` hours and a daily `HH:mm` Beijing time. Saving hot-reschedules future jobs and the settings page shows both next runs; sandbox controls remain forcibly disabled.
 
 ## Next Priorities
 
 1. Promote the accepted Youku and iQIYI adapters by syncing them fresh in the main database; never copy sandbox rows.
-2. Add a small scheduler settings surface for hourly cadence, daily time and next-run visibility while keeping the sandbox forcibly disabled.
-3. Continue cross-source identity cleanup and the second poster-quality phase, especially undersized-image detection and presentation-sized delivery.
+2. Continue cross-source identity cleanup and the second poster-quality phase, especially undersized-image detection and presentation-sized delivery.
 
 ## Validation Baseline
 

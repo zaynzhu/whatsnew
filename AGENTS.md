@@ -48,7 +48,7 @@ npm run prisma:push --workspace backend
 - 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；唯一现有例外是热度榜的 `iqiyi_reserve`，它把爱奇艺 `141×188` 缩略图改为 `579×772` 后 direct-first，其他页面不得复用这个页面级特例
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
-- 调度时间目前写死在 `backend/src/scheduler.ts`：小时组每小时整点，日组按上海时区每天 `09:15`；设置页尚不能修改调度时间
+- 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`
 
 ## 安全红线
 

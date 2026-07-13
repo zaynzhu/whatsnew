@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   CheckCircle2,
+  Clock3,
   Eye,
   EyeOff,
   Images,
@@ -83,6 +84,8 @@ export function SettingsPage() {
   const [saveState, setSaveState] = useState<"idle" | "success" | "error">("idle")
   const [attentionChanges, setAttentionChanges] = useState<Record<string, string>>({})
   const [attentionSaveState, setAttentionSaveState] = useState<"idle" | "success" | "error">("idle")
+  const [schedulerChanges, setSchedulerChanges] = useState<Record<string, string>>({})
+  const [schedulerSaveState, setSchedulerSaveState] = useState<"idle" | "success" | "error">("idle")
   const [selectedSource, setSelectedSource] = useState<SourceSettingsView | null>(null)
 
   const settingsQuery = useQuery({
@@ -136,6 +139,20 @@ export function SettingsPage() {
       ])
     },
     onError: () => setAttentionSaveState("error")
+  })
+
+  const schedulerMutation = useMutation({
+    mutationFn: (request: SettingsUpdateRequest) => apiRequest<SettingsUpdateResponse>(
+      "/api/settings",
+      "PUT",
+      request
+    ),
+    onSuccess: async () => {
+      setSchedulerChanges({})
+      setSchedulerSaveState("success")
+      await queryClient.invalidateQueries({ queryKey: ["settings"] })
+    },
+    onError: () => setSchedulerSaveState("error")
   })
 
   const sourcePolicyMutation = useMutation({
@@ -220,6 +237,27 @@ export function SettingsPage() {
     attentionMutation.mutate({ values: attentionChanges, clearKeys: [] })
   }
 
+  function updateSchedulerSetting(key: string, value: string) {
+    setSchedulerSaveState("idle")
+    setSchedulerChanges((current) => ({ ...current, [key]: value }))
+  }
+
+  function saveSchedulerSettings() {
+    schedulerMutation.mutate({ values: schedulerChanges, clearKeys: [] })
+  }
+
+  function nextRunLabel(value: string | null): string {
+    if (!value) return "自动调度未运行"
+    return new Intl.DateTimeFormat("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Shanghai"
+    }).format(new Date(value))
+  }
+
   function sourceSettingKey(sourceId: string, suffix: "ENABLED" | "PROXY_MODE"): string {
     return `SOURCE_${sourceId.toUpperCase()}_${suffix}`
   }
@@ -246,6 +284,7 @@ export function SettingsPage() {
 
   const hasChanges = Object.keys(changedValues).length > 0 || clearKeys.length > 0
   const hasAttentionChanges = Object.keys(attentionChanges).length > 0
+  const hasSchedulerChanges = Object.keys(schedulerChanges).length > 0
   const posterHealth = typeof posterHealthQuery.data?.coveragePercent === "number"
     ? posterHealthQuery.data
     : null
@@ -427,10 +466,77 @@ export function SettingsPage() {
         </div>
       </section>
 
+      <section className="schedulerSettings" aria-labelledby="scheduler-heading">
+        <div className="settingsSectionHeader schedulerHeader">
+          <div>
+            <span className="settingsIndex">03 / SCHEDULE</span>
+            <h2 id="scheduler-heading">数据刷新调度</h2>
+          </div>
+          <div className={`schedulerRuntime ${settingsQuery.data.scheduler.enabled ? "active" : "inactive"}`}>
+            <Clock3 aria-hidden="true" size={18} />
+            <span>{settingsQuery.data.scheduler.forcedDisabled
+              ? "隔离沙盒强制关闭"
+              : settingsQuery.data.scheduler.enabled ? "自动调度运行中" : "自动调度未启动"}</span>
+          </div>
+        </div>
+
+        <div className="schedulerControlGrid">
+          <label>
+            <span>小时级来源</span>
+            <select
+              aria-label="小时级刷新频率"
+              disabled={settingsQuery.data.scheduler.forcedDisabled}
+              value={schedulerChanges.SCHEDULER_HOURLY_INTERVAL_HOURS
+                ?? String(settingsQuery.data.scheduler.hourlyIntervalHours)}
+              onChange={(event) => updateSchedulerSetting(
+                "SCHEDULER_HOURLY_INTERVAL_HOURS",
+                event.target.value
+              )}
+            >
+              <option value="1">每小时</option>
+              <option value="2">每 2 小时</option>
+              <option value="3">每 3 小时</option>
+              <option value="4">每 4 小时</option>
+              <option value="6">每 6 小时</option>
+              <option value="12">每 12 小时</option>
+            </select>
+            <small>下一次 {nextRunLabel(settingsQuery.data.scheduler.nextHourlyRunAt)}</small>
+          </label>
+          <label>
+            <span>日级来源</span>
+            <input
+              aria-label="日级刷新时间"
+              disabled={settingsQuery.data.scheduler.forcedDisabled}
+              type="time"
+              value={schedulerChanges.SCHEDULER_DAILY_TIME ?? settingsQuery.data.scheduler.dailyTime}
+              onChange={(event) => updateSchedulerSetting("SCHEDULER_DAILY_TIME", event.target.value)}
+            />
+            <small>下一次 {nextRunLabel(settingsQuery.data.scheduler.nextDailyRunAt)}</small>
+          </label>
+        </div>
+
+        <div className="schedulerActions">
+          <p>时间按北京时间计算，保存后立即重排后续任务，不会重复触发正在执行的同步。</p>
+          <button
+            type="button"
+            className="primaryButton"
+            disabled={!hasSchedulerChanges || schedulerMutation.isPending || settingsQuery.data.scheduler.forcedDisabled}
+            onClick={saveSchedulerSettings}
+          >
+            <Save aria-hidden="true" size={17} />
+            {schedulerMutation.isPending ? "保存中" : "保存调度"}
+          </button>
+        </div>
+        <div className="settingsFeedback" aria-live="polite">
+          {schedulerSaveState === "success" && <p className="successText">刷新调度已立即生效</p>}
+          {schedulerSaveState === "error" && <p className="errorText">刷新调度保存失败</p>}
+        </div>
+      </section>
+
       <section className="posterHealthSettings" aria-labelledby="poster-health-heading">
         <div className="settingsSectionHeader posterHealthHeader">
           <div>
-            <span className="settingsIndex">03 / IMAGES</span>
+            <span className="settingsIndex">04 / IMAGES</span>
             <h2 id="poster-health-heading">图片健康</h2>
           </div>
           <Images aria-hidden="true" size={24} />
@@ -502,7 +608,7 @@ export function SettingsPage() {
       <section className="sourceRegistry" aria-labelledby="source-registry-heading">
         <div className="settingsSectionHeader sourceRegistryHeader">
           <div>
-            <span className="settingsIndex">04 / SOURCES</span>
+            <span className="settingsIndex">05 / SOURCES</span>
             <h2 id="source-registry-heading">数据源注册表</h2>
           </div>
           <strong>{settingsQuery.data.sources.length} 个来源</strong>

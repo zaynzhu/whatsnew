@@ -33,7 +33,7 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 6. The sync run is finished as `success`, `warning` or `failed`.
 7. After startup, hourly and daily adapter batches, TMDb poster enrichment processes up to 40 eligible missing-poster titles when TMDb is runnable.
 
-The scheduler is currently code-defined rather than user-configurable: hourly scopes start at minute `0`, while daily scopes start at `09:15` in `Asia/Shanghai`. The China sandbox disables both scheduled and startup sync.
+`SchedulerController` registers one hourly-group task and one daily-group task in `Asia/Shanghai`. `SCHEDULER_HOURLY_INTERVAL_HOURS` accepts `1, 2, 3, 4, 6, 12`; `SCHEDULER_DAILY_TIME` accepts `HH:mm`. A settings update stops the old future tasks and registers the new cron expressions without restarting the process or re-running startup sync. The settings response computes both next-run timestamps. The China sandbox disables scheduled and startup sync regardless of these values.
 
 At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` rows as `failed` with `同步进程中断，已自动收尾；请重新触发同步`. This prevents stale status after dev-server restarts or process exits.
 

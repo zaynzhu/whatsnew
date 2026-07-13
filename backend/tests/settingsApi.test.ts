@@ -38,6 +38,19 @@ const database = {
   }
 }
 
+const scheduler = {
+  view: vi.fn(() => ({
+    enabled: true,
+    forcedDisabled: false,
+    hourlyIntervalHours: 1,
+    dailyTime: "09:15",
+    timezone: "Asia/Shanghai" as const,
+    nextHourlyRunAt: "2026-07-13T02:00:00.000Z",
+    nextDailyRunAt: "2026-07-14T01:15:00.000Z"
+  })),
+  refresh: vi.fn()
+}
+
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "whatsnew-settings-api-"))
   imdbCacheDir = join(tempDir, "imdb-cache")
@@ -67,7 +80,8 @@ function testApp() {
     settingsRouter: createSettingsRouter({
       settings: testSettings,
       connectionTester,
-      database: database as never
+      database: database as never,
+      scheduler
     }),
     sourcesRouter: createSourcesRouter({
       connectionTester,
@@ -107,6 +121,11 @@ describe("settings API", () => {
 
     expect(response.status).toBe(200)
     expect(response.body.sources).toHaveLength(22)
+    expect(response.body.scheduler).toMatchObject({
+      enabled: true,
+      hourlyIntervalHours: 1,
+      dailyTime: "09:15"
+    })
     expect(response.body.contentWeights).toEqual(expect.arrayContaining([
       expect.objectContaining({ category: "documentary", value: 45, defaultValue: 45 }),
       expect.objectContaining({ category: "reality_variety", value: 45, defaultValue: 45 }),
@@ -335,6 +354,27 @@ describe("settings API", () => {
       clearKeys: []
     })
     expect(invalidWeight.status).toBe(400)
+  })
+
+  it("updates scheduler settings and refreshes registered jobs immediately", async () => {
+    const response = await request(testApp()).put("/api/settings").send({
+      values: {
+        SCHEDULER_HOURLY_INTERVAL_HOURS: "3",
+        SCHEDULER_DAILY_TIME: "06:40"
+      },
+      clearKeys: []
+    })
+
+    expect(response.status).toBe(200)
+    expect(testSettings.get("SCHEDULER_HOURLY_INTERVAL_HOURS")).toBe("3")
+    expect(testSettings.get("SCHEDULER_DAILY_TIME")).toBe("06:40")
+    expect(scheduler.refresh).toHaveBeenCalledOnce()
+
+    const invalid = await request(testApp()).put("/api/settings").send({
+      values: { SCHEDULER_DAILY_TIME: "24:00" },
+      clearKeys: []
+    })
+    expect(invalid.status).toBe(400)
   })
 
   it("tests a planned source without making it active", async () => {

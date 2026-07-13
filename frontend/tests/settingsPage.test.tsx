@@ -200,6 +200,15 @@ const sourceFixtures = [
 const settingsResponse: SettingsResponse = {
   proxyFields,
   contentWeights,
+  scheduler: {
+    enabled: true,
+    forcedDisabled: false,
+    hourlyIntervalHours: 1,
+    dailyTime: "09:15",
+    timezone: "Asia/Shanghai",
+    nextHourlyRunAt: "2026-07-13T02:00:00.000Z",
+    nextDailyRunAt: "2026-07-14T01:15:00.000Z"
+  },
   sources: sourceFixtures
 }
 
@@ -334,6 +343,35 @@ describe("SettingsPage", () => {
       }))
     })
     expect(await screen.findByText("关注权重已立即生效")).toBeInTheDocument()
+  })
+
+  it("修改刷新频率并立即保存调度", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      if (input === "/api/settings" && init?.method === "PUT") {
+        return jsonResponse({ success: true, effectiveImmediately: true })
+      }
+      return jsonResponse(settingsResponse)
+    })
+    const user = userEvent.setup()
+
+    renderSettings()
+    await user.selectOptions(await screen.findByLabelText("小时级刷新频率"), "3")
+    fireEvent.change(screen.getByLabelText("日级刷新时间"), { target: { value: "06:40" } })
+    await user.click(screen.getByRole("button", { name: "保存调度" }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          values: {
+            SCHEDULER_HOURLY_INTERVAL_HOURS: "3",
+            SCHEDULER_DAILY_TIME: "06:40"
+          },
+          clearKeys: []
+        })
+      }))
+    })
+    expect(await screen.findByText("刷新调度已立即生效")).toBeInTheDocument()
   })
 
   it("用尚未保存的代理值执行连通性测试", async () => {
