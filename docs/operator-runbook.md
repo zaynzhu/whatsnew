@@ -166,6 +166,8 @@ curl -s http://127.0.0.1:19993/api/poster-health
 
 `audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
+`GET /api/poster-health` reports original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
+
 ## Source Health
 
 The source page polls both `/api/sources` and the read-only `/api/source-health` endpoint every five seconds. Its summary counts enabled sources, not every catalog entry or adapter scope. A source with multiple scopes, such as Trakt, uses its least healthy scope as the source-level status.

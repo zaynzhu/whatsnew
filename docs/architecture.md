@@ -108,7 +108,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
 | `GET /api/media/:id` | Media detail with releases, refs, current signals and events. |
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |
-| `GET /api/poster-health` | Return poster coverage, persistent health counts, cache integrity and high-priority samples. |
+| `GET /api/poster-health` | Return poster coverage, persistent health counts, separate original/variant cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
 | `GET /api/trending` | Current popularity signals with movement and source filters. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |

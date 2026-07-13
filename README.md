@@ -115,7 +115,7 @@ Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启
 - 热度榜的爱奇艺预约卡片是唯一页面级例外：爱奇艺待播页只给出 `141×188` 缩略图，该页将尺寸地址提升到 `579×772` 并优先直连，其他页面仍沿用统一代理方案
 - 图片缓存会校验元数据与字节、合并同 URL 并发请求并原子写入；30 天后刷新失败时继续返回旧缓存，`X-Poster-Cache` 标记为 `stale`
 - 每日和启动同步会按热度验证 20 张待确认图片；作品持久化记录 `unverified / healthy / degraded / broken`，跨退避窗口重复失败后才判定损坏
-- 图片健康可在设置页查看，也可运行 `npm run audit:posters --workspace backend`；手动验证命令为 `npm run verify:posters --workspace backend -- --limit=100`
+- 图片健康可在设置页查看，其中原图缓存和响应式 WebP 缓存分别显示数量、容量及异常；也可运行 `npm run audit:posters --workspace backend`，手动验证命令为 `npm run verify:posters --workspace backend -- --limit=100`
 - 图片请求与验证会读取真实像素尺寸并持久化；宽度小于 300 或高度小于 400 会单独标记为低清，不与网络损坏状态混为一谈
 - 低清作品会进入现有严格 TMDb 补图队列，只有 TMDb ID、唯一严格标题或既有高置信规则通过时才替换，未匹配项保留原图并等待 7 天后重试
 - 不带 `width` 的图片代理保留上游响应的真实 `Content-Type` 和字节；带受支持 `width` 的请求返回 WebP 变体，转码失败时安全回退原图

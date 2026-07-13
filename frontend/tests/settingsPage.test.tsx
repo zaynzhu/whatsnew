@@ -219,7 +219,13 @@ const posterHealthResponse: PosterHealthResponse = {
   coveragePercent: 82.5,
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
   quality: { unknown: 630, adequate: 70, undersized: 7 },
-  cache: { entries: 209, bytes: 73_886_357, orphanedFiles: 0, corruptEntries: 0 },
+  cache: {
+    entries: 209,
+    bytes: 73_886_357,
+    orphanedFiles: 0,
+    corruptEntries: 0,
+    variants: { entries: 418, bytes: 31_457_280, orphanedFiles: 1, corruptEntries: 0 }
+  },
   samples: {
     broken: [],
     degraded: [],
@@ -299,6 +305,8 @@ describe("SettingsPage", () => {
     expect(screen.getByText("82.5%")).toBeInTheDocument()
     expect(screen.getByText("707 / 857")).toBeInTheDocument()
     expect(screen.getByText("209 张")).toBeInTheDocument()
+    expect(screen.getByText("418 张")).toBeInTheDocument()
+    expect(screen.getByText("孤立文件 1")).toBeInTheDocument()
     expect(screen.getByText("低清 7")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(
       "href",

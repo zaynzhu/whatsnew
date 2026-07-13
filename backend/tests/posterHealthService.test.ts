@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -14,16 +14,40 @@ afterEach(async () => {
 describe("PosterHealthService", () => {
   it("summarizes database coverage, health states and disk cache integrity", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "whatsnew-poster-health-"))
+    const originalCacheDir = join(tempDir, "original")
+    const variantCacheDir = join(tempDir, "variants")
+    await Promise.all([mkdir(originalCacheDir), mkdir(variantCacheDir)])
     await Promise.all([
-      writeFile(join(tempDir, "valid.bin"), Buffer.from("image")),
-      writeFile(join(tempDir, "valid.json"), JSON.stringify({
+      writeFile(join(originalCacheDir, "valid.bin"), Buffer.from("image")),
+      writeFile(join(originalCacheDir, "valid.json"), JSON.stringify({
         url: "https://img.test/valid.jpg",
         contentType: "image/jpeg",
         cachedAt: "2026-07-11T00:00:00.000Z"
       })),
-      writeFile(join(tempDir, "corrupt.bin"), Buffer.alloc(0)),
-      writeFile(join(tempDir, "corrupt.json"), "{}"),
-      writeFile(join(tempDir, "orphan.bin"), Buffer.from("orphan"))
+      writeFile(join(originalCacheDir, "corrupt.bin"), Buffer.alloc(0)),
+      writeFile(join(originalCacheDir, "corrupt.json"), "{}"),
+      writeFile(join(originalCacheDir, "orphan.bin"), Buffer.from("orphan")),
+      writeFile(join(variantCacheDir, "valid.webp"), Buffer.from("webp")),
+      writeFile(join(variantCacheDir, "valid.json"), JSON.stringify({
+        url: "https://img.test/valid.jpg",
+        requestedWidth: 320,
+        sourceDigest: "a".repeat(64),
+        contentType: "image/webp",
+        width: 320,
+        height: 480,
+        cachedAt: "2026-07-11T00:00:00.000Z"
+      })),
+      writeFile(join(variantCacheDir, "invalid.webp"), Buffer.from("invalid")),
+      writeFile(join(variantCacheDir, "invalid.json"), JSON.stringify({
+        url: "https://img.test/invalid.jpg",
+        requestedWidth: 500,
+        sourceDigest: "short",
+        contentType: "image/webp",
+        width: 500,
+        height: 750,
+        cachedAt: "2026-07-11T00:00:00.000Z"
+      })),
+      writeFile(join(variantCacheDir, "orphan.json"), "{}")
     ])
     const sample = {
       id: "media-1",
@@ -44,7 +68,8 @@ describe("PosterHealthService", () => {
     const findMany = vi.fn(async () => [sample])
     const service = createPosterHealthService({
       database: { mediaItem: { count, findMany } } as never,
-      cacheDir: tempDir
+      cacheDir: originalCacheDir,
+      variantCacheDir
     })
 
     await expect(service.getHealth()).resolves.toEqual({
@@ -54,7 +79,13 @@ describe("PosterHealthService", () => {
       coveragePercent: 80,
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
       quality: { unknown: 4, adequate: 3, undersized: 1 },
-      cache: { entries: 2, bytes: 5, orphanedFiles: 1, corruptEntries: 1 },
+      cache: {
+        entries: 2,
+        bytes: 5,
+        orphanedFiles: 1,
+        corruptEntries: 1,
+        variants: { entries: 2, bytes: 11, orphanedFiles: 1, corruptEntries: 1 }
+      },
       samples: {
         broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
         degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],

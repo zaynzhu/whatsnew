@@ -2,6 +2,14 @@ import type { PrismaClient } from "@prisma/client"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
+import { POSTER_VARIANT_CACHE_DIR, POSTER_VARIANT_WIDTHS } from "./posterVariantService.js"
+
+type DiskCacheHealth = {
+  entries: number
+  bytes: number
+  orphanedFiles: number
+  corruptEntries: number
+}
 
 export type PosterHealthSample = {
   id: string
@@ -28,12 +36,7 @@ export type PosterHealthResponse = {
     adequate: number
     undersized: number
   }
-  cache: {
-    entries: number
-    bytes: number
-    orphanedFiles: number
-    corruptEntries: number
-  }
+  cache: DiskCacheHealth & { variants: DiskCacheHealth }
   samples: {
     broken: PosterHealthSample[]
     degraded: PosterHealthSample[]
@@ -47,9 +50,14 @@ type PosterHealthDatabase = Pick<PrismaClient, "mediaItem">
 type PosterHealthServiceOptions = {
   database: PosterHealthDatabase
   cacheDir?: string
+  variantCacheDir?: string
 }
 
-async function cacheHealth(cacheDir: string): Promise<PosterHealthResponse["cache"]> {
+async function cacheHealth(
+  cacheDir: string,
+  bodyExtension: ".bin" | ".webp",
+  validateMetadata: (metadata: Record<string, unknown>) => boolean
+): Promise<DiskCacheHealth> {
   let names: string[]
   try {
     names = await readdir(cacheDir)
@@ -57,7 +65,9 @@ async function cacheHealth(cacheDir: string): Promise<PosterHealthResponse["cach
     return { entries: 0, bytes: 0, orphanedFiles: 0, corruptEntries: 0 }
   }
 
-  const bodyKeys = new Set(names.filter((name) => name.endsWith(".bin")).map((name) => name.slice(0, -4)))
+  const bodyKeys = new Set(names
+    .filter((name) => name.endsWith(bodyExtension))
+    .map((name) => name.slice(0, -bodyExtension.length)))
   const metadataKeys = new Set(names.filter((name) => name.endsWith(".json")).map((name) => name.slice(0, -5)))
   const completeKeys = [...bodyKeys].filter((key) => metadataKeys.has(key))
   const orphanedFiles = [...bodyKeys].filter((key) => !metadataKeys.has(key)).length
@@ -68,17 +78,18 @@ async function cacheHealth(cacheDir: string): Promise<PosterHealthResponse["cach
   for (const key of completeKeys) {
     try {
       const [bodyStat, metadataRaw] = await Promise.all([
-        stat(join(cacheDir, `${key}.bin`)),
+        stat(join(cacheDir, `${key}${bodyExtension}`)),
         readFile(join(cacheDir, `${key}.json`), "utf8")
       ])
-      const metadata = JSON.parse(metadataRaw) as { url?: unknown; contentType?: unknown; cachedAt?: unknown }
+      const metadata = JSON.parse(metadataRaw) as Record<string, unknown>
       bytes += bodyStat.size
       if (bodyStat.size <= 0
         || typeof metadata.url !== "string"
         || typeof metadata.contentType !== "string"
         || !metadata.contentType.startsWith("image/")
         || typeof metadata.cachedAt !== "string"
-        || !Number.isFinite(Date.parse(metadata.cachedAt))) {
+        || !Number.isFinite(Date.parse(metadata.cachedAt))
+        || !validateMetadata(metadata)) {
         corruptEntries += 1
       }
     } catch {
@@ -92,6 +103,20 @@ async function cacheHealth(cacheDir: string): Promise<PosterHealthResponse["cach
     orphanedFiles,
     corruptEntries
   }
+}
+
+function originalMetadataIsValid(): boolean {
+  return true
+}
+
+function variantMetadataIsValid(metadata: Record<string, unknown>): boolean {
+  return metadata.contentType === "image/webp"
+    && typeof metadata.sourceDigest === "string"
+    && metadata.sourceDigest.length === 64
+    && typeof metadata.requestedWidth === "number"
+    && POSTER_VARIANT_WIDTHS.includes(metadata.requestedWidth as typeof POSTER_VARIANT_WIDTHS[number])
+    && (metadata.width === null || typeof metadata.width === "number")
+    && (metadata.height === null || typeof metadata.height === "number")
 }
 
 function sample(row: {
@@ -115,6 +140,7 @@ function sample(row: {
 export function createPosterHealthService(options: PosterHealthServiceOptions) {
   const database = options.database
   const cacheDir = options.cacheDir ?? POSTER_CACHE_DIR
+  const variantCacheDir = options.variantCacheDir ?? POSTER_VARIANT_CACHE_DIR
 
   return {
     async getHealth(): Promise<PosterHealthResponse> {
@@ -147,7 +173,8 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         degradedSamples,
         missingSamples,
         undersizedSamples,
-        cache
+        cache,
+        variantCache
       ] = await Promise.all([
         database.mediaItem.count(),
         database.mediaItem.count({ where: { OR: [{ posterUrl: null }, { posterUrl: "" }] } }),
@@ -182,7 +209,8 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           take: 8,
           select: sampleSelect
         }),
-        cacheHealth(cacheDir)
+        cacheHealth(cacheDir, ".bin", originalMetadataIsValid),
+        cacheHealth(variantCacheDir, ".webp", variantMetadataIsValid)
       ])
       const withPoster = total - missing
 
@@ -197,7 +225,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           adequate: qualityAdequate,
           undersized: qualityUndersized
         },
-        cache,
+        cache: { ...cache, variants: variantCache },
         samples: {
           broken: brokenSamples.map(sample),
           degraded: degradedSamples.map(sample),

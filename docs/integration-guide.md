@@ -63,7 +63,7 @@ Without a query parameter, the backend fetches the stored remote poster through 
 
 Responses are browser-cacheable for one day with a seven-day `stale-while-revalidate` window. `X-Poster-Cache` is `hit`, `miss` or `stale`; stale means an expired original disk copy was served because refresh failed. Width requests also return `X-Poster-Variant-Cache: hit|miss|fallback` and `X-Poster-Width`; `fallback` means transformation failed and the original format was returned.
 
-`GET /api/poster-health` returns title coverage, `unverified / healthy / degraded / broken` availability counts, `unknown / adequate / undersized` quality counts, disk-cache integrity and high-priority broken, degraded, missing and undersized samples. Quality samples include measured width and height. The endpoint is read-only and performs no external requests.
+`GET /api/poster-health` returns title coverage, `unverified / healthy / degraded / broken` availability counts, `unknown / adequate / undersized` quality counts, disk-cache integrity and high-priority broken, degraded, missing and undersized samples. `cache` describes original entries while `cache.variants` describes responsive WebP derivatives; both include entry count, bytes, orphaned files and corrupt entries. Quality samples include measured width and height. The endpoint is read-only and performs no external requests.
 
 ## Popularity History
 

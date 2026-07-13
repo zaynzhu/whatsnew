@@ -59,6 +59,12 @@ export type PosterHealthResponse = {
     bytes: number
     orphanedFiles: number
     corruptEntries: number
+    variants: {
+      entries: number
+      bytes: number
+      orphanedFiles: number
+      corruptEntries: number
+    }
   }
   samples: {
     broken: PosterHealthSample[]

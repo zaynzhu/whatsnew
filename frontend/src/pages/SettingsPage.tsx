@@ -574,12 +574,20 @@ export function SettingsPage() {
                 </strong>
               </div>
               <div>
-                <span>缓存</span>
+                <span>原图缓存</span>
                 <strong>{posterHealth.cache.entries} 张</strong>
               </div>
               <div>
-                <span>缓存容量</span>
+                <span>原图容量</span>
                 <strong>{Math.round(posterHealth.cache.bytes / 1024 / 1024)} MB</strong>
+              </div>
+              <div>
+                <span>响应式缓存</span>
+                <strong>{posterHealth.cache.variants.entries} 张</strong>
+              </div>
+              <div>
+                <span>响应式容量</span>
+                <strong>{Math.round(posterHealth.cache.variants.bytes / 1024 / 1024)} MB</strong>
               </div>
             </div>
 
@@ -593,8 +601,11 @@ export function SettingsPage() {
                 低清 {posterHealth.quality.undersized}
               </span>
               <span>尺寸待检测 {posterHealth.quality.unknown}</span>
-              <span className={posterHealth.cache.corruptEntries > 0 ? "error" : ""}>
-                缓存损坏 {posterHealth.cache.corruptEntries}
+              <span className={posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries > 0 ? "error" : ""}>
+                缓存损坏 {posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries}
+              </span>
+              <span className={posterHealth.cache.orphanedFiles + posterHealth.cache.variants.orphanedFiles > 0 ? "warning" : ""}>
+                孤立文件 {posterHealth.cache.orphanedFiles + posterHealth.cache.variants.orphanedFiles}
               </span>
             </div>
 
