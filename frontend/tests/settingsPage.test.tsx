@@ -260,14 +260,14 @@ const posterHealthResponse: PosterHealthResponse = {
     notAttempted: 12,
     cooldown: 130,
     retryEligible: 8,
-    retryAfterDays: 7,
+    retryAfterDays: 3,
     nextCooldownExpiryAt: "2026-07-19T02:30:00.000Z"
   },
   replacement: {
     notAttempted: 2,
     cooldown: 4,
     retryEligible: 1,
-    retryAfterDays: 7,
+    retryAfterDays: 3,
     nextCooldownExpiryAt: "2026-07-20T02:30:00.000Z"
   },
   cache: {

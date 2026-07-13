@@ -93,13 +93,13 @@ describe("api routes", () => {
         notAttempted: 4,
         cooldown: 0,
         retryEligible: 0,
-        retryAfterDays: 7
+        retryAfterDays: 3
       },
       replacement: {
         notAttempted: 0,
         cooldown: 0,
         retryEligible: 0,
-        retryAfterDays: 7
+        retryAfterDays: 3
       },
       cache: expect.objectContaining({
         entries: expect.any(Number),

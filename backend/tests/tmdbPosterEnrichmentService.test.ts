@@ -166,7 +166,7 @@ describe("TMDb poster enrichment", () => {
           {
             OR: [
               { posterLookupAttemptedAt: null },
-              { posterLookupAttemptedAt: { lt: new Date("2026-07-03T00:00:00.000Z") } }
+              { posterLookupAttemptedAt: { lt: new Date("2026-07-07T00:00:00.000Z") } }
             ]
           }
         ]

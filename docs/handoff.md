@@ -16,12 +16,12 @@ This file is the short operational handoff for the current branch.
 - Settings page manages proxies, source enablement, source credentials, connectivity tests, read-only source previews and manual sync.
 - Data source status pages poll every 5 seconds.
 - Backend startup recovers interrupted `running` source runs.
-- Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
+- Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 3 days.
 - Frontend artwork is proxy-first with responsive `320w / 640w / 960w` sources. Original images cache under `backend/.cache/posters/`; bounded WebP variants cache under `backend/.cache/poster-variants/` and never upscale the source.
 - Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Original and responsive caches have separate counts, capacity and integrity metrics. Cache refresh can serve stale bytes during transient upstream failures.
 - Responsive variants are capped at 512 MB. Startup sync and daily maintenance clean stale partial files and evict oldest complete variants to 90% when over capacity; manual cleanup defaults to dry-run.
 - Poster quality is tracked separately from availability. Requests and verification persist dimensions; images below 300×400 are listed as undersized and enter strict TMDb replacement without relaxing identity matching.
-- Poster lookup observability separately tracks missing-poster enrichment and undersized-poster replacement across never-attempted, seven-day cooldown and retry-eligible states. Health counts, verification and enrichment only include titles with an active source reference; inactive history remains stored without consuming maintenance capacity. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
+- Poster lookup observability separately tracks missing-poster enrichment and undersized-poster replacement across never-attempted, three-day cooldown and retry-eligible states. Health counts, verification and enrichment only include titles with an active source reference; inactive history remains stored without consuming maintenance capacity. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
 - `/preview` no longer has the former 500-row read cap. After the 2026-07-13 hot-rank integration, a real main-database request returned all 214 current Douban upcoming works, including 40 official hot-list matches: 20 movies and 20 series. Each date now wraps every title into a visible poster grid, and hot-list matches move to the front of that date by rank with a strong badge and border.
@@ -88,7 +88,7 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Continue poster-system phase two: process the 2 never-attempted missing titles in the next maintenance cycle, then recheck the 176 cooling missing titles and 4 cooling undersized titles after their seven-day windows open without relaxing identity matching. Source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
+1. Continue poster-system phase two: process never-attempted missing titles in the next maintenance cycle, then recheck cooling missing and undersized titles after their three-day windows open without relaxing identity matching. Source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
 
 ## Validation Baseline
 

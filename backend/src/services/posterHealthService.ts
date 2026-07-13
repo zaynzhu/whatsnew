@@ -76,7 +76,7 @@ type PosterHealthServiceOptions = {
   now?: () => Date
 }
 
-const POSTER_LOOKUP_RETRY_DAYS = 7
+const POSTER_LOOKUP_RETRY_DAYS = 3
 const DAY_MS = 24 * 60 * 60 * 1000
 
 async function cacheHealth(

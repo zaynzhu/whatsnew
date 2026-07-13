@@ -98,15 +98,15 @@ describe("PosterHealthService", () => {
         notAttempted: 0,
         cooldown: 2,
         retryEligible: 0,
-        retryAfterDays: 7,
-        nextCooldownExpiryAt: "2026-07-17T00:00:00.000Z"
+        retryAfterDays: 3,
+        nextCooldownExpiryAt: "2026-07-13T00:00:00.000Z"
       },
       replacement: {
         notAttempted: 1,
         cooldown: 1,
         retryEligible: 1,
-        retryAfterDays: 7,
-        nextCooldownExpiryAt: "2026-07-18T00:00:00.000Z"
+        retryAfterDays: 3,
+        nextCooldownExpiryAt: "2026-07-14T00:00:00.000Z"
       },
       cache: {
         entries: 2,
