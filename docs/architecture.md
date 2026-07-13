@@ -60,6 +60,8 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 
 iQIYI `newOnlinePCW` poster URLs on `iqiyipic.com` are normalized at adapter ingestion when they use the known `120×160` or `141×188` portrait suffix. The stored URL requests `579×772`, so every page can use the normal proxy and responsive variant pipeline. Existing low-resolution rows accept this replacement only through the same stable iQIYI source identity and matching asset ID; the heat page keeps its direct-first URL upgrade only as a legacy-data fallback.
 
+Douban poster URLs on `doubanio.com` are normalized from `s_ratio_poster` to the same asset's `l_ratio_poster` path at ingestion. Existing low-resolution rows accept that replacement only through the same stable Douban source identity and an exactly equivalent normalized URL, so poster quality improves without broadening title or identity matching.
+
 ## Source Registry
 
 `backend/src/settings/sourceCatalog.ts` is the source-of-truth catalog. `backend/src/adapters/adapterRegistry.ts` maps implemented adapters to schedule groups.

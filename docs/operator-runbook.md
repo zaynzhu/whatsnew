@@ -180,6 +180,8 @@ curl -s http://127.0.0.1:19993/api/poster-health
 
 `GET /api/poster-health` reports missing-poster retry state under `lookup`, undersized-poster replacement state under `replacement`, original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. A `cooldown` count means a strict TMDb attempt ran within the last seven days; it does not mean a match was accepted. `retryEligible` becomes available after that window. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
 
+Douban ingestion normalizes official `s_ratio_poster` URLs to the same asset's `l_ratio_poster` path. Re-syncing the Douban `popularity` scope upgrades an existing small image only when the stable Douban source identity and normalized asset URL are identical; verification then re-measures the replacement. Do not manually rewrite unrelated Douban URLs or relax identity matching.
+
 The first prune command is a dry run. Add `--apply` to remove stale corrupt/orphaned files and enforce the default 512 MB limit. When capacity is exceeded, the oldest complete variants are removed until usage reaches 90% of the limit. Use `--max-mb=1024` to override the command limit temporarily; accepted values are 64 through 10240 MB. Startup sync and the daily scheduled batch apply the default limit automatically, while files written within the last hour are protected.
 
 ## Source Health
@@ -212,6 +214,7 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | Poster health shows `degraded` | An expired cache copy is still usable or the first upstream attempt failed. Let the cooldown expire before retrying. |
 | Poster health shows `broken` | The URL failed across separate retry windows. Run strict enrichment or wait for a source to provide a different URL. |
 | Poster health shows `undersized` | The image is available but measured below 300×400. Run strict enrichment; unmatched titles intentionally keep the original image until a trustworthy replacement exists. |
+| Current Douban TOP250 artwork is undersized | Re-sync the Douban `popularity` scope, then run `verify:posters`. Official `s_ratio_poster` paths should become `l_ratio_poster` for the same asset. |
 
 Useful status commands:
 

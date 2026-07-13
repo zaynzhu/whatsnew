@@ -1,5 +1,6 @@
 import { classifyMedia } from "../domain/mediaClassifier.js"
 import type { AdapterItem, PopularitySignalInput, ReleaseInput } from "../domain/types.js"
+import { normalizeDoubanPosterUrl } from "../utils/doubanPosterUrl.js"
 
 type DoubanChartItem = {
   rating?: [string, string] | null
@@ -120,7 +121,9 @@ function sourceContentType(item: DoubanMobileSubject): string {
 }
 
 function posterUrlFromSubject(item: DoubanMobileSubject): string | null {
-  return absoluteUrl(item.cover_url) ?? absoluteUrl(item.pic?.large) ?? absoluteUrl(item.pic?.normal)
+  return normalizeDoubanPosterUrl(item.cover_url)
+    ?? normalizeDoubanPosterUrl(item.pic?.large)
+    ?? normalizeDoubanPosterUrl(item.pic?.normal)
 }
 
 function releaseFromSubject(
@@ -250,7 +253,7 @@ function toAdapterItem(item: DoubanChartItem): AdapterItem {
       titleOriginal: title,
       titleAliases: [],
       overview: null,
-      posterUrl: absoluteUrl(item.cover_url),
+      posterUrl: normalizeDoubanPosterUrl(item.cover_url),
       productionCountries: regions,
       originalLanguage: null,
       genres: types,

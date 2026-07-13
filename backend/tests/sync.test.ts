@@ -198,6 +198,26 @@ function iqiyiAdapterWithPoster(posterUrl: string): SourceAdapter {
   }
 }
 
+function doubanAdapterWithPoster(posterUrl: string): SourceAdapter {
+  return {
+    source: "douban",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+      return [{
+        ...base,
+        media: {
+          ...base.media,
+          source: "douban",
+          sourceId: "douban-stable-poster-1",
+          posterUrl
+        },
+        releases: [],
+        popularitySignals: []
+      }]
+    }
+  }
+}
+
 describe("runSourceSync", () => {
   it("replaces a broken poster when its source provides a different URL", async () => {
     await runSourceSync(prisma, adapterWithPoster("https://img.example.test/old.jpg"))
@@ -240,6 +260,45 @@ describe("runSourceSync", () => {
     })
 
     await runSourceSync(prisma, iqiyiAdapterWithPoster(highResolutionUrl))
+
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterUrl: highResolutionUrl,
+      posterStatus: "unverified",
+      posterCheckedAt: null,
+      posterWidth: null,
+      posterHeight: null,
+      posterQuality: "unknown"
+    })
+  })
+
+  it("用同一豆瓣来源身份的高清等价地址替换已验证缩略图", async () => {
+    const lowResolutionUrl = "https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2578474613.jpg"
+    const highResolutionUrl = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2578474613.jpg"
+    await runSourceSync(prisma, doubanAdapterWithPoster(lowResolutionUrl))
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: {
+        posterStatus: "healthy",
+        posterCheckedAt: new Date("2026-07-13T00:00:00Z"),
+        posterWidth: 270,
+        posterHeight: 378,
+        posterQuality: "undersized"
+      }
+    })
+
+    await runSourceSync(prisma, doubanAdapterWithPoster(
+      "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p9999999999.jpg"
+    ))
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterUrl: lowResolutionUrl,
+      posterStatus: "healthy",
+      posterWidth: 270,
+      posterHeight: 378,
+      posterQuality: "undersized"
+    })
+
+    await runSourceSync(prisma, doubanAdapterWithPoster(highResolutionUrl))
 
     expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
       posterUrl: highResolutionUrl,

@@ -161,7 +161,7 @@ describe("doubanAdapter", () => {
       releaseForm: "streaming_movie",
       sourceContentType: "电影",
       titleDisplay: "美丽人生",
-      posterUrl: "https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2578474613.jpg",
+      posterUrl: "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2578474613.jpg",
       productionCountries: ["意大利"],
       genres: ["剧情", "喜剧", "爱情", "战争"]
     })

@@ -8,6 +8,7 @@ import type {
   SourceFetchBatch,
   SourceFetchResult
 } from "../domain/types.js"
+import { isDoubanPosterUpgrade } from "../utils/doubanPosterUrl.js"
 import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
 import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
@@ -142,6 +143,11 @@ async function upsertItem(
       && item.media.source === "iqiyi"
       && isIqiyiPosterUpgrade(match.posterUrl, item.media.posterUrl)
     : false
+  const acceptDoubanPosterUpgrade = match
+    ? hasStableSourceIdentity
+      && item.media.source === "douban"
+      && isDoubanPosterUpgrade(match.posterUrl, item.media.posterUrl)
+    : false
   let nextPosterUrl = match?.posterUrl ?? item.media.posterUrl
   const acceptTvmazePoster = match
     && item.media.source === "tvmaze"
@@ -149,6 +155,7 @@ async function upsertItem(
     && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
   if (match && item.media.posterUrl && (
     match.posterStatus === "broken"
+    || acceptDoubanPosterUpgrade
     || acceptIqiyiPosterUpgrade
     || acceptTvmazePoster
   )) {
