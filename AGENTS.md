@@ -41,6 +41,7 @@ npm run prisma:push --workspace backend
 - 所有外部 API 请求必须使用统一限频机制，同一服务连续请求间隔不低于 2 秒
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
+- TVmaze 普通电视排期与 Web 排期可能返回同一 episode，合并结果必须按稳定 episode ID 去重后再写入 `Release`
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
 - 国内来源先在 `whatsnew_china_sandbox` 验收；沙盒强制关闭调度和全部来源，禁止把沙盒业务数据复制回主库
 - 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；腾讯视频只使用 `getMVLPage` 的频道“即将上线”筛选，电视剧固定 `channel_id=100113, iyear=1`，电影固定 `channel_id=100173, iyear=999`，不得把 `publish_date` 当作腾讯上线日期；芒果TV 当前为 blocked，不得按旧频道首页方案恢复

@@ -130,4 +130,22 @@ describe("tvmazeAdapter", () => {
       releasePattern: "streaming_drop"
     })
   })
+
+  it("deduplicates episodes returned by both schedule endpoints", async () => {
+    const fetchJson = vi.fn(async () => [scheduleEpisode])
+    const adapter = createTvmazeAdapter({
+      country: "US",
+      days: 1,
+      httpClient: { fetchJson } as unknown as SourceHttpClient,
+      minIntervalMs: 0,
+      startDate: () => "2026-06-17"
+    })
+
+    const items = await adapter.fetchItems()
+
+    expect(fetchJson).toHaveBeenCalledTimes(2)
+    expect(items).toHaveLength(1)
+    expect(items[0].releases).toHaveLength(1)
+    expect(items[0].releases[0].sourceUrl).toBe(scheduleEpisode.url)
+  })
 })

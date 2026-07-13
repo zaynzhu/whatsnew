@@ -191,6 +191,10 @@ function groupByShow(episodes: TvmazeEpisode[], today: string): AdapterItem[] {
     .map((group) => itemFromEpisodes(group[0].show!, group, today))
 }
 
+function deduplicateEpisodes(episodes: TvmazeEpisode[]): TvmazeEpisode[] {
+  return [...new Map(episodes.map((episode) => [episode.id, episode])).values()]
+}
+
 export function createTvmazeAdapter(options: TvmazeAdapterOptions = {}): SourceAdapter {
   const limiter = new RateLimiter(options.minIntervalMs ?? EXTERNAL_SERVICE_INTERVAL_MS)
   const country = options.country ?? "US"
@@ -224,7 +228,7 @@ export function createTvmazeAdapter(options: TvmazeAdapterOptions = {}): SourceA
         episodes.push(...schedule, ...webSchedule)
       }
 
-      return groupByShow(episodes, start)
+      return groupByShow(deduplicateEpisodes(episodes), start)
     }
   }
 }

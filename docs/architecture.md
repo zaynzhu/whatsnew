@@ -2,6 +2,8 @@
 
 WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broadcasts, availability hints and popularity signals. It keeps each source's meaning intact instead of flattening everything into one synthetic ranking.
 
+TVmaze combines its country schedule and web schedule before grouping episodes by show. Because the two official endpoints can overlap, episodes are deduplicated by the stable TVmaze episode ID before release rows are written.
+
 ## Runtime Shape
 
 - Frontend: React + Vite on `19992`
