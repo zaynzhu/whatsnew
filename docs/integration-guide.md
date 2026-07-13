@@ -79,6 +79,8 @@ curl -s "http://127.0.0.1:19993/api/media/<mediaItemId>/popularity-history?days=
 
 ## Trending
 
+Without a signal-level filter, the route first selects up to 50 active works by `MediaItem.heatScore`, then returns every current signal attached to those works. This is the default work-centric heat view. Supplying `source`, `platform`, `region`, `window`, `rankingScope` or `movement` switches to signal-centric selection and limits the matching source-ranked rows to 50. `mediaType` and `releaseForm` alone keep the work-centric behavior.
+
 ```bash
 curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trending"
 ```

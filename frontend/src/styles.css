@@ -1911,7 +1911,7 @@ h1 {
   font-size: 12px;
 }
 
-.trendingCompositeHeat {
+.trendingSourcePosition {
   color: var(--amber);
   font-size: 12px;
   font-weight: 800;
@@ -2158,17 +2158,30 @@ h1 {
   inset: 52% 0 0;
 }
 
-.trendingPosterRank {
+.trendingPosterHeat {
   position: absolute;
   z-index: 2;
   right: 10px;
   bottom: 8px;
-  color: #fff;
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  color: var(--amber);
   font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 34px;
-  font-weight: 900;
   line-height: 1;
   text-shadow: 0 4px 16px rgba(0, 0, 0, 0.82);
+}
+
+.trendingPosterHeat small {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.trendingPosterHeat strong {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 900;
 }
 
 .trendingCardBody {
@@ -3792,8 +3805,18 @@ select:focus-visible {
     padding: 12px;
   }
 
-  .trendingPosterRank {
-    font-size: 27px;
+  .trendingPosterHeat {
+    right: 7px;
+    bottom: 7px;
+    gap: 3px;
+  }
+
+  .trendingPosterHeat small {
+    font-size: 8px;
+  }
+
+  .trendingPosterHeat strong {
+    font-size: 24px;
   }
 
   .trendingCardProvenance {

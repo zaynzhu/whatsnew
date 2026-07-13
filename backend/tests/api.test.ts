@@ -600,6 +600,73 @@ describe("api routes", () => {
     }
   })
 
+  it("returns default trending works by work heat with all current signals", async () => {
+    const hotMedia = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "theatrical_movie",
+        titleDisplay: "综合高热作品",
+        heatScore: 1000,
+        sourceRefs: {
+          create: { source: "tmdb", sourceId: "tmdb:movie:composite-hot" }
+        },
+        popularitySignals: {
+          create: [
+            {
+              source: "tmdb_trending",
+              sourceCategory: "metadata_community",
+              platform: "TMDb",
+              region: "GLOBAL",
+              window: "week",
+              rank: 40
+            },
+            {
+              source: "trakt_trending",
+              sourceCategory: "metadata_community",
+              platform: "Trakt",
+              region: "GLOBAL",
+              window: "current",
+              rankingScope: "movie",
+              rank: 25
+            }
+          ]
+        }
+      }
+    })
+    await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "theatrical_movie",
+        titleDisplay: "单榜第一作品",
+        heatScore: 1,
+        sourceRefs: {
+          create: { source: "tmdb", sourceId: "tmdb:movie:single-rank-one" }
+        },
+        popularitySignals: {
+          create: {
+            source: "tmdb_trending",
+            sourceCategory: "metadata_community",
+            platform: "TMDb",
+            region: "GLOBAL",
+            window: "week",
+            rank: 1
+          }
+        }
+      }
+    })
+
+    const response = await request(createApp()).get("/api/trending")
+    const hotSignals = response.body.items.filter((item: any) => item.mediaItemId === hotMedia.id)
+
+    expect(response.status).toBe(200)
+    expect(response.body.items[0].mediaItemId).toBe(hotMedia.id)
+    expect(hotSignals).toHaveLength(2)
+    expect(hotSignals.map((signal: any) => signal.source)).toEqual([
+      "trakt_trending",
+      "tmdb_trending"
+    ])
+  })
+
   it("returns bounded popularity history while media detail stays current-only", async () => {
     const media = await prisma.mediaItem.findFirstOrThrow()
     const currentCapturedAt = new Date(Date.now() - 24 * 60 * 60 * 1000)

@@ -18,6 +18,18 @@ const trendingQuerySchema = z.object({
 })
 
 type Movement = z.infer<typeof trendingQuerySchema>["movement"]
+type TrendingQuery = z.infer<typeof trendingQuerySchema>
+
+function hasSignalFilter(query: TrendingQuery): boolean {
+  return Boolean(
+    query.source
+    || query.platform
+    || query.region
+    || query.window
+    || query.rankingScope
+    || query.movement
+  )
+}
 
 function movementWhere(movement: Movement): Prisma.PopularitySignalWhereInput {
   if (movement === "new") return { previousRank: null, rank: { not: null } }
@@ -43,6 +55,31 @@ trendingRouter.get("/", async (req, res) => {
   }
 
   const query = parsed.data
+  if (!hasSignalFilter(query)) {
+    const mediaItems = await db.mediaItem.findMany({
+      where: {
+        ...ACTIVE_MEDIA_WHERE,
+        mediaType: query.mediaType,
+        releaseForm: query.releaseForm,
+        popularitySignals: { some: { isCurrent: true } }
+      },
+      include: {
+        popularitySignals: {
+          where: { isCurrent: true },
+          orderBy: [{ rank: "asc" }, { capturedAt: "desc" }]
+        }
+      },
+      orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
+      take: 50
+    })
+    const items = mediaItems.flatMap(({ popularitySignals, ...mediaItem }) => (
+      popularitySignals.map((signal) => ({ ...signal, mediaItem }))
+    ))
+
+    res.json({ items })
+    return
+  }
+
   const signals = await db.popularitySignal.findMany({
     where: {
       isCurrent: true,

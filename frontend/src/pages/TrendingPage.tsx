@@ -291,7 +291,13 @@ export function TrendingPage() {
                     <span className="trendingMediaType">
                       {mediaTypeLabel(mediaItem.mediaType)}
                     </span>
-                    <strong className="trendingPosterRank">#{primarySignal.rank ?? index + 1}</strong>
+                    <span
+                      aria-label={`热度 ${Math.round(mediaItem.heatScore)}`}
+                      className="trendingPosterHeat"
+                    >
+                      <small>Heat</small>
+                      <strong>{Math.round(mediaItem.heatScore)}</strong>
+                    </span>
                   </div>
                 </Link>
 
@@ -302,7 +308,9 @@ export function TrendingPage() {
                   </div>
                   <div className="trendingRankLine">
                     <span className={movementClass(primarySignal)}>{movementLabel(primarySignal)}</span>
-                    <small className="trendingCompositeHeat">Heat {Math.round(mediaItem.heatScore)}</small>
+                    <small className="trendingSourcePosition">
+                      {primarySignal.rank == null ? "暂无名次" : `第 ${primarySignal.rank} 名`}
+                    </small>
                   </div>
                   <Link className="rankTitle" to={`/media/${mediaItem.id}`}>
                     <strong>{mediaItem.titleDisplay}</strong>

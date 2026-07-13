@@ -122,7 +122,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |
 | `GET /api/poster-health` | Return poster coverage, persistent health counts, separate original/variant cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
-| `GET /api/trending` | Current popularity signals with movement, source and ranking-scope filters. |
+| `GET /api/trending` | Without signal filters, selects 50 works by `heatScore` and returns all current signals for those works. Source, platform, region, window, ranking-scope or movement filters switch to source-rank signal selection. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |
 | `GET /api/preview` | Read-only complete Douban upcoming timeline grouped by date, including every current future/undated title and source status. |
 | `POST /api/preview/sync` | Run only the paginated Douban movie and TV coming-soon pages; rejects duplicate in-flight source work. |
