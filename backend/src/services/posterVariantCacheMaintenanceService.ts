@@ -4,8 +4,10 @@ import {
   POSTER_VARIANT_CACHE_DIR,
   POSTER_VARIANT_WIDTHS
 } from "./posterVariantService.js"
+import { POSTER_CACHE_DIR } from "./posterImageService.js"
 
 export const DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES = 512 * 1024 * 1024
+export const DEFAULT_POSTER_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024
 const DEFAULT_TARGET_RATIO = 0.9
 const DEFAULT_WRITE_GRACE_MS = 60 * 60 * 1000
 
@@ -69,7 +71,7 @@ async function cacheFiles(cacheDir: string): Promise<Map<string, CacheFile>> {
   return new Map(files.filter((file): file is CacheFile => Boolean(file)).map((file) => [file.name, file]))
 }
 
-function metadataIsValid(metadata: Record<string, unknown>): boolean {
+function variantMetadataIsValid(metadata: Record<string, unknown>): boolean {
   return typeof metadata.url === "string"
     && metadata.contentType === "image/webp"
     && typeof metadata.cachedAt === "string"
@@ -82,15 +84,32 @@ function metadataIsValid(metadata: Record<string, unknown>): boolean {
     && (metadata.height === null || typeof metadata.height === "number")
 }
 
-export async function prunePosterVariantCache(
-  options: PosterVariantCachePruneOptions = {}
+function posterMetadataIsValid(metadata: Record<string, unknown>): boolean {
+  return typeof metadata.url === "string"
+    && typeof metadata.contentType === "string"
+    && metadata.contentType.startsWith("image/")
+    && typeof metadata.cachedAt === "string"
+    && Number.isFinite(Date.parse(metadata.cachedAt))
+    && (metadata.width === undefined || metadata.width === null || typeof metadata.width === "number")
+    && (metadata.height === undefined || metadata.height === null || typeof metadata.height === "number")
+}
+
+async function prunePairedPosterCache(
+  options: PosterVariantCachePruneOptions,
+  defaults: {
+    cacheDir: string
+    maxBytes: number
+    bodyExtension: ".bin" | ".webp"
+    metadataIsValid(metadata: Record<string, unknown>): boolean
+    invalidLimitMessage: string
+  }
 ): Promise<PosterVariantCachePruneResult> {
-  const cacheDir = options.cacheDir ?? POSTER_VARIANT_CACHE_DIR
-  const maxBytes = options.maxBytes ?? DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES
+  const cacheDir = options.cacheDir ?? defaults.cacheDir
+  const maxBytes = options.maxBytes ?? defaults.maxBytes
   const apply = options.apply ?? false
   const writeGraceMs = options.writeGraceMs ?? DEFAULT_WRITE_GRACE_MS
   const now = options.now ?? Date.now()
-  if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("响应式图片缓存上限必须大于 0")
+  if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error(defaults.invalidLimitMessage)
 
   const files = await cacheFiles(cacheDir)
   const removableFiles = new Set<string>()
@@ -105,8 +124,8 @@ export async function prunePosterVariantCache(
   }
 
   const bodyKeys = new Set([...files.keys()]
-    .filter((name) => name.endsWith(".webp"))
-    .map((name) => name.slice(0, -5)))
+    .filter((name) => name.endsWith(defaults.bodyExtension))
+    .map((name) => name.slice(0, -defaults.bodyExtension.length)))
   const metadataKeys = new Set([...files.keys()]
     .filter((name) => name.endsWith(".json"))
     .map((name) => name.slice(0, -5)))
@@ -116,7 +135,7 @@ export async function prunePosterVariantCache(
   let completeBytes = 0
 
   for (const key of allKeys) {
-    const body = files.get(`${key}.webp`)
+    const body = files.get(`${key}${defaults.bodyExtension}`)
     const metadataFile = files.get(`${key}.json`)
     if (!body || !metadataFile) {
       const orphan = body ?? metadataFile
@@ -136,7 +155,7 @@ export async function prunePosterVariantCache(
       metadata = null
     }
     const newestWrite = Math.max(body.mtimeMs, metadataFile.mtimeMs)
-    if ((body.size <= 0 || !metadata || !metadataIsValid(metadata))
+    if ((body.size <= 0 || !metadata || !defaults.metadataIsValid(metadata))
       && now - newestWrite >= writeGraceMs) {
       removableFiles.add(body.name)
       removableFiles.add(metadataFile.name)
@@ -144,7 +163,7 @@ export async function prunePosterVariantCache(
       reasons.corrupt += 1
       continue
     }
-    if (!metadata || !metadataIsValid(metadata)) continue
+    if (!metadata || !defaults.metadataIsValid(metadata)) continue
 
     validEntries.push({
       key,
@@ -186,4 +205,28 @@ export async function prunePosterVariantCache(
     removedBytes,
     reasons
   }
+}
+
+export async function prunePosterVariantCache(
+  options: PosterVariantCachePruneOptions = {}
+): Promise<PosterVariantCachePruneResult> {
+  return prunePairedPosterCache(options, {
+    cacheDir: POSTER_VARIANT_CACHE_DIR,
+    maxBytes: DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES,
+    bodyExtension: ".webp",
+    metadataIsValid: variantMetadataIsValid,
+    invalidLimitMessage: "响应式图片缓存上限必须大于 0"
+  })
+}
+
+export async function prunePosterCache(
+  options: PosterVariantCachePruneOptions = {}
+): Promise<PosterVariantCachePruneResult> {
+  return prunePairedPosterCache(options, {
+    cacheDir: POSTER_CACHE_DIR,
+    maxBytes: DEFAULT_POSTER_CACHE_MAX_BYTES,
+    bodyExtension: ".bin",
+    metadataIsValid: posterMetadataIsValid,
+    invalidLimitMessage: "原图缓存上限必须大于 0"
+  })
 }

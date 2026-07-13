@@ -8,7 +8,10 @@ import { contentWeightMap } from "../settings/contentAttentionSettings.js"
 import { type RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
 import { POSTER_VARIANT_CACHE_DIR, POSTER_VARIANT_WIDTHS } from "./posterVariantService.js"
-import { DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES } from "./posterVariantCacheMaintenanceService.js"
+import {
+  DEFAULT_POSTER_CACHE_MAX_BYTES,
+  DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES
+} from "./posterVariantCacheMaintenanceService.js"
 
 type DiskCacheHealth = {
   entries: number
@@ -64,7 +67,10 @@ export type PosterHealthResponse = {
     retryAfterDays: number
     nextCooldownExpiryAt: string | null
   }
-  cache: DiskCacheHealth & { variants: DiskCacheHealth & { maxBytes: number } }
+  cache: DiskCacheHealth & {
+    maxBytes: number
+    variants: DiskCacheHealth & { maxBytes: number }
+  }
   samples: {
     broken: PosterHealthSample[]
     degraded: PosterHealthSample[]
@@ -110,12 +116,13 @@ async function cacheHealth(
 
   for (const key of completeKeys) {
     try {
-      const [bodyStat, metadataRaw] = await Promise.all([
+      const [bodyStat, metadataStat, metadataRaw] = await Promise.all([
         stat(join(cacheDir, `${key}${bodyExtension}`)),
+        stat(join(cacheDir, `${key}.json`)),
         readFile(join(cacheDir, `${key}.json`), "utf8")
       ])
       const metadata = JSON.parse(metadataRaw) as Record<string, unknown>
-      bytes += bodyStat.size
+      bytes += bodyStat.size + metadataStat.size
       if (bodyStat.size <= 0
         || typeof metadata.url !== "string"
         || typeof metadata.contentType !== "string"
@@ -370,6 +377,7 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         },
         cache: {
           ...cache,
+          maxBytes: DEFAULT_POSTER_CACHE_MAX_BYTES,
           variants: { ...variantCache, maxBytes: DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES }
         },
         samples: {

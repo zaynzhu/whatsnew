@@ -115,14 +115,14 @@ Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默�
 - 显式人工复核后可忽略 3 天窗口重试：`npm run enrich:posters --workspace backend -- --limit=20 --force`；匹配规则不会因此放宽
 - 前端所有海报默认通过 `srcset` 请求 `GET /api/media/:id/poster?width=320|640|960`；浏览器按展示位和屏幕像素密度选择尺寸，代理失败时回退原始地址
 - 后端原图按图片 URL 缓存到 `backend/.cache/posters/`，响应式 WebP 变体缓存到 `backend/.cache/poster-variants/`；变体只缩小、不放大，避免把低清原图伪装成高清图
-- 响应式缓存默认限制为 512 MB，启动同步和每日调度会在超限时按最旧条目清理到 90%；一小时写入保护期避免误删正在生成的文件
+- 原图缓存默认限制为 2 GB，响应式缓存默认限制为 512 MB；启动同步和每日调度会在超限时按最旧条目清理到各自上限的 90%，一小时写入保护期避免误删正在生成的文件
 - 爱奇艺 adapter 会把官方图域上已知的 `120×160` / `141×188` 竖版缩略图规范为 `579×772` 后入库，让后续同步的数据在全站使用高清原图；已有低清记录只接受同一稳定来源身份、同一素材 ID 的高清替换。热度页继续保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
 - 豆瓣 adapter 会把官方图域的 `s_ratio_poster` 规范为同一素材的 `l_ratio_poster` 后入库；已有小图只在同一稳定豆瓣来源身份和相同素材路径下升级。官方 `movie*.jpg` / `tv*.jpg` 通用占位图按缺图处理并进入严格补图队列，避免把占位素材当成真实海报
 - 图片缓存会校验元数据与字节、合并同 URL 并发请求并原子写入；30 天后刷新失败时继续返回旧缓存，`X-Poster-Cache` 标记为 `stale`
 - 小时同步会按热度验证 20 张待确认图片，启动同步和每日同步各验证最多 100 张；作品持久化记录 `unverified / healthy / degraded / broken`，跨退避窗口重复失败后才判定损坏
 - 图片健康可在设置页查看，其中缺图和低清替换任务都分为尚未尝试、3 天冷却中和可以重试，样本展示最近一次严格查询时间；统计与自动维护只覆盖至少有一个启用来源的当前作品，失效来源历史不会污染任务数量；原图缓存和响应式 WebP 缓存也分别显示数量、容量及异常
 - 可运行 `npm run audit:posters --workspace backend` 查看完整状态。手动验证命令 `npm run verify:posters --workspace backend -- --limit=100` 会分别报告正常、低清、尺寸未知和网络失败数量
-- 手动预览响应式缓存清理：`npm run prune:poster-variants --workspace backend`；确认后追加 `-- --apply`，也可用 `--max-mb=1024` 临时指定 64 至 10240 MB 的上限
+- 手动预览原图缓存清理：`npm run prune:posters --workspace backend`；响应式缓存使用 `npm run prune:poster-variants --workspace backend`。确认后追加 `-- --apply`，两者都可用 `--max-mb=1024` 临时指定 64 至 10240 MB 的上限
 - 图片请求与验证会读取真实像素尺寸并持久化；宽度小于 300 或高度小于 400 会单独标记为低清，不与网络损坏状态混为一谈
 - 低清作品会进入现有严格 TMDb 补图队列，只有 TMDb ID、唯一严格标题或既有高置信规则通过时才替换，未匹配项保留原图并等待 3 天后重试
 - 不带 `width` 的图片代理保留上游响应的真实 `Content-Type` 和字节；带受支持 `width` 的请求返回 WebP 变体，转码失败时安全回退原图

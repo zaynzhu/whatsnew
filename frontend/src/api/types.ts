@@ -82,6 +82,7 @@ export type PosterHealthResponse = {
   cache: {
     entries: number
     bytes: number
+    maxBytes: number
     orphanedFiles: number
     corruptEntries: number
     variants: {

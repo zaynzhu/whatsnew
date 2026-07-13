@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
+  prunePosterCache: vi.fn(async () => ({ removedEntries: 0 })),
   prunePosterVariantCache: vi.fn(async () => ({ removedEntries: 0 })),
   schedule: vi.fn((
     _expression: string,
@@ -157,6 +158,7 @@ vi.mock("../src/services/posterVerificationService.js", () => ({
 }))
 
 vi.mock("../src/services/posterVariantCacheMaintenanceService.js", () => ({
+  prunePosterCache: mocks.prunePosterCache,
   prunePosterVariantCache: mocks.prunePosterVariantCache
 }))
 
@@ -217,6 +219,7 @@ describe("scheduler", () => {
       limit: 20
     })
     expect(mocks.prunePosterVariantCache).not.toHaveBeenCalled()
+    expect(mocks.prunePosterCache).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
@@ -279,6 +282,7 @@ describe("scheduler", () => {
       limit: 100
     })
     expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
+    expect(mocks.prunePosterCache).toHaveBeenCalledWith({ apply: true })
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
@@ -381,6 +385,7 @@ describe("scheduler", () => {
         limit: 100
       })
       expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
+      expect(mocks.prunePosterCache).toHaveBeenCalledWith({ apply: true })
     })
   })
 

@@ -81,7 +81,7 @@ A metadata pass that first classifies source-generic artwork as missing, then re
 _Avoid_: image scraping, fuzzy poster matching, one-time backfill
 
 **Poster Proxy**:
-The backend route `/api/media/:id/poster`, which fetches a stored remote poster with configured network settings, validates and caches original bytes, and optionally serves bounded `160 / 320 / 640 / 960` WebP variants. Variants only shrink and safely fall back to the original when conversion fails.
+The backend route `/api/media/:id/poster`, which fetches a stored remote poster with configured network settings, validates and caches original bytes, and optionally serves `160 / 320 / 640 / 960` WebP variants. The original cache is bounded at 2 GB and variants at 512 MB; variants only shrink and safely fall back to the original when conversion fails.
 _Avoid_: image hosting service, guaranteed upscale, frontend hotlink
 
 **Content Attention Category**:

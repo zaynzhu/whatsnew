@@ -2,7 +2,10 @@ import { access, mkdtemp, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { prunePosterVariantCache } from "../src/services/posterVariantCacheMaintenanceService.js"
+import {
+  prunePosterCache,
+  prunePosterVariantCache
+} from "../src/services/posterVariantCacheMaintenanceService.js"
 
 const temporaryDirectories: string[] = []
 
@@ -22,6 +25,24 @@ async function writeEntry(cacheDir: string, key: string, cachedAt: string, bodyB
       contentType: "image/webp",
       width: 320,
       height: 480,
+      cachedAt
+    }))
+  ])
+}
+
+async function writePosterEntry(
+  cacheDir: string,
+  key: string,
+  cachedAt: string,
+  bodyBytes = 300
+): Promise<void> {
+  await Promise.all([
+    writeFile(join(cacheDir, `${key}.bin`), Buffer.alloc(bodyBytes, key.charCodeAt(0))),
+    writeFile(join(cacheDir, `${key}.json`), JSON.stringify({
+      url: `https://img.example.test/${key}.jpg`,
+      contentType: "image/jpeg",
+      width: 600,
+      height: 900,
       cachedAt
     }))
   ])
@@ -99,5 +120,47 @@ describe("prunePosterVariantCache", () => {
 
     expect(result.removedFiles).toBe(0)
     expect((await readdir(cacheDir)).sort()).toEqual(["fresh.webp", "fresh.webp.123.tmp"])
+  })
+})
+
+describe("prunePosterCache", () => {
+  it("evicts old original images with the shared capacity policy", async () => {
+    const cacheDir = await temporaryDirectory()
+    await writePosterEntry(cacheDir, "a", "2026-01-01T00:00:00.000Z")
+    await writePosterEntry(cacheDir, "b", "2026-02-01T00:00:00.000Z")
+    await writePosterEntry(cacheDir, "c", "2026-03-01T00:00:00.000Z")
+
+    const result = await prunePosterCache({ cacheDir, maxBytes: 800, apply: true })
+
+    expect(result.entriesBefore).toBe(3)
+    expect(result.entriesAfter).toBe(1)
+    expect(result.reasons.overCapacity).toBe(2)
+    expect(result.bytesAfter).toBeLessThanOrEqual(result.targetBytes)
+    await expect(access(join(cacheDir, "a.bin"))).rejects.toThrow()
+    await expect(access(join(cacheDir, "b.bin"))).rejects.toThrow()
+    await expect(access(join(cacheDir, "c.bin"))).resolves.toBeUndefined()
+  })
+
+  it("removes an invalid original-image pair after the grace period", async () => {
+    const cacheDir = await temporaryDirectory()
+    await Promise.all([
+      writeFile(join(cacheDir, "broken.bin"), Buffer.from("not-an-image")),
+      writeFile(join(cacheDir, "broken.json"), JSON.stringify({
+        url: "https://img.example.test/broken.jpg",
+        contentType: "text/html",
+        cachedAt: "2026-01-01T00:00:00.000Z"
+      }))
+    ])
+
+    const result = await prunePosterCache({
+      cacheDir,
+      maxBytes: 1024,
+      apply: true,
+      writeGraceMs: 0,
+      now: Date.now() + 1000
+    })
+
+    expect(result.reasons.corrupt).toBe(1)
+    expect(await readdir(cacheDir)).toEqual([])
   })
 })

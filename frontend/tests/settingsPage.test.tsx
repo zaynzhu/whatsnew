@@ -273,6 +273,7 @@ const posterHealthResponse: PosterHealthResponse = {
   cache: {
     entries: 209,
     bytes: 73_886_357,
+    maxBytes: 2_147_483_648,
     orphanedFiles: 0,
     corruptEntries: 0,
     variants: {
@@ -396,6 +397,7 @@ describe("SettingsPage", () => {
     expect(screen.getByText("82.5%")).toBeInTheDocument()
     expect(screen.getByText("707 / 857")).toBeInTheDocument()
     expect(screen.getByText("209 张")).toBeInTheDocument()
+    expect(screen.getByText("70 / 2048 MB")).toBeInTheDocument()
     expect(screen.getByText("418 张")).toBeInTheDocument()
     expect(screen.getByText("30 / 512 MB")).toBeInTheDocument()
     expect(screen.getByText("孤立文件 1")).toBeInTheDocument()

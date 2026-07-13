@@ -16,37 +16,40 @@ describe("PosterHealthService", () => {
     tempDir = await mkdtemp(join(tmpdir(), "whatsnew-poster-health-"))
     const originalCacheDir = join(tempDir, "original")
     const variantCacheDir = join(tempDir, "variants")
+    const originalMetadata = JSON.stringify({
+      url: "https://img.test/valid.jpg",
+      contentType: "image/jpeg",
+      cachedAt: "2026-07-11T00:00:00.000Z"
+    })
+    const variantMetadata = JSON.stringify({
+      url: "https://img.test/valid.jpg",
+      requestedWidth: 320,
+      sourceDigest: "a".repeat(64),
+      contentType: "image/webp",
+      width: 320,
+      height: 480,
+      cachedAt: "2026-07-11T00:00:00.000Z"
+    })
+    const invalidVariantMetadata = JSON.stringify({
+      url: "https://img.test/invalid.jpg",
+      requestedWidth: 500,
+      sourceDigest: "short",
+      contentType: "image/webp",
+      width: 500,
+      height: 750,
+      cachedAt: "2026-07-11T00:00:00.000Z"
+    })
     await Promise.all([mkdir(originalCacheDir), mkdir(variantCacheDir)])
     await Promise.all([
       writeFile(join(originalCacheDir, "valid.bin"), Buffer.from("image")),
-      writeFile(join(originalCacheDir, "valid.json"), JSON.stringify({
-        url: "https://img.test/valid.jpg",
-        contentType: "image/jpeg",
-        cachedAt: "2026-07-11T00:00:00.000Z"
-      })),
+      writeFile(join(originalCacheDir, "valid.json"), originalMetadata),
       writeFile(join(originalCacheDir, "corrupt.bin"), Buffer.alloc(0)),
       writeFile(join(originalCacheDir, "corrupt.json"), "{}"),
       writeFile(join(originalCacheDir, "orphan.bin"), Buffer.from("orphan")),
       writeFile(join(variantCacheDir, "valid.webp"), Buffer.from("webp")),
-      writeFile(join(variantCacheDir, "valid.json"), JSON.stringify({
-        url: "https://img.test/valid.jpg",
-        requestedWidth: 320,
-        sourceDigest: "a".repeat(64),
-        contentType: "image/webp",
-        width: 320,
-        height: 480,
-        cachedAt: "2026-07-11T00:00:00.000Z"
-      })),
+      writeFile(join(variantCacheDir, "valid.json"), variantMetadata),
       writeFile(join(variantCacheDir, "invalid.webp"), Buffer.from("invalid")),
-      writeFile(join(variantCacheDir, "invalid.json"), JSON.stringify({
-        url: "https://img.test/invalid.jpg",
-        requestedWidth: 500,
-        sourceDigest: "short",
-        contentType: "image/webp",
-        width: 500,
-        height: 750,
-        cachedAt: "2026-07-11T00:00:00.000Z"
-      })),
+      writeFile(join(variantCacheDir, "invalid.json"), invalidVariantMetadata),
       writeFile(join(variantCacheDir, "orphan.json"), "{}")
     ])
     const sample = {
@@ -116,12 +119,13 @@ describe("PosterHealthService", () => {
       },
       cache: {
         entries: 2,
-        bytes: 5,
+        bytes: 5 + Buffer.byteLength(originalMetadata) + 2,
+        maxBytes: 2_147_483_648,
         orphanedFiles: 1,
         corruptEntries: 1,
         variants: {
           entries: 2,
-          bytes: 11,
+          bytes: 11 + Buffer.byteLength(variantMetadata) + Buffer.byteLength(invalidVariantMetadata),
           orphanedFiles: 1,
           corruptEntries: 1,
           maxBytes: 536_870_912

@@ -10,7 +10,10 @@ import {
 import { reconcileMediaStatuses } from "./services/mediaStatusReconciliationService.js"
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
 import { verifyPosterImages } from "./services/posterVerificationService.js"
-import { prunePosterVariantCache } from "./services/posterVariantCacheMaintenanceService.js"
+import {
+  prunePosterCache,
+  prunePosterVariantCache
+} from "./services/posterVariantCacheMaintenanceService.js"
 import { reconcileReleaseStatuses } from "./services/releaseStatusReconciliationService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
@@ -77,11 +80,14 @@ async function verifyPostersAfterSync(limit: number) {
   }
 }
 
-async function prunePosterVariants() {
+async function prunePosterCaches() {
   try {
-    await prunePosterVariantCache({ apply: true })
+    await Promise.all([
+      prunePosterCache({ apply: true }),
+      prunePosterVariantCache({ apply: true })
+    ])
   } catch (error) {
-    console.error("Automatic poster variant cache maintenance failed", error)
+    console.error("Automatic poster cache maintenance failed", error)
   }
 }
 
@@ -92,7 +98,7 @@ export async function runInitialSync() {
   await maintainDataQuality(true)
   await enrichPostersAfterSync()
   await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)
-  await prunePosterVariants()
+  await prunePosterCaches()
 }
 
 function stopScheduledTasks() {
@@ -119,7 +125,7 @@ function scheduleRecurringJobs() {
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
     await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)
-    await prunePosterVariants()
+    await prunePosterCaches()
   }, { timezone: SCHEDULER_TIMEZONE }))
 }
 

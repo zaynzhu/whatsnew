@@ -29,6 +29,7 @@
     "enrich:posters": "tsx src/scripts/enrichPosters.ts",
     "audit:posters": "tsx src/scripts/auditPosters.ts",
     "verify:posters": "tsx src/scripts/verifyPosters.ts",
+    "prune:posters": "tsx src/scripts/prunePosterCache.ts",
     "prune:poster-variants": "tsx src/scripts/prunePosterVariantCache.ts",
     "cleanup:platform-orphans": "tsx src/scripts/cleanupPlatformOrphans.ts",
     "reconcile:media-statuses": "tsx src/scripts/reconcileMediaStatuses.ts",
