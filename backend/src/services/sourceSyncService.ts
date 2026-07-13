@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client"
 import { findBestMatch } from "../domain/matcher.js"
+import { normalizeMediaStatusForDate } from "../domain/mediaStatus.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import type {
   AdapterItem,
@@ -9,6 +10,7 @@ import type {
   SourceFetchResult
 } from "../domain/types.js"
 import { isDoubanPosterUpgrade } from "../utils/doubanPosterUrl.js"
+import { formatLocalDate } from "../utils/date.js"
 import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
 import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
@@ -162,6 +164,22 @@ async function upsertItem(
     nextPosterUrl = item.media.posterUrl
   }
   const posterChanged = match?.posterUrl !== nextPosterUrl
+  const nextFirstReleaseDate = match
+    ? replacePlatformFirstReleaseDate
+      ? item.media.firstReleaseDate
+      : match.firstReleaseDate ?? item.media.firstReleaseDate
+    : item.media.firstReleaseDate
+  const proposedStatus = match
+    ? item.media.status && item.media.status !== "unknown"
+      && (hasStableSourceIdentity || match.status === "unknown")
+      ? item.media.status
+      : match.status
+    : item.media.status ?? "unknown"
+  const nextStatus = normalizeMediaStatusForDate(
+    proposedStatus,
+    nextFirstReleaseDate,
+    formatLocalDate(startedAt)
+  )
 
   const mediaItem = match
     ? await prisma.mediaItem.update({
@@ -193,16 +211,11 @@ async function upsertItem(
             ...parseJsonArray(match.genres),
             ...item.media.genres
           ])),
-          firstReleaseDate: replacePlatformFirstReleaseDate
-            ? item.media.firstReleaseDate
-            : match.firstReleaseDate ?? item.media.firstReleaseDate,
+          firstReleaseDate: nextFirstReleaseDate,
           originalLanguage: clearInferredSourceLanguage
             ? null
             : match.originalLanguage ?? item.media.originalLanguage,
-          status: item.media.status && item.media.status !== "unknown"
-            && (hasStableSourceIdentity || match.status === "unknown")
-            ? item.media.status
-            : match.status,
+          status: nextStatus,
           tmdbId: match.tmdbId ?? item.media.tmdbId,
           tvmazeId: match.tvmazeId ?? item.media.tvmazeId,
           imdbId: match.imdbId ?? item.media.imdbId,
@@ -223,8 +236,8 @@ async function upsertItem(
           productionCountries: toJsonArray(item.media.productionCountries),
           originalLanguage: item.media.originalLanguage,
           genres: toJsonArray(item.media.genres),
-          firstReleaseDate: item.media.firstReleaseDate,
-          status: item.media.status ?? "unknown",
+          firstReleaseDate: nextFirstReleaseDate,
+          status: nextStatus,
           heatScore: 0,
           tmdbId: item.media.tmdbId,
           tvmazeId: item.media.tvmazeId,

@@ -743,6 +743,7 @@ describe("runSourceSync", () => {
             source: "status_transition",
             sourceId: "stable-status-1",
             status,
+            firstReleaseDate: null,
             tmdbId: null,
             tvmazeId: null,
             imdbId: null,
@@ -759,6 +760,70 @@ describe("runSourceSync", () => {
     await runSourceSync(prisma, adapterForStatus("released"))
 
     await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({ status: "released" })
+  })
+
+  it("按首发日期阻止矛盾的作品状态写入", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-07-13T08:00:00+08:00"))
+    const [base] = await demoSeedAdapter.fetchItems()
+    const adapter: SourceAdapter = {
+      source: "status_date_guard",
+      async fetchItems() {
+        return [
+          {
+            ...base,
+            media: {
+              ...base.media,
+              source: "status_date_guard",
+              sourceId: "past-upcoming",
+              titleDisplay: "Past Upcoming",
+              titleOriginal: "Past Upcoming",
+              titleAliases: [],
+              firstReleaseDate: "2026-07-12",
+              status: "upcoming",
+              tmdbId: null,
+              tvmazeId: null,
+              imdbId: null,
+              traktId: null,
+              tvdbId: null
+            },
+            releases: [],
+            popularitySignals: []
+          },
+          {
+            ...base,
+            media: {
+              ...base.media,
+              source: "status_date_guard",
+              sourceId: "future-released",
+              titleDisplay: "Future Released",
+              titleOriginal: "Future Released",
+              titleAliases: [],
+              firstReleaseDate: "2026-07-20",
+              status: "released",
+              tmdbId: null,
+              tvmazeId: null,
+              imdbId: null,
+              traktId: null,
+              tvdbId: null
+            },
+            releases: [],
+            popularitySignals: []
+          }
+        ]
+      }
+    }
+
+    await runSourceSync(prisma, adapter)
+
+    const rows = await prisma.mediaItem.findMany({
+      orderBy: { titleDisplay: "asc" },
+      select: { titleDisplay: true, status: true }
+    })
+    expect(rows).toEqual([
+      { titleDisplay: "Future Released", status: "upcoming" },
+      { titleDisplay: "Past Upcoming", status: "released" }
+    ])
   })
 
   it("marks source signals missing from the next complete snapshot as historical", async () => {
