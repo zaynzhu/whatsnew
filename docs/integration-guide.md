@@ -81,7 +81,7 @@ curl -s "http://127.0.0.1:19993/api/media/<mediaItemId>/popularity-history?days=
 
 Without a signal-level filter, the route first selects up to 50 active works by `MediaItem.heatScore`, then returns every current signal attached to those works. This is the default work-centric heat view. Supplying `source`, `platform`, `region`, `window`, `rankingScope` or `movement` switches to signal-centric selection and limits the matching source-ranked rows to 50. `mediaType` and `releaseForm` alone keep the work-centric behavior.
 
-Heat is only an auxiliary sort score based on the strongest current dynamic ranking. Douban upcoming date-group positions and TOP250 reputation positions remain available through source filters, but they do not contribute to Heat or popularity movement events.
+Heat is only an auxiliary sort score based on the strongest current dynamic ranking. Douban upcoming date-group positions, separate movie/series preview hot ranks and TOP250 reputation positions remain available through source filters, but they do not contribute to Heat or popularity movement events.
 
 ```bash
 curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trending"

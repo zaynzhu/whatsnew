@@ -1,5 +1,9 @@
 import type { AdapterItem, SourceAdapter, SourceFetchBatch } from "../domain/types.js"
-import { parseDoubanChart, parseDoubanComingSoonPage } from "./doubanParser.js"
+import {
+  parseDoubanChart,
+  parseDoubanComingSoonHotPage,
+  parseDoubanComingSoonPage
+} from "./doubanParser.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { formatLocalDate } from "../utils/date.js"
@@ -27,6 +31,7 @@ const EXTERNAL_SERVICE_INTERVAL_MS = 2000
 const DOUBAN_TIMEOUT_MS = 30000
 const DOUBAN_PAGE_SIZE = 50
 const DOUBAN_MAX_ITEMS = 500
+const DOUBAN_HOT_LIMIT = 20
 const CHART_REQUEST_HEADERS = {
   "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 WhatsNewBot/0.1",
   "referer": "https://movie.douban.com/",
@@ -90,19 +95,55 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
         }
         return items
       }
+      const fetchComingSoonHot = async (kind: "movie" | "tv", baseUrl: string): Promise<AdapterItem[]> => {
+        const url = new URL(baseUrl)
+        url.searchParams.set("start", "0")
+        url.searchParams.set("count", `${DOUBAN_HOT_LIMIT}`)
+        url.searchParams.set("sortby", "hot")
+        const json = await limiter.run(() => httpClient.fetchText("douban", url.toString(), {
+          headers: headersWithCookie({
+            ...MOBILE_REQUEST_HEADERS,
+            referer: kind === "tv" ? "https://m.douban.com/tv" : "https://m.douban.com/movie"
+          }, cookie),
+          timeoutMs: DOUBAN_TIMEOUT_MS,
+          settingsOverride,
+          sensitiveValues: [cookie]
+        }))
+        return parseDoubanComingSoonHotPage(json, kind, today)
+      }
       const upcomingItems = options.scope === "popularity"
         ? []
         : [
             ...await fetchComingSoon("movie", options.movieComingSoonUrl ?? DOUBAN_MOVIE_COMING_SOON_URL),
             ...await fetchComingSoon("tv", options.tvComingSoonUrl ?? DOUBAN_TV_COMING_SOON_URL)
           ]
+      const movieHotItems = options.scope === "popularity"
+        ? []
+        : await fetchComingSoonHot("movie", options.movieComingSoonUrl ?? DOUBAN_MOVIE_COMING_SOON_URL)
+      const tvHotItems = options.scope === "popularity"
+        ? []
+        : await fetchComingSoonHot("tv", options.tvComingSoonUrl ?? DOUBAN_TV_COMING_SOON_URL)
+      const upcomingHotItems = [...movieHotItems, ...tvHotItems]
+      const hasCompleteHotSnapshot = movieHotItems.length > 0 && tvHotItems.length > 0
+      const hotSignalsBySourceId = new Map(upcomingHotItems.map((item) => [
+        item.media.sourceId,
+        item.popularitySignals
+      ]))
+      const enrichedUpcomingItems = upcomingItems.map((item) => ({
+        ...item,
+        popularitySignals: [
+          ...item.popularitySignals,
+          ...(hotSignalsBySourceId.get(item.media.sourceId) ?? [])
+        ]
+      }))
       const items: AdapterItem[] = [
         ...chartItems,
-        ...upcomingItems
+        ...enrichedUpcomingItems
       ]
       const completePopularitySources = [
         ...(chartItems.length > 0 ? ["douban_top"] : []),
-        ...(upcomingItems.length > 0 ? ["douban_upcoming"] : [])
+        ...(upcomingItems.length > 0 ? ["douban_upcoming"] : []),
+        ...(hasCompleteHotSnapshot ? ["douban_upcoming_hot"] : [])
       ]
 
       // 只有成功解析到条目时才声明完整快照，避免异常空响应误删旧排期

@@ -25,6 +25,7 @@ const POPULARITY_SOURCE_LABELS: Record<string, string> = {
   iqiyi_reserve: "爱奇艺预约",
   tencent_reserve: "腾讯视频预约",
   douban_upcoming: "豆瓣即将播出",
+  douban_upcoming_hot: "豆瓣待映待播热榜",
   douban_top: "豆瓣 TOP250"
 }
 

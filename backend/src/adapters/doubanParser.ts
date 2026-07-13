@@ -168,6 +168,29 @@ function upcomingSignalFromSubject(
   }
 }
 
+function upcomingHotSignalFromSubject(
+  item: DoubanMobileSubject,
+  index: number,
+  kind: "movie" | "tv",
+  groupTitle: string
+): PopularitySignalInput {
+  const wishCount = typeof item.wish_count === "number" && item.wish_count > 0 ? item.wish_count : null
+
+  return {
+    source: "douban_upcoming_hot",
+    sourceCategory: "chinese_interest",
+    platform: "豆瓣",
+    region: primaryRegion(item, groupTitle),
+    window: "upcoming",
+    rankingScope: kind === "movie" ? "movie" : "series",
+    rank: index + 1,
+    rankDelta: null,
+    value: wishCount,
+    valueLabel: wishCount != null ? "豆瓣想看" : "豆瓣热门排序",
+    sourceUrl: absoluteUrl(item.url)
+  }
+}
+
 function mobileSubjectToAdapterItem(
   item: DoubanMobileSubject,
   groupTitle: string,
@@ -309,4 +332,30 @@ export function parseDoubanComingSoonPage(
     total: typeof page.total === "number" ? page.total : subjects.length,
     count: subjects.length
   }
+}
+
+export function parseDoubanComingSoonHotPage(
+  json: string,
+  kind: "movie" | "tv",
+  today: string
+): AdapterItem[] {
+  let page: DoubanComingSoonPage
+  try {
+    page = JSON.parse(json) as DoubanComingSoonPage
+  } catch {
+    return []
+  }
+
+  const subjects = Array.isArray(page.subjects) ? page.subjects : []
+  const groupTitle = kind === "movie" ? "豆瓣电影热门待映" : "豆瓣剧集热门待播"
+  return subjects
+    .flatMap((item, index): AdapterItem[] => {
+      const parsed = mobileSubjectToAdapterItem(item, groupTitle, index, today)
+      if (!parsed) return []
+      return [{
+        ...parsed,
+        releases: [],
+        popularitySignals: [upcomingHotSignalFromSubject(item, index, kind, groupTitle)]
+      }]
+    })
 }

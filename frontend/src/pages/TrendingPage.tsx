@@ -30,6 +30,7 @@ const SOURCE_OPTIONS = [
   ["tencent_reserve", "腾讯视频预约"],
   ["netflix_top10", "Netflix Top 10"],
   ["douban_upcoming", "豆瓣即将播出"],
+  ["douban_upcoming_hot", "豆瓣待映待播热榜"],
   ["douban_top", "豆瓣 TOP250"]
 ]
 

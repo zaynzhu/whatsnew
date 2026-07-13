@@ -116,6 +116,20 @@ const tvPageJson = JSON.stringify({
   subjects: JSON.parse(tvModulesJson).modules[0].data.items
 })
 
+const movieHotPageJson = JSON.stringify({
+  start: 0,
+  count: 2,
+  total: 2,
+  subjects: [...JSON.parse(movieModulesJson).modules[0].data[0].items].reverse()
+})
+
+const tvHotPageJson = JSON.stringify({
+  start: 0,
+  count: 1,
+  total: 1,
+  subjects: JSON.parse(tvModulesJson).modules[0].data.items
+})
+
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => {
     throw new Error("适配器不得使用全局 fetch")
@@ -135,8 +149,10 @@ describe("doubanAdapter", () => {
         expect(url).toContain("limit=20")
         return chartJson
       }
-      if (url.includes("/movie/coming_soon")) return moviePageJson
-      if (url.includes("/tv/coming_soon")) return tvPageJson
+      const requestUrl = new URL(url)
+      const isHot = requestUrl.searchParams.get("sortby") === "hot"
+      if (url.includes("/movie/coming_soon")) return isHot ? movieHotPageJson : moviePageJson
+      if (url.includes("/tv/coming_soon")) return isHot ? tvHotPageJson : tvPageJson
 
       throw new Error(`未预期的豆瓣 URL: ${url}`)
     })
@@ -149,8 +165,12 @@ describe("doubanAdapter", () => {
 
     const result = await adapter.fetchItems()
 
-    expect(fetchText).toHaveBeenCalledTimes(3)
-    expect(result.completePopularitySources).toEqual(["douban_top", "douban_upcoming"])
+    expect(fetchText).toHaveBeenCalledTimes(5)
+    expect(result.completePopularitySources).toEqual([
+      "douban_top",
+      "douban_upcoming",
+      "douban_upcoming_hot"
+    ])
     expect(result.completeReleaseSources).toEqual(["douban"])
     expect(result.items).toHaveLength(5)
 
@@ -209,6 +229,15 @@ describe("doubanAdapter", () => {
       rank: 1,
       valueLabel: "豆瓣即将播出排序"
     })
+    expect(result.items[2].popularitySignals[1]).toMatchObject({
+      source: "douban_upcoming_hot",
+      sourceCategory: "chinese_interest",
+      platform: "豆瓣",
+      window: "upcoming",
+      rankingScope: "movie",
+      rank: 2,
+      valueLabel: "豆瓣热门排序"
+    })
 
     expect(result.items[3].media).toMatchObject({
       sourceId: "douban-36179101",
@@ -244,6 +273,13 @@ describe("doubanAdapter", () => {
       value: 1200,
       valueLabel: "豆瓣想看"
     })
+    expect(result.items[4].popularitySignals[1]).toMatchObject({
+      source: "douban_upcoming_hot",
+      rankingScope: "series",
+      rank: 1,
+      value: 1200,
+      valueLabel: "豆瓣想看"
+    })
   })
 
   it("returns no items when the responses are not supported JSON", async () => {
@@ -256,7 +292,7 @@ describe("doubanAdapter", () => {
 
     const result = await adapter.fetchItems()
 
-    expect(fetchText).toHaveBeenCalledTimes(3)
+    expect(fetchText).toHaveBeenCalledTimes(5)
     expect(result.items).toEqual([])
     expect(result.completePopularitySources).toEqual([])
     expect(result.completeReleaseSources).toEqual([])
@@ -278,7 +314,7 @@ describe("doubanAdapter", () => {
     const result = await adapter.fetchItems()
 
     expect(adapter.scope).toBe("upcoming")
-    expect(fetchText).toHaveBeenCalledTimes(2)
+    expect(fetchText).toHaveBeenCalledTimes(4)
     expect(fetchText.mock.calls.every((call) => String(call[1]).includes("/coming_soon"))).toBe(true)
     expect(result.items).toEqual([])
   })
@@ -313,6 +349,9 @@ describe("doubanAdapter", () => {
       url: `https://movie.douban.com/subject/tv-${index}/`
     })
     const fetchText = vi.fn(async (_sourceId: string, url: string) => {
+      if (new URL(url).searchParams.get("sortby") === "hot") {
+        return JSON.stringify({ start: 0, count: 1, total: 1, subjects: [subject(0)] })
+      }
       if (url.includes("/movie/")) return JSON.stringify({ start: 0, count: 0, total: 0, subjects: [] })
       const start = Number(new URL(url).searchParams.get("start"))
       const subjects = start === 0
@@ -328,7 +367,7 @@ describe("doubanAdapter", () => {
 
     const result = await adapter.fetchItems()
 
-    expect(fetchText).toHaveBeenCalledTimes(3)
+    expect(fetchText).toHaveBeenCalledTimes(5)
     expect(result.items).toHaveLength(51)
     expect(result.items.at(-1)?.media.sourceId).toBe("douban-tv-50")
   })

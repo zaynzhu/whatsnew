@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Film, RefreshCw, Settings2, Telescope, Tv, X } from "lucide-react"
+import { Film, Flame, RefreshCw, Settings2, Telescope, Tv, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { apiGet, apiRequest } from "../api/client"
-import type { PreviewResponse, ReleaseRow } from "../api/types"
+import type { PreviewReleaseRow, PreviewResponse } from "../api/types"
 import { MediaPoster } from "../components/MediaPoster"
 import { SourceLink } from "../components/SourceLink"
 
@@ -45,10 +45,16 @@ function sourceUpdateLabel(value: string | null): string {
   }).format(new Date(value))}`
 }
 
+function wishCountLabel(value: number, compact = false): string {
+  return `${new Intl.NumberFormat("zh-CN", compact
+    ? { notation: "compact", maximumFractionDigits: 1 }
+    : undefined).format(value)} 人想看`
+}
+
 export function PreviewPage() {
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<PreviewFilter>("all")
-  const [selected, setSelected] = useState<ReleaseRow | null>(null)
+  const [selected, setSelected] = useState<PreviewReleaseRow | null>(null)
   const query = useQuery({
     queryKey: ["preview"],
     queryFn: () => apiGet<PreviewResponse>("/api/preview"),
@@ -199,11 +205,24 @@ export function PreviewPage() {
   )
 }
 
-function PreviewPoster({ release, onOpen }: { release: ReleaseRow, onOpen: (release: ReleaseRow) => void }) {
+function PreviewPoster({
+  release,
+  onOpen
+}: {
+  release: PreviewReleaseRow
+  onOpen: (release: PreviewReleaseRow) => void
+}) {
   const isMovie = release.releasePattern === "theatrical_coming_soon"
   const Icon = isMovie ? Film : Tv
+  const isHot = release.doubanHotRank !== null
+  const hotLabel = `${release.doubanHotKind === "series" ? "剧集" : "电影"}热榜 #${release.doubanHotRank}`
   return (
-    <button className="previewPosterCard" onClick={() => onOpen(release)} type="button">
+    <button
+      aria-label={`${release.mediaItem.titleDisplay}${isHot ? `，${hotLabel}` : ""}`}
+      className={`previewPosterCard ${isHot ? "isHot" : ""}`}
+      onClick={() => onOpen(release)}
+      type="button"
+    >
       <div className="previewPosterImage">
         <MediaPoster
           mediaId={release.mediaItem.id}
@@ -211,14 +230,25 @@ function PreviewPoster({ release, onOpen }: { release: ReleaseRow, onOpen: (rele
           title={release.mediaItem.titleDisplay}
           fallbackLabel={release.mediaItem.titleDisplay}
         />
+        {isHot ? (
+          <span className="previewHotBadge">
+            <Flame aria-hidden="true" size={13} />
+            {hotLabel}
+          </span>
+        ) : null}
       </div>
-      <span><Icon aria-hidden="true" size={12} />{isMovie ? "电影" : "剧集"}</span>
+      <div className="previewPosterMeta">
+        <span><Icon aria-hidden="true" size={12} />{isMovie ? "电影" : "剧集"}</span>
+        {isHot && release.doubanWishCount !== null ? (
+          <small>{wishCountLabel(release.doubanWishCount, true)}</small>
+        ) : null}
+      </div>
       <strong>{release.mediaItem.titleDisplay}</strong>
     </button>
   )
 }
 
-function PreviewDrawer({ release, onClose }: { release: ReleaseRow, onClose: () => void }) {
+function PreviewDrawer({ release, onClose }: { release: PreviewReleaseRow, onClose: () => void }) {
   const countries = listValue(release.mediaItem.productionCountries ?? "[]")
   const genres = listValue(release.mediaItem.genres ?? "[]")
   return (
@@ -239,6 +269,13 @@ function PreviewDrawer({ release, onClose }: { release: ReleaseRow, onClose: () 
         <div className="previewDrawerBody">
           <p className="eyebrow">{release.releasePattern === "theatrical_coming_soon" ? "电影待映" : "剧集待播"}</p>
           <h2 id="preview-drawer-title">{release.mediaItem.titleDisplay}</h2>
+          {release.doubanHotRank !== null ? (
+            <div className="previewDrawerHot">
+              <Flame aria-hidden="true" size={16} />
+              <strong>豆瓣{release.doubanHotKind === "series" ? "剧集" : "电影"}热榜 #{release.doubanHotRank}</strong>
+              {release.doubanWishCount !== null ? <span>{wishCountLabel(release.doubanWishCount)}</span> : null}
+            </div>
+          ) : null}
           <strong>{release.releaseDate ?? "日期待定"}</strong>
           {release.mediaItem.overview ? (
             <p className="previewDrawerOverview">{release.mediaItem.overview}</p>

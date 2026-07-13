@@ -92,7 +92,7 @@ Platform catalog additions use `releasePattern=catalog_addition` and do not over
 
 Platform schedule or reservation pages do not prove a work's original language or production country. Hulu, Disney+, Prime Video, Apple TV+, Max, Youku and iQIYI leave unknown locale metadata null instead of deriving it from page language or market. Stable source-owned legacy rows clear those inferred values on resync unless another source has already supplied an external identity.
 
-`MediaItem.heatScore` is an auxiliary sort value derived from the strongest current dynamic ranking, not a cross-source real chart. Douban `douban_upcoming` positions are date-group presentation order and `douban_top` is a reputation chart, so both retain their source rank and metric while remaining outside Heat and popularity movement events. `reconcile:heat-scores` previews and repairs stored scores and removes historical movement events created from those non-Heat signals.
+`MediaItem.heatScore` is an auxiliary sort value derived from the strongest current dynamic ranking, not a cross-source real chart. Douban `douban_upcoming` positions are date-group presentation order, `douban_upcoming_hot` preserves separate movie/series preview top 20 ranks and `douban_top` is a reputation chart. All three retain their source rank and metric while remaining outside Heat and popularity movement events. `reconcile:heat-scores` previews and repairs stored scores and removes historical movement events created from those non-Heat signals.
 
 ## Status Semantics
 
@@ -126,8 +126,8 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
 | `GET /api/trending` | Without signal filters, selects 50 works by `heatScore` and returns all current signals for those works. Source, platform, region, window, ranking-scope or movement filters switch to source-rank signal selection. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |
-| `GET /api/preview` | Read-only complete Douban upcoming timeline grouped by date, including every current future/undated title and source status. |
-| `POST /api/preview/sync` | Run only the paginated Douban movie and TV coming-soon pages; rejects duplicate in-flight source work. |
+| `GET /api/preview` | Read-only complete Douban upcoming timeline grouped by date, including every current future/undated title, official hot-rank highlights and source status. |
+| `POST /api/preview/sync` | Run the paginated Douban movie/TV coming-soon pages plus their independent hot top 20 requests; rejects duplicate in-flight source work. |
 | `GET /api/settings` | Runtime settings fields, source state and latest runs. |
 | `PUT /api/settings` | Persist allowed settings into `backend/.env`, effective immediately. |
 | `POST /api/settings/proxy/test` | Test direct, HTTP proxy and HTTPS proxy paths. |

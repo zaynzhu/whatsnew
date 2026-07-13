@@ -35,9 +35,11 @@ describe("popularity movement", () => {
 
   it("keeps Douban preview and reputation ranks outside Heat", () => {
     expect(isHeatBearingSignal({ source: "douban_upcoming", rank: 1 })).toBe(false)
+    expect(isHeatBearingSignal({ source: "douban_upcoming_hot", rank: 1 })).toBe(false)
     expect(isHeatBearingSignal({ source: "douban_top", rank: 1 })).toBe(false)
     expect(heatFromCurrentSignals([
       { source: "douban_upcoming", rank: 1 },
+      { source: "douban_upcoming_hot", rank: 1 },
       { source: "douban_top", rank: 1 },
       { source: "trakt_trending", rank: 8 }
     ])).toBe(93)

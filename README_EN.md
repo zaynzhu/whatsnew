@@ -129,7 +129,7 @@ Once both services are running, manage global proxies, source enable state, per-
 
 - Popularity signals are stored scoped by `title + source + platform + region + window + ranking scope`; different platforms and independent subcharts are never mixed into one "true combined chart"
 - Trakt keeps movie and series charts separate; Netflix keeps its four language/type charts separate
-- Douban upcoming date-group positions and TOP250 reputation ranks remain queryable source signals but do not contribute to Heat or popularity movement events
+- Douban upcoming date-group positions, separate movie/series preview hot ranks and TOP250 reputation ranks remain queryable source signals but do not contribute to Heat or popularity movement events
 - The unfiltered heat page selects 50 works by Heat and returns every current signal for each work. Signal-level filters switch to source-rank selection
 - Within a source, entries are linked to titles via a stable `sourceId`; signals absent from the next full chart become historical
 - `rankDelta = previousRank - currentRank`; positive means rising, negative means falling
@@ -233,6 +233,7 @@ The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/to
 - Daily scheduling and `sync:douban` run separate `popularity` and `upcoming` scopes with independent run and health records
 - TOP250 emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`)
 - Coming-soon feeds emit release calendar rows and preserve page order plus wish counts as the `douban_upcoming` signal
+- Movie and series `sortby=hot` feeds each preserve their official top 20 as `douban_upcoming_hot`; the preview timeline stays date-sorted and only highlights matching hot titles
 - `/preview` returns the complete current dated and undated Douban lineup without an arbitrary row cap
 - Douban TOP250 and coming-soon positions do not contribute to Heat or popularity movement events
 - Sync endpoints: `m.douban.com/rexxar/api/v2/movie/coming_soon`, `m.douban.com/rexxar/api/v2/tv/coming_soon`

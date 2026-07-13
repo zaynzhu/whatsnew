@@ -116,7 +116,7 @@ npm run enrich:posters --workspace backend -- --limit=120
 
 `sync:douban` runs two independent daily scopes in sequence: `popularity` fetches only TOP250 rating signals, then `upcoming` fetches only the paginated movie and TV coming-soon feeds. Their `SourceSyncRun` records and health samples remain separate.
 
-The `/preview` page reads only Douban movie and TV upcoming releases. Its read endpoint returns the complete current future/undated set without an arbitrary row cap. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
+The `/preview` page reads only Douban movie and TV upcoming releases. Its read endpoint returns the complete current future/undated set without an arbitrary row cap and annotates matches from the independent movie/series `sortby=hot` top 20 feeds. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, fetches each hot top 20, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
 
 IMDb is local-cache based:
 
@@ -248,7 +248,7 @@ npm run cleanup:platform-orphans --workspace backend -- --apply
 
 `reconcile:release-statuses` advances exact-dated release rows to `upcoming`, `airing_today` or `available` according to the current local date. Explicit same-day `available`, `delayed` and `ended` states are retained. The same rule is applied before every release write and during scheduled data-quality maintenance.
 
-`reconcile:heat-scores` recomputes the auxiliary Heat value from current dynamic ranking signals. Douban upcoming date-group positions and TOP250 reputation positions remain queryable source ranks but contribute zero Heat; applying the command also removes historical popularity movement events derived from those two non-Heat sources.
+`reconcile:heat-scores` recomputes the auxiliary Heat value from current dynamic ranking signals. Douban upcoming date-group positions, preview hot ranks and TOP250 reputation positions remain queryable source ranks but contribute zero Heat; applying the command also removes historical popularity movement events derived from those non-Heat sources.
 
 `reconcile:popularity-scopes` backfills independent chart identity for historical Trakt and Netflix signals. Trakt is derived from the canonical movie/series work kind. Netflix is updated only when one stable Netflix source category maps unambiguously to the work; ambiguous records stay `overall`. Run the dry mode first, then append `-- --apply`.
 

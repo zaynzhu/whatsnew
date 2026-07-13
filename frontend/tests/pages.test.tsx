@@ -318,14 +318,17 @@ const responses: Record<string, unknown> = {
       latestRun: null,
       lastSuccessAt: "2026-07-11T01:00:00.000Z"
     },
-    summary: { total: 2, movies: 1, series: 1, undated: 1 },
+    summary: { total: 2, movies: 1, series: 1, undated: 1, hot: 1 },
     days: [{
       date: "2026-07-18",
       items: [{
         ...movieRelease,
         releasePattern: "theatrical_coming_soon",
         source: "douban",
-        sourceUrl: "https://movie.douban.com/subject/1/"
+        sourceUrl: "https://movie.douban.com/subject/1/",
+        doubanHotRank: 3,
+        doubanHotKind: "movie",
+        doubanWishCount: 220099
       }]
     }],
     undated: [{
@@ -334,7 +337,10 @@ const responses: Record<string, unknown> = {
       releaseDate: null,
       releasePattern: "tv_coming_soon",
       source: "douban",
-      sourceUrl: "https://movie.douban.com/subject/2/"
+      sourceUrl: "https://movie.douban.com/subject/2/",
+      doubanHotRank: null,
+      doubanHotKind: null,
+      doubanWishCount: null
     }]
   },
   "/api/sources": {
@@ -596,9 +602,13 @@ describe("frontend pages", () => {
 
     expect(await screen.findByRole("heading", { name: "待映 · 待播" })).toBeInTheDocument()
     expect(screen.getByText("2026年7月")).toBeInTheDocument()
+    expect(screen.getByText("电影热榜 #3")).toBeInTheDocument()
+    expect(screen.getByText("22万 人想看")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "待定档" })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: /午夜档案/ }))
+    fireEvent.click(screen.getByRole("button", { name: /午夜档案，电影热榜 #3/ }))
     expect(screen.getByRole("dialog")).toBeInTheDocument()
+    expect(screen.getByText("豆瓣电影热榜 #3")).toBeInTheDocument()
+    expect(screen.getByText("220,099 人想看")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "查看完整详情" })).toHaveAttribute(
       "href",
       "/media/media-movie-1"

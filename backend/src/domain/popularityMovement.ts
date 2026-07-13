@@ -3,7 +3,8 @@ export type PopularityEventType = "rank_entered" | "heat_rising" | "rank_changed
 
 export const NON_HEAT_SIGNAL_SOURCES = [
   "douban_top",
-  "douban_upcoming"
+  "douban_upcoming",
+  "douban_upcoming_hot"
 ] as const
 
 const nonHeatSignalSources = new Set<string>(NON_HEAT_SIGNAL_SOURCES)

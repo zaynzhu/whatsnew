@@ -403,13 +403,34 @@ describe("api routes", () => {
         source: "douban"
       }))
     })
+    await prisma.popularitySignal.create({
+      data: {
+        mediaItemId: "preview-media-0",
+        source: "douban_upcoming_hot",
+        sourceCategory: "chinese_interest",
+        platform: "豆瓣",
+        region: "CN",
+        window: "upcoming",
+        rankingScope: "movie",
+        rank: 3,
+        value: 220099,
+        valueLabel: "豆瓣想看",
+        isCurrent: true
+      }
+    })
 
     const response = await request(createApp()).get("/api/preview")
 
     expect(response.status).toBe(200)
     expect(response.body.summary.total).toBe(itemCount)
+    expect(response.body.summary.hot).toBe(1)
     expect(response.body.days).toHaveLength(1)
     expect(response.body.days[0].items).toHaveLength(itemCount)
+    expect(response.body.days[0].items.find((item: any) => item.mediaItemId === "preview-media-0")).toMatchObject({
+      doubanHotRank: 3,
+      doubanHotKind: "movie",
+      doubanWishCount: 220099
+    })
   })
 
   it("counts unique works instead of episode rows in calendar summaries", async () => {

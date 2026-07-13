@@ -55,8 +55,41 @@ previewRouter.get("/", async (_req, res) => {
     .filter((release, index, items) => (
       items.findIndex((candidate) => candidate.mediaItemId === release.mediaItemId) === index
     ))
-  const dated = releases.filter((release) => release.releaseDate !== null)
-  const undated = releases.filter((release) => release.releaseDate === null)
+  const hotSignals = releases.length === 0
+    ? []
+    : await db.popularitySignal.findMany({
+        where: {
+          mediaItemId: { in: releases.map((release) => release.mediaItemId) },
+          source: "douban_upcoming_hot",
+          isCurrent: true
+        },
+        select: {
+          mediaItemId: true,
+          rankingScope: true,
+          rank: true,
+          value: true
+        },
+        orderBy: { rank: "asc" }
+      })
+  const hotByMediaItemId = new Map<string, typeof hotSignals[number]>()
+  for (const signal of hotSignals) {
+    if (!hotByMediaItemId.has(signal.mediaItemId)) hotByMediaItemId.set(signal.mediaItemId, signal)
+  }
+  const previewReleases = releases.map((release) => {
+    const hotSignal = hotByMediaItemId.get(release.mediaItemId)
+    return {
+      ...release,
+      doubanHotRank: hotSignal?.rank ?? null,
+      doubanHotKind: hotSignal?.rankingScope === "series"
+        ? "series"
+        : hotSignal?.rankingScope === "movie"
+          ? "movie"
+          : null,
+      doubanWishCount: hotSignal?.value ?? null
+    }
+  })
+  const dated = previewReleases.filter((release) => release.releaseDate !== null)
+  const undated = previewReleases.filter((release) => release.releaseDate === null)
   const dates = [...new Set(dated.map((release) => release.releaseDate as string))]
 
   res.json({
@@ -79,7 +112,8 @@ previewRouter.get("/", async (_req, res) => {
       total: releases.length,
       movies: releases.filter((release) => release.releasePattern === "theatrical_coming_soon").length,
       series: releases.filter((release) => release.releasePattern === "tv_coming_soon").length,
-      undated: undated.length
+      undated: undated.length,
+      hot: previewReleases.filter((release) => release.doubanHotRank !== null).length
     },
     days: dates.map((date) => ({
       date,

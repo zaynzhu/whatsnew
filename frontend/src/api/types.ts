@@ -217,9 +217,16 @@ export type PreviewResponse = {
     movies: number
     series: number
     undated: number
+    hot: number
   }
-  days: Array<{ date: string, items: ReleaseRow[] }>
-  undated: ReleaseRow[]
+  days: Array<{ date: string, items: PreviewReleaseRow[] }>
+  undated: PreviewReleaseRow[]
+}
+
+export type PreviewReleaseRow = ReleaseRow & {
+  doubanHotRank: number | null
+  doubanHotKind: "movie" | "series" | null
+  doubanWishCount: number | null
 }
 
 export type SourcesResponse = {
