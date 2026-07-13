@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   appleTvPlusAdapter: { source: "apple_tv_plus" },
   doubanAdapter: { source: "douban" },
   netflixAdapter: { source: "netflix" },
+  primeVideoAdapter: { source: "prime_video" },
   huluAdapter: { source: "hulu" },
   disneyPlusAdapter: { source: "disney_plus" },
   maxAdapter: { source: "max" },
@@ -96,6 +97,10 @@ vi.mock("../src/adapters/doubanAdapter.js", () => ({
 
 vi.mock("../src/adapters/netflixTop10Adapter.js", () => ({
   netflixTop10Adapter: mocks.netflixAdapter
+}))
+
+vi.mock("../src/adapters/primeVideoAdapter.js", () => ({
+  primeVideoAdapter: mocks.primeVideoAdapter
 }))
 
 vi.mock("../src/adapters/huluAdapter.js", () => ({
@@ -202,8 +207,9 @@ describe("scheduler", () => {
     })?.[1] as () => Promise<void>
     await dailyJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(9)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(10)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.primeVideoAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.huluAdapter)
@@ -218,7 +224,7 @@ describe("scheduler", () => {
     })
     expect(mocks.cleanupOrphanedMedia).toHaveBeenCalledWith({
       database: mocks.db,
-      sources: ["disney_plus", "hulu", "max"],
+      sources: ["disney_plus", "hulu", "max", "prime_video"],
       apply: true
     })
     expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
@@ -229,7 +235,7 @@ describe("scheduler", () => {
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
-      return !["netflix", "thetvdb", "hulu", "disney_plus", "max"].includes(sourceId)
+      return !["netflix", "prime_video", "thetvdb", "hulu", "disney_plus", "max"].includes(sourceId)
     })
     await dailyJob()
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
@@ -282,6 +288,7 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.theTvdbAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.youkuAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.primeVideoAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.huluAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.disneyPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.maxAdapter)
@@ -289,7 +296,7 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(13)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(14)
       expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
         database: mocks.db,
         limit: 40
@@ -300,7 +307,7 @@ describe("scheduler", () => {
       })
       expect(mocks.cleanupOrphanedMedia).toHaveBeenCalledWith({
         database: mocks.db,
-        sources: ["disney_plus", "hulu", "max"],
+        sources: ["disney_plus", "hulu", "max", "prime_video"],
         apply: true
       })
       expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
@@ -325,6 +332,7 @@ describe("scheduler", () => {
       { sourceId: "trakt", scheduleGroup: "daily" },
       { sourceId: "thetvdb", scheduleGroup: "daily" },
       { sourceId: "netflix", scheduleGroup: "daily" },
+      { sourceId: "prime_video", scheduleGroup: "daily" },
       { sourceId: "hulu", scheduleGroup: "daily" },
       { sourceId: "disney_plus", scheduleGroup: "daily" },
       { sourceId: "max", scheduleGroup: "daily" },

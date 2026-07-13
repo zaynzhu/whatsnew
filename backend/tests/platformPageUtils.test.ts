@@ -53,6 +53,7 @@ describe("platformPageUtils", () => {
       mediaType: "series",
       releaseForm: "tv_series",
       titleDisplay: "The Bear: Complete Season 5",
+      posterUrl: null,
       firstReleaseDate: null,
       status: "released"
     })
@@ -66,6 +67,20 @@ describe("platformPageUtils", () => {
       source: "hulu"
     })
     expect(item?.popularitySignals).toEqual([])
+  })
+
+  it("preserves official platform artwork when a parser provides it", () => {
+    const item = candidateToAdapterItem(config, {
+      title: "Artwork Premiere",
+      sourceContentType: "movie",
+      releaseDate: "2026-07-01",
+      description: "Original movie",
+      labels: ["Movie"],
+      sourceUrl: "https://press.hulu.com/schedule/artwork",
+      posterUrl: "https://img.test/artwork.jpg"
+    }, "2026-07-01")
+
+    expect(item?.media.posterUrl).toBe("https://img.test/artwork.jpg")
   })
 
   it("keeps platform availability separate from an older work's original year", () => {

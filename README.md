@@ -147,15 +147,17 @@ Netflix 来源读取官方全球全周 XLSX，只同步最新一周的四类榜�
 - 下载沿用统一代理设置、10 秒超时和来源级 2 秒限频
 - 手动同步：`npm run sync:netflix --workspace backend`
 
-### Hulu / Disney+ 官方上新与 Max 受限状态
+### Prime Video / Hulu / Disney+ 官方上新与 Max 受限状态
 
-Hulu 和 Disney+ 只同步官方页面中的平台上新和排期，不生成热度排名。日历会区分“平台新增”“平台首发”“剧集更新”等语义，平台旧片上架不会被当成作品首次发行。
+Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期，不生成热度排名。日历会区分“平台新增”“平台首发”“剧集更新”等语义，平台旧片上架不会被当成作品首次发行。
 
+- Prime Video 从 About Amazon 娱乐频道发现最新月度上新文章，只保留美国区电影与剧集，排除直播体育、音乐和类型不明确的活动
 - Hulu 使用 `https://press.hulu.com/schedule/`
 - Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
 - Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度
-- Hulu 和 Disney+ 均为 daily schedule，默认关闭，需在设置页显式启用
+- Prime Video、Hulu 和 Disney+ 均为 daily schedule，默认关闭，需在设置页显式启用
 - 手动同步：
+  - `npm run sync:prime-video --workspace backend`
   - `npm run sync:hulu --workspace backend`
   - `npm run sync:disney-plus --workspace backend`
   - Max 恢复公开访问前不要执行 `npm run sync:max --workspace backend`

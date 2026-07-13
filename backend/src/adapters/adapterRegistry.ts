@@ -13,6 +13,7 @@ import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
 import { maxAdapter } from "./maxAdapter.js"
 import { netflixTop10Adapter } from "./netflixTop10Adapter.js"
+import { primeVideoAdapter } from "./primeVideoAdapter.js"
 import { theTvdbAdapter } from "./theTvdbAdapter.js"
 import { tmdbAdapter } from "./tmdbAdapter.js"
 import { traktCalendarAdapter, traktPopularityAdapter } from "./traktAdapter.js"
@@ -71,6 +72,7 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "trakt", scheduleGroup: "daily", adapter: traktCalendarAdapter, healthPolicy: healthPolicy(["release_calendar"], "daily", "release") },
   { sourceId: "thetvdb", scheduleGroup: "daily", adapter: theTvdbAdapter, healthPolicy: healthPolicy(["metadata", "release_calendar"], "daily", "release") },
   { sourceId: "netflix", scheduleGroup: "daily", adapter: netflixTop10Adapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
+  { sourceId: "prime_video", scheduleGroup: "daily", adapter: primeVideoAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "hulu", scheduleGroup: "daily", adapter: huluAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "disney_plus", scheduleGroup: "daily", adapter: disneyPlusAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },
   { sourceId: "max", scheduleGroup: "daily", adapter: maxAdapter, healthPolicy: healthPolicy(["platform_catalog", "release_calendar"], "daily", "release") },

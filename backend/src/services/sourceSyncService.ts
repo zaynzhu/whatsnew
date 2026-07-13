@@ -21,7 +21,7 @@ const sourceSyncTails = new Map<string, Promise<void>>()
 export function isSourceSyncInFlight(source: string): boolean {
   return sourceSyncTails.has(source)
 }
-const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max"])
+const PLATFORM_SNAPSHOT_SOURCES = new Set(["disney_plus", "hulu", "max", "prime_video"])
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]

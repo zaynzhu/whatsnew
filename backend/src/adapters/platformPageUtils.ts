@@ -12,11 +12,12 @@ export type PlatformReleaseCandidate = {
   description: string | null
   labels: string[]
   sourceUrl: string
+  posterUrl?: string | null
 }
 
 export type PlatformAdapterConfig = {
-  source: "hulu" | "disney_plus" | "max" | "apple_tv_plus"
-  platform: "Hulu" | "Disney+" | "Max" | "Apple TV+"
+  source: "hulu" | "disney_plus" | "max" | "apple_tv_plus" | "prime_video"
+  platform: "Hulu" | "Disney+" | "Max" | "Apple TV+" | "Prime Video"
   region: string
   defaultLanguage: string | null
   defaultGenres: string[]
@@ -200,7 +201,7 @@ export function candidateToAdapterItem(
       titleOriginal: null,
       titleAliases: candidate.titleAliases ?? [],
       overview: description,
-      posterUrl: null,
+      posterUrl: candidate.posterUrl ?? null,
       productionCountries: [],
       originalLanguage: config.defaultLanguage,
       genres: [...config.defaultGenres],

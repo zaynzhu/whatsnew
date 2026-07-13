@@ -16,6 +16,7 @@
     "sync:mango-tv": "tsx src/scripts/syncMgtv.ts",
     "sync:bilibili": "tsx src/scripts/syncBilibili.ts",
     "sync:netflix": "tsx src/scripts/syncNetflix.ts",
+    "sync:prime-video": "tsx src/scripts/syncPrimeVideo.ts",
     "sync:hulu": "tsx src/scripts/syncHulu.ts",
     "sync:disney-plus": "tsx src/scripts/syncDisneyPlus.ts",
     "sync:max": "tsx src/scripts/syncMax.ts",

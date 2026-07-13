@@ -18,7 +18,7 @@ import {
 const AUTOMATIC_POSTER_LIMIT = 40
 const HOURLY_POSTER_VERIFICATION_LIMIT = 20
 const DAILY_POSTER_VERIFICATION_LIMIT = 100
-const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max"]
+const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max", "prime_video"]
 const scheduledTasks: Array<{ stop(): void }> = []
 let schedulerStarted = false
 

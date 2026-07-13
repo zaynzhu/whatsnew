@@ -10,6 +10,7 @@ describe("source catalog", () => {
       "trakt",
       "thetvdb",
       "netflix",
+      "prime_video",
       "hulu",
       "disney_plus",
       "apple_tv_plus",
@@ -102,7 +103,15 @@ describe("source catalog", () => {
       supportsEnable: false,
       defaultEnabled: false
     })
-    expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog"])
+    expect(getSourceDefinition("prime_video")).toMatchObject({
+      implementationStatus: "active",
+      supportsSync: true,
+      supportsEnable: true,
+      defaultEnabled: false,
+      scheduleGroups: ["daily"],
+      testUrl: "https://www.aboutamazon.com/news/entertainment"
+    })
+    expect(getSourceDefinition("prime_video").semantics.signalKinds).toEqual(["platform_catalog", "release_calendar"])
     expect(getSourceDefinition("apple_tv_plus").semantics.signalKinds).toEqual(["news_signal"])
     expect(getSourceDefinition("apple_tv_plus").supportsSync).toBe(true)
   })

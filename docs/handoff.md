@@ -36,6 +36,7 @@ This file is the short operational handoff for the current branch.
 | Trakt | Popularity and 14-day movie/series calendar. |
 | TheTVDB | Free-only metadata updates, disabled by default. |
 | Netflix | Official global weekly Top 10 XLSX. |
+| Prime Video | Official About Amazon US monthly movie and series lineup. |
 | Hulu | Official press schedule. |
 | Disney+ | Official New to Disney+ article. |
 | Max | Parser retained, but source is blocked while WBD Pressroom requires login or returns 403. |
@@ -53,6 +54,7 @@ This file is the short operational handoff for the current branch.
 - TheTVDB must stay free-only.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
 - Hulu and Disney+ are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
+- Prime Video discovers the latest US monthly lineup from About Amazon, excludes sports and music, and defaults to disabled; use per-source direct mode when the inherited proxy cannot reach Amazon domains.
 - Max is intentionally non-runnable while the official WBD page is access-restricted; do not re-enable it until a public request succeeds.
 - Platform catalog additions are not work premieres. The calendar exposes release-pattern labels and counts unique works per day.
 - Scheduled quality maintenance reconciles conflict-free duplicate TMDb identities; startup and daily runs also remove strict inactive platform orphans.

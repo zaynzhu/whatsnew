@@ -401,10 +401,12 @@ describe("api routes", () => {
       })
     })
     expect(sourcesResponse.body.items.find((source: any) => source.id === "prime_video")).toMatchObject({
-      implementationStatus: "planned",
-      supportsSync: false,
+      implementationStatus: "active",
+      supportsSync: true,
+      enabled: false,
+      runnable: false,
       semantics: expect.objectContaining({
-        signalKinds: ["platform_catalog"]
+        signalKinds: ["platform_catalog", "release_calendar"]
       })
     })
   })

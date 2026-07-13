@@ -169,7 +169,20 @@ const sourceFixtures = [
     }
   }),
   sourceFixture("netflix", "Netflix", { group: "international_platform" }),
-  sourceFixture("prime_video", "Prime Video", { group: "international_platform" }),
+  sourceFixture("prime_video", "Prime Video", {
+    group: "international_platform",
+    implementationStatus: "active",
+    supportsSync: true,
+    supportsEnable: true,
+    semantics: {
+      signalKinds: ["platform_catalog", "release_calendar"],
+      coverage: "Prime Video 美国区官方月度电影与剧集上新",
+      cadence: "日级检查 About Amazon 月度上新文章",
+      access: "public_page",
+      freshnessNote: "只代表美国区 Prime Video 上新",
+      riskNote: "文章结构变化会影响采集"
+    }
+  }),
   sourceFixture("hulu", "Hulu", { group: "international_platform" }),
   sourceFixture("disney_plus", "Disney+", { group: "international_platform" }),
   sourceFixture("max", "Max", { group: "international_platform" }),

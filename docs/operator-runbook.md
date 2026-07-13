@@ -90,7 +90,7 @@ Every active source also has:
 - `SOURCE_<ID>_HTTP_PROXY`
 - `SOURCE_<ID>_HTTPS_PROXY`
 
-Platform page adapters may also use source base URL overrides such as `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL` and `SOURCE_NETFLIX_BASE_URL`.
+Platform page adapters may also use source base URL overrides such as `SOURCE_PRIME_VIDEO_BASE_URL`, `SOURCE_HULU_BASE_URL`, `SOURCE_DISNEY_PLUS_BASE_URL`, `SOURCE_MAX_BASE_URL` and `SOURCE_NETFLIX_BASE_URL`.
 
 ## Manual Sync
 
@@ -100,6 +100,7 @@ npm run sync:tmdb --workspace backend
 npm run sync:trakt --workspace backend
 npm run sync:thetvdb --workspace backend
 npm run sync:netflix --workspace backend
+npm run sync:prime-video --workspace backend
 npm run sync:hulu --workspace backend
 npm run sync:disney-plus --workspace backend
 npm run sync:max --workspace backend
@@ -127,13 +128,15 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 | Group | Default cron | Sources |
 |---|---|---|
 | Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI |
-| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Bilibili, Douban |
+| Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Prime Video, Hulu, Disney+, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
 
 The settings page can change the hourly interval and daily time. Saving stops the old future jobs and immediately registers the new schedule without restarting the backend or re-running startup sync. It also shows the next hourly and daily execution times. The China sandbox writes `SCHEDULER_ENABLED=false`, so its controls are disabled and enabling a source there still does not create automatic refreshes.
 
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
+
+Prime Video discovers the newest official monthly article from the About Amazon entertainment page, then imports only dated US movie and series entries. Live sports, live music and entries with ambiguous media types are intentionally skipped. The source defaults to disabled and may need a per-source direct network mode when the inherited proxy cannot reach Amazon domains.
 
 MangoTV is also blocked. Its former channel-homepage modules did not provide a stable upcoming/reservation contract; do not run `sync:mango-tv` as a production source.
 

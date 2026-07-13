@@ -145,12 +145,12 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     riskNote: "XLSX 文件结构变化会影响解析"
   },
   prime_video: {
-    signalKinds: ["platform_catalog"],
-    coverage: "Prime Video 新内容集合候选",
-    cadence: "待验证客户端集合页稳定性",
+    signalKinds: ["platform_catalog", "release_calendar"],
+    coverage: "Prime Video 美国区官方月度电影与剧集上新",
+    cadence: "日级检查 About Amazon 月度上新文章",
     access: "public_page",
-    freshnessNote: "尚未实现，只保留规划入口",
-    riskNote: "页面参数、分页 token、地区和客户端渲染会影响采集"
+    freshnessNote: "只代表官方文章列出的美国区 Prime Video 上新，不代表全球可看性或热度",
+    riskNote: "文章标题、内容区块或完整片单结构变化时必须停止入库并保留上次成功快照"
   },
   hulu: {
     signalKinds: ["platform_catalog", "release_calendar"],
@@ -288,7 +288,7 @@ export const SOURCE_CATALOG = [
   source("justwatch", "JustWatch", "可看性与 Streaming Charts", "cross_platform", "commercial", "inherit", false, false, "https://www.justwatch.com/us/streaming-charts"),
   source("flixpatrol", "FlixPatrol", "多平台地区 Top 10", "cross_platform", "commercial", "inherit", false, false, "https://flixpatrol.com/calendar/upcoming/"),
   source("netflix", "Netflix", "官方全球周榜与观看次数", "international_platform", "active", "inherit", true, true, "https://www.netflix.com/tudum/top10/data/all-weeks-global.xlsx", [], ["daily"], true),
-  source("prime_video", "Prime Video", "新内容集合候选", "international_platform", "planned", "inherit", false, false, "https://www.primevideo.com/collection/newandupcoming"),
+  source("prime_video", "Prime Video", "美国区官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.aboutamazon.com/news/entertainment", [], ["daily"], false),
   source("hulu", "Hulu", "官方排期与上新", "international_platform", "active", "inherit", true, true, "https://press.hulu.com/schedule/", [], ["daily"], false),
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
   source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
