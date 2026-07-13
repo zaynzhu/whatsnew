@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
+  prunePosterVariantCache: vi.fn(async () => ({ removedEntries: 0 })),
   schedule: vi.fn((
     _expression: string,
     _callback: () => Promise<void>,
@@ -129,6 +130,10 @@ vi.mock("../src/services/posterVerificationService.js", () => ({
   verifyPosterImages: mocks.verifyPosterImages
 }))
 
+vi.mock("../src/services/posterVariantCacheMaintenanceService.js", () => ({
+  prunePosterVariantCache: mocks.prunePosterVariantCache
+}))
+
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
@@ -165,6 +170,7 @@ describe("scheduler", () => {
     })
     expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
     expect(mocks.verifyPosterImages).not.toHaveBeenCalled()
+    expect(mocks.prunePosterVariantCache).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockReturnValue(true)
@@ -216,6 +222,7 @@ describe("scheduler", () => {
       database: mocks.db,
       limit: 20
     })
+    expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
 
     mocks.runSourceSync.mockClear()
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => {
@@ -297,6 +304,7 @@ describe("scheduler", () => {
         database: mocks.db,
         limit: 20
       })
+      expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
     })
   })
 

@@ -3,6 +3,7 @@ import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
 import { POSTER_VARIANT_CACHE_DIR, POSTER_VARIANT_WIDTHS } from "./posterVariantService.js"
+import { DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES } from "./posterVariantCacheMaintenanceService.js"
 
 type DiskCacheHealth = {
   entries: number
@@ -36,7 +37,7 @@ export type PosterHealthResponse = {
     adequate: number
     undersized: number
   }
-  cache: DiskCacheHealth & { variants: DiskCacheHealth }
+  cache: DiskCacheHealth & { variants: DiskCacheHealth & { maxBytes: number } }
   samples: {
     broken: PosterHealthSample[]
     degraded: PosterHealthSample[]
@@ -225,7 +226,10 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           adequate: qualityAdequate,
           undersized: qualityUndersized
         },
-        cache: { ...cache, variants: variantCache },
+        cache: {
+          ...cache,
+          variants: { ...variantCache, maxBytes: DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES }
+        },
         samples: {
           broken: brokenSamples.map(sample),
           degraded: degradedSamples.map(sample),

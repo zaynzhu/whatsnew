@@ -64,6 +64,7 @@ export type PosterHealthResponse = {
       bytes: number
       orphanedFiles: number
       corruptEntries: number
+      maxBytes: number
     }
   }
   samples: {

@@ -224,7 +224,13 @@ const posterHealthResponse: PosterHealthResponse = {
     bytes: 73_886_357,
     orphanedFiles: 0,
     corruptEntries: 0,
-    variants: { entries: 418, bytes: 31_457_280, orphanedFiles: 1, corruptEntries: 0 }
+    variants: {
+      entries: 418,
+      bytes: 31_457_280,
+      orphanedFiles: 1,
+      corruptEntries: 0,
+      maxBytes: 536_870_912
+    }
   },
   samples: {
     broken: [],
@@ -306,6 +312,7 @@ describe("SettingsPage", () => {
     expect(screen.getByText("707 / 857")).toBeInTheDocument()
     expect(screen.getByText("209 张")).toBeInTheDocument()
     expect(screen.getByText("418 张")).toBeInTheDocument()
+    expect(screen.getByText("30 / 512 MB")).toBeInTheDocument()
     expect(screen.getByText("孤立文件 1")).toBeInTheDocument()
     expect(screen.getByText("低清 7")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(

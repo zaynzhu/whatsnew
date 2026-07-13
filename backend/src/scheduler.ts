@@ -5,6 +5,7 @@ import { env } from "./config/env.js"
 import { reconcileDuplicateTmdbIdentities } from "./services/duplicateIdentityService.js"
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
 import { verifyPosterImages } from "./services/posterVerificationService.js"
+import { prunePosterVariantCache } from "./services/posterVariantCacheMaintenanceService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
@@ -59,6 +60,14 @@ async function verifyPostersAfterSync() {
   }
 }
 
+async function prunePosterVariants() {
+  try {
+    await prunePosterVariantCache({ apply: true })
+  } catch (error) {
+    console.error("Automatic poster variant cache maintenance failed", error)
+  }
+}
+
 export async function runInitialSync() {
   for (const entry of getEnabledAdapters()) {
     await runSourceSync(db, entry.adapter)
@@ -66,6 +75,7 @@ export async function runInitialSync() {
   await maintainDataQuality(true)
   await enrichPostersAfterSync()
   await verifyPostersAfterSync()
+  await prunePosterVariants()
 }
 
 function stopScheduledTasks() {
@@ -91,6 +101,7 @@ function scheduleRecurringJobs() {
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
     await verifyPostersAfterSync()
+    await prunePosterVariants()
   }, { timezone: SCHEDULER_TIMEZONE }))
 }
 

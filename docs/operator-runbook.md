@@ -161,12 +161,16 @@ Inspect `X-Poster-Cache`, `X-Poster-Variant-Cache`, `X-Poster-Width`, `Content-T
 npm run audit:posters --workspace backend
 npm run verify:posters --workspace backend -- --limit=100
 npm run enrich:posters --workspace backend -- --limit=20 --force
+npm run prune:poster-variants --workspace backend
+npm run prune:poster-variants --workspace backend -- --apply
 curl -s http://127.0.0.1:19993/api/poster-health
 ```
 
 `audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
 `GET /api/poster-health` reports original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
+
+The first prune command is a dry run. Add `--apply` to remove stale corrupt/orphaned files and enforce the default 512 MB limit. When capacity is exceeded, the oldest complete variants are removed until usage reaches 90% of the limit. Use `--max-mb=1024` to override the command limit temporarily; accepted values are 64 through 10240 MB. Startup sync and the daily scheduled batch apply the default limit automatically, while files written within the last hour are protected.
 
 ## Source Health
 

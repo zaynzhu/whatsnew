@@ -19,6 +19,7 @@ This file is the short operational handoff for the current branch.
 - Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
 - Frontend artwork is proxy-first with responsive `320w / 640w / 960w` sources. Original images cache under `backend/.cache/posters/`; bounded WebP variants cache under `backend/.cache/poster-variants/` and never upscale the source.
 - Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Original and responsive caches have separate counts, capacity and integrity metrics. Cache refresh can serve stale bytes during transient upstream failures.
+- Responsive variants are capped at 512 MB. Startup sync and daily maintenance clean stale partial files and evict oldest complete variants to 90% when over capacity; manual cleanup defaults to dry-run.
 - Poster quality is tracked separately from availability. Requests and verification persist dimensions; images below 300×400 are listed as undersized and enter strict TMDb replacement without relaxing identity matching.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
@@ -63,8 +64,8 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Add bounded retention for the regenerable responsive-image cache before long-running NAS deployment; current capacity and integrity are observable but files are not automatically evicted.
-2. Continue the poster verification backlog and strict replacement of high-priority missing or undersized images without relaxing identity matching.
+1. Continue the poster verification backlog and strict replacement of high-priority missing or undersized images without relaxing identity matching.
+2. Audit remaining cross-source records that still have `posterQuality=unknown`, prioritizing high-heat works and keeping source identity evidence visible.
 
 ## Validation Baseline
 

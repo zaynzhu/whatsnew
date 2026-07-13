@@ -84,7 +84,13 @@ describe("PosterHealthService", () => {
         bytes: 5,
         orphanedFiles: 1,
         corruptEntries: 1,
-        variants: { entries: 2, bytes: 11, orphanedFiles: 1, corruptEntries: 1 }
+        variants: {
+          entries: 2,
+          bytes: 11,
+          orphanedFiles: 1,
+          corruptEntries: 1,
+          maxBytes: 536_870_912
+        }
       },
       samples: {
         broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],

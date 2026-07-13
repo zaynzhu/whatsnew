@@ -50,12 +50,13 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 7. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
 8. `MediaPoster` sends a `320w / 640w / 960w` `srcset` through the backend proxy. The browser selects a bounded width for the actual display slot. `PosterImageService` validates HTTP(S) URLs and image responses, measures supported image dimensions with `image-size`, applies the configured proxy and per-origin rate limit, then caches upstream bytes and metadata by URL hash.
 9. `PosterVariantService` creates `160 / 320 / 640 / 960` WebP variants with Sharp. It never enlarges the original, keys derivatives by URL, requested width and source-byte digest, coalesces concurrent work and writes cache files atomically. A transform failure returns the original bytes.
-10. The frontend falls back to the original URL only when the proxy request fails.
-11. Disk entries are validated on read and written through temporary files. Concurrent cold requests for one URL or one variant share one operation.
-12. Original cache entries refresh after 30 days. A failed refresh serves the previous bytes as `stale`; uncached failures use a one-minute in-memory cooldown.
-13. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
-14. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability.
-15. Broken and undersized posters enter the strict TMDb enrichment queue. Identity requirements are unchanged; an unmatched low-resolution image remains usable and retries only after the seven-day cooldown.
+10. `prunePosterVariantCache()` bounds the regenerable variant cache at 512 MB. Startup sync and daily maintenance remove corrupt and stale partial files, then evict oldest complete entries to 90% when over capacity. Files newer than one hour are protected from partial-write cleanup.
+11. The frontend falls back to the original URL only when the proxy request fails.
+12. Disk entries are validated on read and written through temporary files. Concurrent cold requests for one URL or one variant share one operation.
+13. Original cache entries refresh after 30 days. A failed refresh serves the previous bytes as `stale`; uncached failures use a one-minute in-memory cooldown.
+14. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
+15. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability.
+16. Broken and undersized posters enter the strict TMDb enrichment queue. Identity requirements are unchanged; an unmatched low-resolution image remains usable and retries only after the seven-day cooldown.
 
 The heat page has one scoped exception: `iqiyi_reserve` poster URLs from `newOnlinePCW` are upgraded from the source's `141×188` thumbnail size to `579×772` and loaded direct-first. This does not change stored URLs or the poster behavior of other pages.
 

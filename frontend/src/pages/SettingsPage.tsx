@@ -587,7 +587,9 @@ export function SettingsPage() {
               </div>
               <div>
                 <span>响应式容量</span>
-                <strong>{Math.round(posterHealth.cache.variants.bytes / 1024 / 1024)} MB</strong>
+                <strong>
+                  {Math.round(posterHealth.cache.variants.bytes / 1024 / 1024)} / {Math.round(posterHealth.cache.variants.maxBytes / 1024 / 1024)} MB
+                </strong>
               </div>
             </div>
 
