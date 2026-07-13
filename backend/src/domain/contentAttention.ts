@@ -54,12 +54,18 @@ export function contentAttentionWeight(
   return weights[contentAttentionCategory(media)]
 }
 
+export function attentionHeatScore(
+  media: AttentionMedia,
+  weights: Record<ContentAttentionCategory, number>
+): number {
+  return contentAttentionWeight(media, weights) * 0.7 + media.heatScore * 0.3
+}
+
 export function featuredScore(
   media: AttentionMedia,
   weights: Record<ContentAttentionCategory, number>,
   timingBoost: number
 ): number {
-  const attention = contentAttentionWeight(media, weights)
   const posterBoost = media.posterUrl ? 5 : 0
-  return attention * 0.7 + media.heatScore * 0.3 + timingBoost + posterBoost
+  return attentionHeatScore(media, weights) + timingBoost + posterBoost
 }

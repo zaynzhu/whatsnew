@@ -1,6 +1,7 @@
 import type { MediaSummary } from "@whatsnew/shared/media"
 
 export type {
+  ContentAttentionCategory,
   ConnectionTestResult,
   ProxyMode,
   SchedulerSettingsView,
@@ -16,6 +17,7 @@ export type {
 } from "@whatsnew/shared/settings"
 
 import type {
+  ContentAttentionCategory,
   ConnectionTestResult,
   SourceCatalogItem
 } from "@whatsnew/shared/settings"
@@ -34,6 +36,8 @@ export type PosterHealthSample = {
   id: string
   title: string
   heatScore: number
+  attentionCategory: ContentAttentionCategory
+  priorityScore: number
   sources: string[]
   width: number | null
   height: number | null

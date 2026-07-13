@@ -1,6 +1,5 @@
 import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
-import type { ContentAttentionCategory } from "@whatsnew/shared/settings"
-import { contentAttentionWeight } from "../domain/contentAttention.js"
+import { attentionHeatScore } from "../domain/contentAttention.js"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { hasSameWorkKind, mediaWorkKind } from "../domain/mediaWorkKind.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
@@ -322,13 +321,6 @@ function isUsablePoster(image: PosterImage): boolean {
     && image.height / image.width >= 1.2
 }
 
-function enrichmentPriority(
-  item: MediaItem,
-  weights: Record<ContentAttentionCategory, number>
-): number {
-  return contentAttentionWeight(item, weights) * 0.7 + item.heatScore * 0.3
-}
-
 function omdbPoster(response: OmdbResponse, imdbId: string): string | null {
   if (response.Response !== "True" || response.imdbID !== imdbId || !response.Poster || response.Poster === "N/A") {
     return null
@@ -403,7 +395,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   })
   const items = candidates
     .sort((left, right) => (
-      enrichmentPriority(right, weights) - enrichmentPriority(left, weights)
+      attentionHeatScore(right, weights) - attentionHeatScore(left, weights)
       || right.updatedAt.getTime() - left.updatedAt.getTime()
     ))
     .slice(0, requestedLimit)

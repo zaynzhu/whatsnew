@@ -1,7 +1,11 @@
 import type { Prisma, PrismaClient } from "@prisma/client"
+import type { ContentAttentionCategory } from "@whatsnew/shared/settings"
+import { attentionHeatScore, contentAttentionCategory } from "../domain/contentAttention.js"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
+import { contentWeightMap } from "../settings/contentAttentionSettings.js"
+import { type RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { POSTER_CACHE_DIR } from "./posterImageService.js"
 import { POSTER_VARIANT_CACHE_DIR, POSTER_VARIANT_WIDTHS } from "./posterVariantService.js"
 import { DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES } from "./posterVariantCacheMaintenanceService.js"
@@ -17,6 +21,8 @@ export type PosterHealthSample = {
   id: string
   title: string
   heatScore: number
+  attentionCategory: ContentAttentionCategory
+  priorityScore: number
   sources: string[]
   width: number | null
   height: number | null
@@ -73,6 +79,7 @@ type PosterHealthServiceOptions = {
   database: PosterHealthDatabase
   cacheDir?: string
   variantCacheDir?: string
+  settings?: RuntimeSettingsService
   now?: () => Date
 }
 
@@ -145,19 +152,33 @@ function variantMetadataIsValid(metadata: Record<string, unknown>): boolean {
     && (metadata.height === null || typeof metadata.height === "number")
 }
 
-function sample(row: {
+type SampleRow = {
   id: string
   titleDisplay: string
+  mediaType: string
+  releaseForm: string
+  sourceContentType: string | null
+  genres: string
   heatScore: number
+  posterUrl: string | null
   sourceRefs: Array<{ source: string }>
   posterWidth: number | null
   posterHeight: number | null
   posterLookupAttemptedAt: Date | null
-}, retryBefore: Date): PosterHealthSample {
+  updatedAt: Date
+}
+
+function sample(
+  row: SampleRow,
+  retryBefore: Date,
+  weights: Record<ContentAttentionCategory, number>
+): PosterHealthSample {
   return {
     id: row.id,
     title: row.titleDisplay,
     heatScore: row.heatScore,
+    attentionCategory: contentAttentionCategory(row),
+    priorityScore: Math.round(attentionHeatScore(row, weights) * 10) / 10,
     sources: [...new Set(row.sourceRefs.map((sourceRef) => sourceRef.source))],
     width: row.posterWidth,
     height: row.posterHeight,
@@ -166,6 +187,20 @@ function sample(row: {
       : row.posterLookupAttemptedAt < retryBefore ? "retry_eligible" : "cooldown",
     lastLookupAt: row.posterLookupAttemptedAt?.toISOString() ?? null
   }
+}
+
+function rankedSamples(
+  rows: SampleRow[],
+  retryBefore: Date,
+  weights: Record<ContentAttentionCategory, number>
+): PosterHealthSample[] {
+  return [...rows]
+    .sort((left, right) => (
+      attentionHeatScore(right, weights) - attentionHeatScore(left, weights)
+      || right.updatedAt.getTime() - left.updatedAt.getTime()
+    ))
+    .slice(0, 8)
+    .map((row) => sample(row, retryBefore, weights))
 }
 
 function cooldownExpiry(row: { posterLookupAttemptedAt: Date | null } | null): string | null {
@@ -194,13 +229,20 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
     async getHealth(): Promise<PosterHealthResponse> {
       const now = (options.now ?? (() => new Date()))()
       const retryBefore = new Date(now.getTime() - POSTER_LOOKUP_RETRY_DAYS * DAY_MS)
+      const weights = contentWeightMap((options.settings ?? runtimeSettings).view())
       const sampleSelect = {
         id: true,
         titleDisplay: true,
+        mediaType: true,
+        releaseForm: true,
+        sourceContentType: true,
+        genres: true,
         heatScore: true,
+        posterUrl: true,
         posterWidth: true,
         posterHeight: true,
         posterLookupAttemptedAt: true,
+        updatedAt: true,
         sourceRefs: {
           where: { isActive: true },
           select: { source: true }
@@ -281,26 +323,18 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         }),
         database.mediaItem.findMany({
           where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "broken" },
-          orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
-          take: 8,
           select: sampleSelect
         }),
         database.mediaItem.findMany({
           where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "degraded" },
-          orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
-          take: 8,
           select: sampleSelect
         }),
         database.mediaItem.findMany({
           where: missingPosterWhere,
-          orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
-          take: 8,
           select: sampleSelect
         }),
         database.mediaItem.findMany({
           where: { ...withPosterWhere, posterQuality: "undersized" },
-          orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
-          take: 8,
           select: sampleSelect
         }),
         cacheHealth(cacheDir, ".bin", originalMetadataIsValid),
@@ -339,10 +373,10 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           variants: { ...variantCache, maxBytes: DEFAULT_POSTER_VARIANT_CACHE_MAX_BYTES }
         },
         samples: {
-          broken: brokenSamples.map((row) => sample(row, retryBefore)),
-          degraded: degradedSamples.map((row) => sample(row, retryBefore)),
-          missing: missingSamples.map((row) => sample(row, retryBefore)),
-          undersized: undersizedSamples.map((row) => sample(row, retryBefore))
+          broken: rankedSamples(brokenSamples, retryBefore, weights),
+          degraded: rankedSamples(degradedSamples, retryBefore, weights),
+          missing: rankedSamples(missingSamples, retryBefore, weights),
+          undersized: rankedSamples(undersizedSamples, retryBefore, weights)
         }
       }
     }

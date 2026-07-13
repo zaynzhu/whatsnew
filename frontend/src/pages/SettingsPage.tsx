@@ -72,6 +72,15 @@ const POSTER_LOOKUP_LABELS: Record<PosterHealthResponse["samples"]["missing"][nu
   cooldown: "等待重试",
   retry_eligible: "可以重试"
 }
+const ATTENTION_CATEGORY_LABELS: Record<PosterHealthResponse["samples"]["missing"][number]["attentionCategory"], string> = {
+  scripted: "剧情影视",
+  animation: "动画",
+  documentary: "纪录片",
+  reality_variety: "真人秀与综艺",
+  talk_game: "谈话与游戏",
+  news: "新闻",
+  sports: "体育"
+}
 
 function posterLookupLabel(item: PosterHealthResponse["samples"]["missing"][number]): string {
   const label = POSTER_LOOKUP_LABELS[item.lookupState]
@@ -700,7 +709,7 @@ export function SettingsPage() {
                     <Link to={`/media/${item.id}`} key={item.id}>
                       <span>{item.title}</span>
                       <small>
-                        Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
+                        优先级 {item.priorityScore} · {ATTENTION_CATEGORY_LABELS[item.attentionCategory]} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
                       </small>
                     </Link>
                   ))}
@@ -716,7 +725,7 @@ export function SettingsPage() {
                     <Link to={`/media/${item.id}`} key={item.id}>
                       <span>{item.title}</span>
                       <small>
-                        {item.width ?? "?"}×{item.height ?? "?"} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
+                        {item.width ?? "?"}×{item.height ?? "?"} · 优先级 {item.priorityScore} · {ATTENTION_CATEGORY_LABELS[item.attentionCategory]} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
                       </small>
                     </Link>
                   ))}

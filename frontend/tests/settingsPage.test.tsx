@@ -290,6 +290,8 @@ const posterHealthResponse: PosterHealthResponse = {
       id: "media-missing",
       title: "Agent Kim Reactivated",
       heatScore: 98,
+      attentionCategory: "scripted",
+      priorityScore: 99.4,
       sources: ["netflix"],
       width: null,
       height: null,
@@ -300,6 +302,8 @@ const posterHealthResponse: PosterHealthResponse = {
       id: "media-low-resolution",
       title: "Low Resolution Poster",
       heatScore: 91,
+      attentionCategory: "documentary",
+      priorityScore: 58.8,
       sources: ["iqiyi"],
       width: 141,
       height: 188,
@@ -408,6 +412,7 @@ describe("SettingsPage", () => {
     expect(screen.getByText("低清可重试")).toBeInTheDocument()
     expect(screen.getByText("低清未尝试 2")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster.*可以重试/ })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Low Resolution Poster.*优先级 58.8.*纪录片/ })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(
       "href",
       "/media/media-low-resolution"
@@ -416,6 +421,7 @@ describe("SettingsPage", () => {
       "href",
       "/media/media-missing"
     )
+    expect(screen.getByRole("link", { name: /Agent Kim Reactivated.*优先级 99.4.*剧情影视/ })).toBeInTheDocument()
   })
 
   it("保存修改后提示配置立即生效", async () => {

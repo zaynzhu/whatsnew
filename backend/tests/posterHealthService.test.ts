@@ -52,10 +52,16 @@ describe("PosterHealthService", () => {
     const sample = {
       id: "media-1",
       titleDisplay: "Missing Poster",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      sourceContentType: null,
+      genres: "[]",
       heatScore: 98,
+      posterUrl: null,
       posterWidth: 240,
       posterHeight: 360,
       posterLookupAttemptedAt: new Date("2026-07-10T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-12T00:00:00.000Z"),
       sourceRefs: [{ source: "netflix" }]
     }
     const count = vi.fn(async ({ where }: any = {}) => {
@@ -122,10 +128,10 @@ describe("PosterHealthService", () => {
         }
       },
       samples: {
-        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
-        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
-        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
-        undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }]
+        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, attentionCategory: "scripted", priorityScore: 99.4, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, attentionCategory: "scripted", priorityScore: 99.4, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, attentionCategory: "scripted", priorityScore: 99.4, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }],
+        undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, attentionCategory: "scripted", priorityScore: 99.4, sources: ["netflix"], width: 240, height: 360, lookupState: "cooldown", lastLookupAt: "2026-07-10T00:00:00.000Z" }]
       }
     })
     expect(count.mock.calls.every(([args]) => (
@@ -135,5 +141,55 @@ describe("PosterHealthService", () => {
     expect(findMany.mock.calls.every(([args]) => (
       args.where?.sourceRefs?.some?.isActive === true
     ))).toBe(true)
+  })
+
+  it("returns health samples in the same attention order as poster enrichment", async () => {
+    const row = (overrides: Record<string, unknown>) => ({
+      id: "media",
+      titleDisplay: "Media",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      sourceContentType: "scripted",
+      genres: "[]",
+      heatScore: 0,
+      posterUrl: null,
+      posterWidth: null,
+      posterHeight: null,
+      posterLookupAttemptedAt: null,
+      updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+      sourceRefs: [{ source: "tvmaze" }],
+      ...overrides
+    })
+    const news = row({
+      id: "news",
+      titleDisplay: "Morning News",
+      sourceContentType: "news",
+      heatScore: 100,
+      updatedAt: new Date("2026-07-14T00:00:00.000Z")
+    })
+    const drama = row({ id: "drama", titleDisplay: "Upcoming Drama" })
+    const findMany = vi.fn(async ({ where, select }: any = {}) => (
+      where?.OR && select?.titleDisplay ? [news, drama] : []
+    ))
+    const service = createPosterHealthService({
+      database: {
+        mediaItem: {
+          count: vi.fn(async () => 0),
+          findFirst: vi.fn(async () => null),
+          findMany
+        }
+      } as never,
+      cacheDir: "/tmp/whatsnew-missing-original-cache",
+      variantCacheDir: "/tmp/whatsnew-missing-variant-cache",
+      now: () => new Date("2026-07-14T00:00:00.000Z")
+    })
+
+    const health = await service.getHealth()
+
+    expect(health.samples.missing.map((item) => item.title)).toEqual([
+      "Upcoming Drama",
+      "Morning News"
+    ])
+    expect(health.samples.missing.map((item) => item.priorityScore)).toEqual([70, 33.5])
   })
 })
