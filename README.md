@@ -84,7 +84,7 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-国内来源请勿直接在主库试跑。使用 `npm run sandbox:prepare` 克隆当前基线到 `whatsnew_china_sandbox`，再通过 `npm run sandbox:sync -- youku`、`npm run sandbox:sync -- tencent` 等命令逐个来源验收；沙盒前后端分别使用 `npm run sandbox:backend` 和 `npm run sandbox:frontend`，访问 `http://127.0.0.1:19995/`。
+国内来源默认全部关闭，请勿直接在主库试跑。使用 `npm run sandbox:prepare` 克隆当前基线到 `whatsnew_china_sandbox`，再通过 `npm run sandbox:sync -- youku`、`npm run sandbox:sync -- tencent` 等命令逐个来源验收；沙盒前后端分别使用 `npm run sandbox:backend` 和 `npm run sandbox:frontend`，访问 `http://127.0.0.1:19995/`。
 
 前端默认端口 `19992`，后端默认端口 `19993`。启动后访问 `http://127.0.0.1:19992`。
 

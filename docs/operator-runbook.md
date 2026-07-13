@@ -44,7 +44,7 @@ Never evaluate domestic adapters against the main `whatsnew` database. Rebuild t
 npm run sandbox:prepare
 ```
 
-This recreates only `whatsnew_china_sandbox`, writes ignored `backend/.env.china-sandbox` with mode `0600`, disables every source, sets `SYNC_ON_START=false`, disables the scheduler and uses ports `19994` / `19995`.
+This recreates only `whatsnew_china_sandbox`, writes ignored `backend/.env.china-sandbox` with mode `0600`, disables every source, sets `SYNC_ON_START=false`, disables the scheduler and uses ports `19994` / `19995`. Domestic sources also default to disabled when a new main environment omits their keys; production activation must therefore be explicit after sandbox acceptance.
 
 Run one source at a time. The command hard-fails unless both `APP_ENVIRONMENT=china_sandbox` and the exact sandbox database name are active:
 

@@ -165,6 +165,9 @@ describe("source catalog", () => {
     expect(getSourceDefinition("tmdb").defaultEnabled).toBe(true)
     expect(getSourceDefinition("trakt").defaultEnabled).toBe(true)
     expect(getSourceDefinition("trakt").scheduleGroups).toEqual(["hourly", "daily"])
+    expect(["youku", "iqiyi", "tencent", "mango_tv", "bilibili", "douban"].map((sourceId) => {
+      return getSourceDefinition(sourceId).defaultEnabled
+    })).toEqual([false, false, false, false, false, false])
   })
 
   it("defaults domestic sources to direct and international sources to inherited proxy", () => {
