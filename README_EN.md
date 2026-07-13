@@ -31,7 +31,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 - **Global & per-source proxy** —— Global `HTTP_PROXY` / `HTTPS_PROXY`, per-source `inherit` / `direct` / `custom`
 - **Hot-reload settings** —— Settings apply immediately after save, no restart needed, sensitive values masked
 - **Scheduled + manual sync** —— Cron jobs pull automatically; each source also supports manual sync
-- **Continuous poster enrichment** —— Missing artwork is strictly matched through TMDb by heat priority, then served through the backend image proxy and disk cache
+- **Continuous poster enrichment** —— Missing artwork is strictly matched through TMDb by heat priority, with exact IMDb and TheTVDB identity fallbacks, then served through the backend image proxy and disk cache
 
 ## 🧱 Tech Stack
 
@@ -110,7 +110,8 @@ Once both services are running, manage global proxies, source enable state, per-
 
 - Source adapters keep their own `posterUrl` when available; Netflix gaps first reuse one unique recent local film or active series, then use a TMDb ID, unique exact title or high-confidence recent candidate
 - After startup, hourly and daily scheduled sync batches, up to 40 eligible titles are processed when TMDb is enabled and credential-complete
-- Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 7 days
+- If TMDb has no usable artwork, an existing IMDb ID may use an exact OMDb lookup and an existing `tvdbId` may use the free TheTVDB detail endpoint. Neither fallback searches by title, and both require a real download, at least 300×400 pixels and portrait orientation
+- Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 3 days
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
 - Frontend posters use `srcset` with `GET /api/media/:id/poster?width=320|640|960`; the browser selects a suitable size and falls back to the original URL if the proxy fails
 - Original images cache under `backend/.cache/posters/`; responsive WebP variants cache separately under `backend/.cache/poster-variants/`, only shrink and never upscale a low-resolution source
@@ -118,7 +119,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - The iQIYI adapter normalizes known `120×160` and `141×188` official portrait thumbnails to `579×772` before persistence. Existing rows accept that upgrade only for the same stable source identity and asset ID; direct-first loading on the heat page is only a legacy fallback
 - The Douban adapter upgrades `s_ratio_poster` to the same asset's `l_ratio_poster`; existing rows require the same stable Douban identity and equivalent asset path. Generic `movie*.jpg` and `tv*.jpg` subject placeholders are treated as missing artwork and enter strict enrichment
 - Poster requests and verification persist measured pixel dimensions. Images below 300 pixels wide or 400 pixels high are marked `undersized` separately from network availability failures
-- Undersized artwork enters the same strict TMDb enrichment queue; replacement still requires a TMDb ID, unique exact title or an existing high-confidence rule, otherwise the original remains available and retries after 7 days
+- Undersized artwork enters the same strict enrichment queue; replacement still requires strict TMDb identity, the same IMDb ID or the same `tvdbId`, otherwise the original remains available and retries after 3 days
 - Poster health separates availability from pixel quality. The settings page and `GET /api/poster-health` expose missing and undersized retry queues plus original/variant cache integrity and capacity
 - Requests without `width` preserve upstream bytes and `Content-Type`; supported width requests normally return WebP and safely fall back to the original on conversion failure
 

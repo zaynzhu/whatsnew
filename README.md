@@ -31,7 +31,7 @@
 - **全局与单源代理** —— 支持全局 `HTTP_PROXY` / `HTTPS_PROXY`，单源可 `inherit` / `direct` / `custom`
 - **设置热更新** —— 设置保存后即时生效，无需重启服务，敏感值掩码处理
 - **定时 + 手动同步** —— 定时任务自动拉取，也支持各来源独立手动同步
-- **持续海报补全** —— 缺图作品按热度通过 TMDb 严格匹配补全，页面统一走后端图片代理与磁盘缓存
+- **持续海报补全** —— 缺图作品按热度通过 TMDb 严格匹配，并可按既有 IMDb / TheTVDB 身份精确补图；页面统一走后端图片代理与磁盘缓存
 
 ## 🧱 Tech Stack
 
@@ -110,6 +110,7 @@ Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默�
 
 - 来源适配器优先保留自身提供的 `posterUrl`；Netflix 缺图项先复用库内唯一的近期电影或仍在播剧集，再使用 TMDb ID、唯一严格标题或高置信近期候选补充海报和基础元数据
 - 启动同步、小时级同步和日级同步完成后，如果 TMDb 已启用且凭据完整，会自动处理最多 40 条待补图作品
+- TMDb 没有可用海报时，已有 IMDb ID 的作品可通过 OMDb 精确补图，已有 `tvdbId` 的作品可通过 TheTVDB 免费详情精确补图；两条兜底都不使用标题搜索，且必须通过真实下载、至少 300×400 和竖版比例校验
 - 安全重复项会事务性迁移来源、热度、外部 ID 和关联数据；普通剧集与动画、纪录片、综艺或短剧记录经严格 TMDb 身份确认后会保留专业分类，电影与剧集仍保持隔离。外部 ID 冲突、无图或候选优势不明确的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 3 天后重试
 - 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
 - 显式人工复核后可忽略 3 天窗口重试：`npm run enrich:posters --workspace backend -- --limit=20 --force`；匹配规则不会因此放宽
@@ -124,7 +125,7 @@ Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默�
 - 可运行 `npm run audit:posters --workspace backend` 查看完整状态。手动验证命令 `npm run verify:posters --workspace backend -- --limit=100` 会分别报告正常、低清、尺寸未知和网络失败数量
 - 手动预览原图缓存清理：`npm run prune:posters --workspace backend`；响应式缓存使用 `npm run prune:poster-variants --workspace backend`。确认后追加 `-- --apply`，两者都可用 `--max-mb=1024` 临时指定 64 至 10240 MB 的上限
 - 图片请求与验证会读取真实像素尺寸并持久化；宽度小于 300 或高度小于 400 会单独标记为低清，不与网络损坏状态混为一谈
-- 低清作品会进入现有严格 TMDb 补图队列，只有 TMDb ID、唯一严格标题或既有高置信规则通过时才替换，未匹配项保留原图并等待 3 天后重试
+- 低清作品会进入现有严格补图队列，只有 TMDb 严格身份、同一 IMDb ID 或同一 `tvdbId` 通过时才替换，未匹配项保留原图并等待 3 天后重试
 - 不带 `width` 的图片代理保留上游响应的真实 `Content-Type` 和字节；带受支持 `width` 的请求返回 WebP 变体，转码失败时安全回退原图
 
 > [!WARNING]

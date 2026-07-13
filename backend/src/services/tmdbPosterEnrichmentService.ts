@@ -1,4 +1,8 @@
 import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
+import {
+  createTheTvdbClient,
+  type TheTvdbClient
+} from "../clients/theTvdbClient.js"
 import { attentionHeatScore } from "../domain/contentAttention.js"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { hasSameWorkKind, mediaWorkKind } from "../domain/mediaWorkKind.js"
@@ -56,6 +60,7 @@ type PosterEnrichmentOptions = {
   settings?: RuntimeSettingsService
   httpClient?: Pick<SourceHttpClient, "fetchJson">
   imageService?: Pick<PosterImageService, "getPoster">
+  theTvdbClient?: Pick<TheTvdbClient, "getMovie" | "getSeries">
   today?: () => string
   now?: () => Date
   force?: boolean
@@ -339,19 +344,33 @@ function omdbPoster(response: OmdbResponse, imdbId: string): string | null {
   }
 }
 
+function remotePosterUrl(value: string | null | undefined): string | null {
+  const posterUrl = cleanText(value)
+  if (!posterUrl) return null
+  try {
+    const url = new URL(posterUrl)
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
 function isBearerToken(credential: string): boolean {
   return credential.startsWith("eyJ") || credential.split(".").length === 3
 }
 
 function safeFailureReason(error: unknown): string {
-  if (error instanceof SourceHttpError) return `TMDb HTTP ${error.statusCode}`
+  if (error instanceof SourceHttpError) {
+    const provider = error.sourceId === "thetvdb" ? "TheTVDB" : "TMDb"
+    return `${provider} HTTP ${error.statusCode}`
+  }
   if (!(error instanceof Error)) return "补图处理失败"
 
   const message = `${error.name} ${error.message} ${error.cause instanceof Error ? error.cause.message : ""}`
     .toLowerCase()
   if (["fetch failed", "network", "socket", "econn", "etimedout", "timeout", "请求超时"]
     .some((fragment) => message.includes(fragment))) {
-    return "TMDb 网络请求失败"
+    return message.includes("thetvdb") ? "TheTVDB 网络请求失败" : "TMDb 网络请求失败"
   }
   return "补图处理失败"
 }
@@ -371,6 +390,9 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   const imageBaseUrl = currentSettings.get("TMDB_IMAGE_BASE_URL") || DEFAULT_TMDB_IMAGE_BASE_URL
   const omdbApiKey = currentSettings.get("OMDB_API_KEY")
   const omdbBaseUrl = currentSettings.get("OMDB_BASE_URL") || DEFAULT_OMDB_BASE_URL
+  const theTvdbApiKey = currentSettings.get("THETVDB_API_KEY")
+  const theTvdbClient = options.theTvdbClient
+    ?? (theTvdbApiKey ? createTheTvdbClient({ settings }) : null)
   const settingsOverride = captureSourceProxySettings(currentSettings, "tmdb")
   const omdbSettingsOverride = captureSourceProxySettings(currentSettings, "imdb")
   const now = (options.now ?? (() => new Date()))()
@@ -468,6 +490,32 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
       return true
     } catch {
       return false
+    }
+  }
+
+  async function enrichFromTheTvdb(item: MediaItem): Promise<boolean> {
+    if (!item.tvdbId || !theTvdbClient) return false
+    try {
+      const detail = mediaKind(item) === "movie"
+        ? await theTvdbClient.getMovie(item.tvdbId)
+        : await theTvdbClient.getSeries(item.tvdbId)
+      if (detail.id !== item.tvdbId) return false
+
+      const posterUrl = remotePosterUrl(detail.image)
+      if (!posterUrl) return false
+      const image = await imageService.getPoster(posterUrl)
+      if (!isUsablePoster(image)) return false
+
+      const updated = await enrichmentDatabase.mediaItem.update({
+        where: { id: item.id },
+        data: verifiedPosterUpdate(posterUrl, image, now)
+      })
+      result.enriched += 1
+      if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
+      return true
+    } catch (error) {
+      if (error instanceof SourceHttpError && error.statusCode === 404) return false
+      throw new Error("TheTVDB 海报查询失败", { cause: error })
     }
   }
 
@@ -589,6 +637,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
       }
 
       if (!metadata?.poster_path && await enrichFromOmdb(item)) continue
+      if (!metadata?.poster_path && await enrichFromTheTvdb(item)) continue
 
       if (!metadata?.poster_path) {
         await markAttempt(item.id)
@@ -599,6 +648,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
       const posterUrl = `${imageBaseUrl}${metadata.poster_path}`
       const posterImage = await imageService.getPoster(posterUrl)
       if (!isUsablePoster(posterImage)) {
+        if (await enrichFromTheTvdb(item)) continue
         await markAttempt(item.id)
         result.unmatched += 1
         continue
@@ -646,11 +696,20 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
     } catch (error) {
       if (item.tmdbId && error instanceof SourceHttpError && error.statusCode === 404) {
         try {
+          if (await enrichFromOmdb(item)) continue
+          if (await enrichFromTheTvdb(item)) continue
           await markAttempt(item.id)
           result.unmatched += 1
           continue
-        } catch {
-          // 保存失败时保留为可重试，不能把查询结果误记为已处理
+        } catch (fallbackError) {
+          result.failed += 1
+          if (result.failures.length < 10) {
+            result.failures.push({
+              title: item.titleDisplay,
+              reason: safeFailureReason(fallbackError)
+            })
+          }
+          continue
         }
       }
 

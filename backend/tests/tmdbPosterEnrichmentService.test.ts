@@ -381,6 +381,132 @@ describe("TMDb poster enrichment", () => {
     })
   })
 
+  it("uses a matching TheTVDB identity as a free poster fallback", async () => {
+    const item = media({
+      id: "thetvdb-fallback",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      titleDisplay: "Crystal Lake",
+      tmdbId: 213562,
+      tvdbId: 426669
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+    const getSeries = vi.fn(async () => ({
+      id: 426669,
+      name: "Crystal Lake",
+      image: "https://artworks.thetvdb.com/banners/v4/series/426669/posters/example.jpg"
+    }))
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: {
+        fetchJson: vi.fn(async () => ({
+          id: 213562,
+          name: "Crystal Lake",
+          poster_path: null
+        }))
+      } as never,
+      theTvdbClient: {
+        getMovie: vi.fn(),
+        getSeries
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, unmatched: 0, failed: 0 })
+    expect(getSeries).toHaveBeenCalledWith(426669)
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "thetvdb-fallback" },
+      data: expect.objectContaining({
+        posterUrl: "https://artworks.thetvdb.com/banners/v4/series/426669/posters/example.jpg",
+        posterStatus: "healthy",
+        posterWidth: 600,
+        posterHeight: 900,
+        posterQuality: "adequate"
+      })
+    })
+  })
+
+  it("rejects a TheTVDB poster when the returned identity does not match", async () => {
+    const item = media({
+      id: "thetvdb-mismatch",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      tvdbId: 426669
+    })
+    const update = vi.fn()
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson: vi.fn(async () => ({ results: [] })) } as never,
+      theTvdbClient: {
+        getMovie: vi.fn(),
+        getSeries: vi.fn(async () => ({
+          id: 999999,
+          image: "https://artworks.thetvdb.com/wrong.jpg"
+        }))
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 0, unmatched: 1, failed: 0 })
+    expect(update).toHaveBeenCalledOnce()
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "thetvdb-mismatch" },
+      data: { posterLookupAttemptedAt: expect.any(Date) }
+    })
+  })
+
+  it("keeps TheTVDB network failures immediately retryable", async () => {
+    const item = media({
+      id: "thetvdb-network-failure",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      tvdbId: 426669
+    })
+    const update = vi.fn()
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson: vi.fn(async () => ({ results: [] })) } as never,
+      theTvdbClient: {
+        getMovie: vi.fn(),
+        getSeries: vi.fn(async () => { throw new Error("fetch failed") })
+      }
+    })
+
+    expect(result).toMatchObject({
+      scanned: 1,
+      enriched: 0,
+      unmatched: 0,
+      failed: 1,
+      failures: [{
+        title: "Sample Movie",
+        reason: "TheTVDB 网络请求失败"
+      }]
+    })
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it("keeps the existing poster when the TMDb image cannot be downloaded", async () => {
     const item = media({
       id: "tmdb-image-failure",
@@ -608,6 +734,50 @@ describe("TMDb poster enrichment", () => {
       where: { id: "media-1" },
       data: { posterLookupAttemptedAt: expect.any(Date) }
     })
+  })
+
+  it("falls back to an exact TheTVDB identity after a direct TMDb 404", async () => {
+    const item = media({
+      id: "tmdb-removed-thetvdb-fallback",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      titleDisplay: "Crystal Lake",
+      tmdbId: 213562,
+      tvdbId: 426669
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: {
+        fetchJson: vi.fn(async () => {
+          throw new SourceHttpError("not found", "tmdb", 404, "")
+        })
+      } as never,
+      theTvdbClient: {
+        getMovie: vi.fn(),
+        getSeries: vi.fn(async () => ({
+          id: 426669,
+          image: "https://artworks.thetvdb.com/crystal-lake.jpg"
+        }))
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, unmatched: 0, failed: 0 })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "tmdb-removed-thetvdb-fallback" },
+      data: expect.objectContaining({
+        posterUrl: "https://artworks.thetvdb.com/crystal-lake.jpg",
+        posterStatus: "healthy"
+      })
+    }))
   })
 
   it("selects a clearly leading recent Netflix title but keeps old ambiguity unresolved", async () => {
