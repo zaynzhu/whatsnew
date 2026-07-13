@@ -113,4 +113,30 @@ describe("verifyPosterImages", () => {
       data: expect.objectContaining({ posterStatus: "broken", posterFailureCount: 2 })
     }))
   })
+
+  it("allows manual verification to bypass retry cooldowns", async () => {
+    const findMany = vi.fn(async () => [])
+    const database = {
+      mediaItem: {
+        findMany,
+        update: vi.fn()
+      }
+    }
+
+    await verifyPosterImages({
+      database: database as never,
+      force: true
+    })
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [
+          { posterStatus: "unverified" },
+          { posterStatus: "degraded" },
+          { posterStatus: "broken" },
+          { posterQuality: "unknown" }
+        ]
+      })
+    }))
+  })
 })

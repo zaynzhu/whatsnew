@@ -160,13 +160,14 @@ Inspect `X-Poster-Cache`, `X-Poster-Variant-Cache`, `X-Poster-Width`, `Content-T
 ```bash
 npm run audit:posters --workspace backend
 npm run verify:posters --workspace backend -- --limit=100
+npm run verify:posters --workspace backend -- --limit=100 --force
 npm run enrich:posters --workspace backend -- --limit=20 --force
 npm run prune:poster-variants --workspace backend
 npm run prune:poster-variants --workspace backend -- --apply
 curl -s http://127.0.0.1:19993/api/poster-health
 ```
 
-`audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Its result separates `adequate`, `undersized` and `unknown` measurements from network outcomes. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. Degraded images wait one day and broken images seven days before automatic verification retries. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
+`audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Its result separates `adequate`, `undersized` and `unknown` measurements from network outcomes. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. Degraded images wait one day and broken images seven days before automatic verification retries. Manual `verify:posters --force` bypasses availability and measurement cooldowns for troubleshooting; scheduled verification still honors the normal backoff windows. `enrich:posters --force` only bypasses the seven-day enrichment retry window and never relaxes identity matching.
 
 `GET /api/poster-health` reports missing-poster retry state under `lookup`, original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. `lookup.cooldown` means a strict TMDb attempt ran within the last seven days; it does not mean a match was accepted. `lookup.retryEligible` becomes available after that window. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
 

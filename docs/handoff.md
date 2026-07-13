@@ -59,14 +59,13 @@ This file is the short operational handoff for the current branch.
 - IMDb datasets do not create new titles; they enrich existing candidates from the local cache.
 - Poster enrichment safely merges a unique recent local Netflix match or a compatible TMDb identity. External-ID conflicts and candidates without a clear confidence lead still retain placeholders until better metadata appears.
 - Poster proxy responses without `width` keep the upstream image bytes and content type. Supported width requests normally return bounded WebP and fall back to the original bytes only when conversion fails.
-- Hourly maintenance verifies 20 high-priority posters; startup sync and daily maintenance verify 100. Manual operators can audit, verify or force a strict enrichment retry with the documented npm commands.
+- Hourly maintenance verifies 20 high-priority posters; startup sync and daily maintenance verify 100. Manual operators can audit, bypass verification cooldowns or force a strict enrichment retry with the documented npm commands.
 - `backend/.env` contains secrets and must not be committed.
 - Scheduler settings support hourly intervals of `1, 2, 3, 4, 6, 12` hours and a daily `HH:mm` Beijing time. Saving hot-reschedules future jobs and the settings page shows both next runs; sandbox controls remain forcibly disabled.
 
 ## Next Priorities
 
-1. Let hourly verification continue reducing the remaining `posterQuality=unknown` backlog, then review persistent unknown formats rather than repeatedly fetching them without evidence.
-2. Recheck retry-eligible missing titles after the seven-day window without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet.
+1. Recheck retry-eligible missing titles after the seven-day window without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet.
 
 ## Validation Baseline
 

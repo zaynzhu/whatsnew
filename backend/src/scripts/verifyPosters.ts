@@ -10,7 +10,8 @@ function requestedLimit(): number {
 try {
   console.log(JSON.stringify(await verifyPosterImages({
     database: db,
-    limit: requestedLimit()
+    limit: requestedLimit(),
+    force: process.argv.includes("--force")
   }), null, 2))
 } finally {
   await db.$disconnect()

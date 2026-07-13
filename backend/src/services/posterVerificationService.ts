@@ -17,6 +17,7 @@ type PosterVerificationOptions = {
   imageService?: Pick<PosterImageService, "getPoster">
   limit?: number
   now?: () => Date
+  force?: boolean
 }
 
 export type PosterVerificationResult = {
@@ -37,11 +38,14 @@ export async function verifyPosterImages(
   const imageService = options.imageService ?? posterImageService
   const degradedBefore = new Date(now.getTime() - DEGRADED_RETRY_DAYS * DAY_MS)
   const brokenBefore = new Date(now.getTime() - BROKEN_RETRY_DAYS * DAY_MS)
-  const items = await options.database.mediaItem.findMany({
-    where: {
-      posterUrl: { not: null },
-      NOT: { posterUrl: "" },
-      OR: [
+  const retryableStates = options.force
+    ? [
+        { posterStatus: "unverified" },
+        { posterStatus: "degraded" },
+        { posterStatus: "broken" },
+        { posterQuality: "unknown" }
+      ]
+    : [
         { posterStatus: "unverified" },
         {
           posterStatus: "degraded",
@@ -56,6 +60,11 @@ export async function verifyPosterImages(
           OR: [{ posterCheckedAt: null }, { posterCheckedAt: { lt: degradedBefore } }]
         }
       ]
+  const items = await options.database.mediaItem.findMany({
+    where: {
+      posterUrl: { not: null },
+      NOT: { posterUrl: "" },
+      OR: retryableStates
     },
     orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
     take: Math.max(1, Math.min(options.limit ?? 20, 100)),
