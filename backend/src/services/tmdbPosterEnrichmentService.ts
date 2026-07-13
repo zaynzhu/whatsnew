@@ -266,6 +266,7 @@ function metadataUpdate(
   metadata: TmdbResult,
   kind: TmdbMediaKind,
   imageBaseUrl: string,
+  image: Pick<PosterImage, "width" | "height">,
   today: string,
   now: Date
 ): Prisma.MediaItemUncheckedUpdateInput {
@@ -275,13 +276,13 @@ function metadataUpdate(
   return {
     posterUrl: `${imageBaseUrl}${metadata.poster_path}`,
     posterLookupAttemptedAt: now,
-    posterStatus: "unverified",
-    posterCheckedAt: null,
+    posterStatus: "healthy",
+    posterCheckedAt: now,
     posterFailureCount: 0,
     posterFailureReason: null,
-    posterWidth: null,
-    posterHeight: null,
-    posterQuality: "unknown",
+    posterWidth: image.width,
+    posterHeight: image.height,
+    posterQuality: "adequate",
     overview: item.overview ?? cleanText(metadata.overview),
     titleOriginal: item.titleOriginal ?? cleanText(metadata.original_title ?? metadata.original_name),
     firstReleaseDate: item.firstReleaseDate ?? date,
@@ -581,6 +582,14 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         continue
       }
 
+      const posterUrl = `${imageBaseUrl}${metadata.poster_path}`
+      const posterImage = await imageService.getPoster(posterUrl)
+      if (!isUsablePoster(posterImage)) {
+        await markAttempt(item.id)
+        result.unmatched += 1
+        continue
+      }
+
       const sourceId = `tmdb-${kind}-${metadata.id}`
       const existingRef = await enrichmentDatabase.mediaSourceRef.findUnique({
         where: { source_sourceId: { source: "tmdb", sourceId } },
@@ -600,7 +609,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         const updated = await mergeDuplicate(
           pair.duplicate,
           pair.canonical,
-          metadataUpdate(pair.canonical, metadata, kind, imageBaseUrl, today, now)
+          metadataUpdate(pair.canonical, metadata, kind, imageBaseUrl, posterImage, today, now)
         )
 
         result.merged += 1
@@ -610,7 +619,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
 
       const updated = await enrichmentDatabase.mediaItem.update({
         where: { id: item.id },
-        data: metadataUpdate(item, metadata, kind, imageBaseUrl, today, now)
+        data: metadataUpdate(item, metadata, kind, imageBaseUrl, posterImage, today, now)
       })
       await enrichmentDatabase.mediaSourceRef.upsert({
         where: { source_sourceId: { source: "tmdb", sourceId } },

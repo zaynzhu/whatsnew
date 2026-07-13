@@ -50,6 +50,22 @@ function settings(overrides: Record<string, string> = {}): RuntimeSettingsServic
   })
 }
 
+function enrichPosters(options: Parameters<typeof enrichMissingPosters>[0]) {
+  return enrichMissingPosters({
+    imageService: {
+      getPoster: vi.fn(async () => ({
+        body: Buffer.from("poster"),
+        contentType: "image/jpeg",
+        width: 600,
+        height: 900,
+        cacheHit: false,
+        cacheStatus: "miss" as const
+      }))
+    },
+    ...options
+  })
+}
+
 describe("TMDb poster enrichment", () => {
   it("can bypass the retry window for an explicit manual repair", async () => {
     const findMany = vi.fn(async (_args?: unknown) => [])
@@ -57,7 +73,7 @@ describe("TMDb poster enrichment", () => {
       mediaItem: { findMany }
     }
 
-    await enrichMissingPosters({
+    await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson: vi.fn() } as never,
@@ -143,7 +159,7 @@ describe("TMDb poster enrichment", () => {
       }
     })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
@@ -177,7 +193,9 @@ describe("TMDb poster enrichment", () => {
       where: { id: "direct" },
       data: expect.objectContaining({
         posterUrl: "https://image.tmdb.test/w500/direct.jpg",
-        posterStatus: "unverified",
+        posterStatus: "healthy",
+        posterWidth: 600,
+        posterHeight: 900,
         posterFailureCount: 0,
         status: "released"
       })
@@ -193,9 +211,9 @@ describe("TMDb poster enrichment", () => {
       where: { id: "lowres" },
       data: expect.objectContaining({
         posterUrl: "https://image.tmdb.test/w500/lowres-replacement.jpg",
-        posterWidth: null,
-        posterHeight: null,
-        posterQuality: "unknown"
+        posterWidth: 600,
+        posterHeight: 900,
+        posterQuality: "adequate"
       })
     }))
   })
@@ -226,7 +244,7 @@ describe("TMDb poster enrichment", () => {
       }
     })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings({
         OMDB_API_KEY: "omdb-key",
@@ -258,6 +276,43 @@ describe("TMDb poster enrichment", () => {
         posterQuality: "adequate"
       })
     })
+  })
+
+  it("keeps the existing poster when the TMDb image cannot be downloaded", async () => {
+    const item = media({
+      id: "tmdb-image-failure",
+      titleDisplay: "Existing Poster",
+      tmdbId: 404,
+      posterUrl: "https://img.test/existing.jpg",
+      posterQuality: "undersized"
+    })
+    const update = vi.fn()
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: {
+        fetchJson: vi.fn(async () => ({
+          id: 404,
+          title: "Existing Poster",
+          poster_path: "/temporarily-unavailable.jpg"
+        }))
+      } as never,
+      imageService: {
+        getPoster: vi.fn(async () => {
+          throw new Error("upstream unavailable")
+        })
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 0, failed: 1 })
+    expect(update).not.toHaveBeenCalled()
   })
 
   it("rejects horizontal OMDb artwork and continues with TMDb", async () => {
@@ -292,16 +347,16 @@ describe("TMDb poster enrichment", () => {
           poster_path: "/portrait.jpg"
         })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings({ OMDB_API_KEY: "omdb-key" }),
       httpClient: { fetchJson } as never,
       imageService: {
-        getPoster: vi.fn(async () => ({
+        getPoster: vi.fn(async (url: string) => ({
           body: Buffer.from("artwork"),
           contentType: "image/jpeg",
           width: 600,
-          height: 338,
+          height: url.includes("media-amazon.com") ? 338 : 900,
           cacheHit: false,
           cacheStatus: "miss" as const
         }))
@@ -312,7 +367,7 @@ describe("TMDb poster enrichment", () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         posterUrl: "https://image.tmdb.test/w500/portrait.jpg",
-        posterStatus: "unverified"
+        posterStatus: "healthy"
       })
     }))
   })
@@ -343,7 +398,7 @@ describe("TMDb poster enrichment", () => {
         }
       : { results: [] })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings({ OMDB_API_KEY: "omdb-key" }),
       httpClient: { fetchJson } as never,
@@ -379,7 +434,7 @@ describe("TMDb poster enrichment", () => {
       ]
     }))
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never
@@ -406,7 +461,7 @@ describe("TMDb poster enrichment", () => {
       }
     }
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson: vi.fn(async () => { throw new Error("fetch failed") }) } as never
@@ -435,7 +490,7 @@ describe("TMDb poster enrichment", () => {
       }
     }
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: {
@@ -492,7 +547,7 @@ describe("TMDb poster enrichment", () => {
       ] }
     })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
@@ -535,7 +590,7 @@ describe("TMDb poster enrichment", () => {
       }] }
     })
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
@@ -596,7 +651,7 @@ describe("TMDb poster enrichment", () => {
       { id: 979157, title: "Little Brother", poster_path: "/other.jpg", release_date: "2025-10-22", original_language: "en", popularity: 0.7 }
     ] }))
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
@@ -663,7 +718,7 @@ describe("TMDb poster enrichment", () => {
     }
     const fetchJson = vi.fn()
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
@@ -732,7 +787,7 @@ describe("TMDb poster enrichment", () => {
       }]
     }))
 
-    const result = await enrichMissingPosters({
+    const result = await enrichPosters({
       database: database as never,
       settings: settings(),
       httpClient: { fetchJson } as never,
