@@ -272,6 +272,52 @@ describe("TMDb poster enrichment", () => {
     }))
   })
 
+  it("uses a year-scoped base alias within the bounded title queries", async () => {
+    const item = media({
+      titleDisplay: "Titanic En Espanol",
+      titleAliases: "[\"Titanic\",\"Titanic En Espanol (1997)\"]",
+      firstReleaseDate: "1997"
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => null),
+        upsert: vi.fn(async () => ({}))
+      }
+    }
+    const queries: string[] = []
+    const fetchJson = vi.fn(async (_source: string, rawUrl: string) => {
+      const query = new URL(rawUrl).searchParams.get("query") ?? ""
+      queries.push(query)
+      return query === "Titanic"
+        ? { results: [{
+            id: 597,
+            title: "Titanic",
+            original_title: "Titanic",
+            poster_path: "/titanic.jpg",
+            release_date: "1997-12-18"
+          }] }
+        : { results: [] }
+    })
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson } as never,
+      today: () => "2026-07-14"
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, unmatched: 0 })
+    expect(queries).toEqual(["Titanic En Espanol", "Titanic"])
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ tmdbId: 597 })
+    }))
+  })
+
   it("uses an exact IMDb identity for the OMDb poster fallback", async () => {
     const item = media({
       id: "imdb-fallback",

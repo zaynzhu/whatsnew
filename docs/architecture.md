@@ -95,6 +95,8 @@ Platform catalog additions use `releasePattern=catalog_addition` and do not over
 
 Platform schedule or reservation pages do not prove a work's original language or production country. Hulu, Disney+, Prime Video, Apple TV+, Max, Youku and iQIYI leave unknown locale metadata null instead of deriving it from page language or market. Stable source-owned legacy rows clear those inferred values on resync unless another source has already supplied an external identity.
 
+Hulu catalog rows may append `En Espanol` to a known film title. When the same row includes an original release year, the adapter retains the platform-facing title and adds the base title as an alias. Strict TMDb enrichment still requires an exact movie title and uses that original year to disambiguate results; undated language variants receive no derived alias.
+
 `MediaItem.heatScore` is an auxiliary sort value derived from the strongest current dynamic ranking, not a cross-source real chart. Douban `douban_upcoming` positions are date-group presentation order, `douban_upcoming_hot` preserves separate movie/series preview top 20 ranks and `douban_top` is a reputation chart. All three retain their source rank and metric while remaining outside Heat and popularity movement events. `reconcile:heat-scores` previews and repairs stored scores and removes historical movement events created from those non-Heat signals.
 
 ## Status Semantics

@@ -49,6 +49,7 @@ This file is the short operational handoff for the current branch.
 - Stable external-ID matching and TMDb reconciliation now use movie/series work kinds instead of exact content types. Main-database reconciliation on 2026-07-13 merged 7 conflict-free generic/specialized duplicates (`Big Brother`, `完美世界`, `尼古喵喵`, `无职转生～到了异世界就拿出真本事～`, `仙逆`, `汪汪队立大功`, `Lock Upp`), retained animation/variety classifications and all source relations, and left zero duplicate TMDb work identities on the follow-up dry run.
 - Scheduled reconciliation now covers every stable TMDb, TVmaze, IMDb, Trakt and TheTVDB identity rather than TMDb alone. Main-database reconciliation on 2026-07-13 merged the remaining conflict-free `On Patrol: First Shift` TVmaze/TheTVDB pair, retained its documentary classification, both source references and both release feeds, and left zero safe stable-identity groups on the follow-up dry run.
 - Poster maintenance after the disabled-source cleanup on 2026-07-14 reports 1,255 active works, 1,132 healthy posters, zero unverified/degraded/broken images, 123 missing and 4 undersized posters. A targeted retry considered only 13 high-heat missing works with stable external IDs and skipped low-attention news/programme rows; exact IMDb fallback added verified `300×450` artwork for `S.W.A.T. Exiles` and `380×562` artwork for `Last Seen`, raising coverage from 90.0% to 90.2%. Earlier live checks also exposed both guarded failure modes: one exact IMDb result returned an unavailable Amazon URL, and another returned a 300×169 horizontal image. Both records retained their verified TVmaze artwork.
+- Hulu year-qualified `En Espanol` aliases were validated against the live schedule and strict TMDb search on 2026-07-14. Four exact movie/year matches merged safely into canonical works with verified `500×750` posters, no conflicts or failures; active coverage rose from 90.2% to 90.5%, leaving 119 missing and four undersized posters.
 - TMDb poster enrichment now follows the same movie/series work-kind boundary as stable identity reconciliation. Strict confirmation can merge generic and specialized records while retaining the specialized classification, every external ID, poster state and related source data. A read-only main-database audit on 2026-07-13 identified three cooldown candidates (`Body Cam` from Hulu and `Project Runway` from Hulu/Disney+); none was forced or assumed to match before the normal retry window and TMDb confirmation.
 - Duplicate reconciliation now selects artwork independently from canonical classification: availability, quality and measured pixel area determine the retained poster, and all poster health fields move together. The locally cached TVmaze asset for `On Patrol: First Shift` was revalidated on 2026-07-13 and restored from the retained `680×1000` image to the same-work `1175×1763` source image without changing its documentary classification.
 
@@ -80,6 +81,7 @@ This file is the short operational handoff for the current branch.
 - TheTVDB must stay free-only.
 - Trakt public sync only requires `TRAKT_CLIENT_ID`; calendar is not availability.
 - Hulu and Disney+ are HTML page parsers. Structure changes should fail visibly, not silently return fake data.
+- Hulu year-qualified `En Espanol` catalog rows retain their platform title and gain a base-title alias for strict TMDb year matching; undated rows remain unchanged.
 - Prime Video discovers the latest US monthly lineup from About Amazon, excludes sports and music, and defaults to disabled; use per-source direct mode when the inherited proxy cannot reach Amazon domains.
 - Tencent Video validates the exact TV `iyear=1` and movie `iyear=999` “即将上线” filter contract before accepting data. Its `publish_date` is not stored as a Tencent release date.
 - Max is intentionally non-runnable while the official WBD page is access-restricted; do not re-enable it until a public request succeeds.
@@ -94,7 +96,7 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Continue poster-system phase two: recheck the 123 cooling missing titles when their three-day windows open, beginning at 2026-07-14 08:04 Asia/Shanghai, then recheck the four undersized titles when their replacement windows open. Keep the content-attention queue order and existing strict identity matching; source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
+1. Continue poster-system phase two: recheck the 119 cooling missing titles when their three-day windows open, beginning at 2026-07-14 08:04 Asia/Shanghai, then recheck the four undersized titles when their replacement windows open. Keep the content-attention queue order and existing strict identity matching; source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
 
 ## Validation Baseline
 

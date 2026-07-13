@@ -129,6 +129,12 @@ describe("Hulu schedule parser", () => {
                   <td></td>
                   <td>Added</td>
                 </tr>
+                <tr>
+                  <td data-sort="1782864000"><span data-month="July"></span> July 1</td>
+                  <td>Titanic En Espanol (1997)</td>
+                  <td></td>
+                  <td>Added</td>
+                </tr>
               </tbody>
             </table>
           </article>
@@ -147,6 +153,14 @@ describe("Hulu schedule parser", () => {
         title: "Bad Boys",
         titleAliases: ["Bad Boys (1995)"],
         originalReleaseYear: 1995,
+        sourceContentType: "movie",
+        releaseDate: "2026-07-01",
+        releasePattern: "catalog_addition"
+      }),
+      expect.objectContaining({
+        title: "Titanic En Espanol",
+        titleAliases: ["Titanic", "Titanic En Espanol (1997)"],
+        originalReleaseYear: 1997,
         sourceContentType: "movie",
         releaseDate: "2026-07-01",
         releasePattern: "catalog_addition"

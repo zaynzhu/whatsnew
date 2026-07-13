@@ -155,6 +155,7 @@ Prime Video, Hulu and Disney+ sync official platform pages for release calendars
 
 - Prime Video discovers the latest US monthly lineup from About Amazon and excludes live sports, music and entries without a reliable film/series classification
 - Hulu uses `https://press.hulu.com/schedule/`
+  - `En Espanol` variants with an original year keep the platform title and add the base title as a strict year-scoped enrichment alias
 - Disney+ uses `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
 - A platform page does not prove original language or production country; those fields remain unknown unless a work-level source provides them
 - The Max parser remains available, but WBD Pressroom currently requires login or returns 403, so the source is restricted and excluded from scheduling

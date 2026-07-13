@@ -160,6 +160,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 
 - Prime Video 从 About Amazon 娱乐频道发现最新月度上新文章，只保留美国区电影与剧集，排除直播体育、音乐和类型不明确的活动
 - Hulu 使用 `https://press.hulu.com/schedule/`
+  - 带原始年份的 `En Espanol` 版本会保留平台标题，并增加基础片名别名供严格年份匹配补图
 - Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
 - 平台页面只证明上架地区，不证明作品原始语言或制片国家；无明确字段时这两项保持未知
 - Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度

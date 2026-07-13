@@ -34,7 +34,9 @@ function cleanHuluTitle(value: string): {
   }
 
   const title = stripSeasonQualifier(value.slice(0, yearMatch.index).trim())
-  return { title, titleAliases: [value], originalReleaseYear: Number(yearMatch[1]) }
+  const baseTitle = title.replace(/\s+en\s+espanol$/i, "").trim()
+  const titleAliases = [...(baseTitle !== title ? [baseTitle] : []), value]
+  return { title, titleAliases, originalReleaseYear: Number(yearMatch[1]) }
 }
 
 function releasePattern(labels: string[]): string {
