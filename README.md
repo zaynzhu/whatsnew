@@ -108,7 +108,7 @@ Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可
 
 - 来源适配器优先保留自身提供的 `posterUrl`；Netflix 缺图项先复用库内唯一的近期电影或仍在播剧集，再使用 TMDb ID、唯一严格标题或高置信近期候选补充海报和基础元数据
 - 启动同步、小时级同步和日级同步完成后，如果 TMDb 已启用且凭据完整，会自动处理最多 40 条待补图作品
-- 安全重复项会事务性迁移来源、热度和关联数据；外部 ID 冲突、无图或候选优势不明确的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 7 天后重试
+- 安全重复项会事务性迁移来源、热度、外部 ID 和关联数据；普通剧集与动画、纪录片、综艺或短剧记录经严格 TMDb 身份确认后会保留专业分类，电影与剧集仍保持隔离。外部 ID 冲突、无图或候选优势不明确的作品不会强行绑定，并通过 `posterLookupAttemptedAt` 在 7 天后重试
 - 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
 - 显式人工复核后可忽略 7 天窗口重试：`npm run enrich:posters --workspace backend -- --limit=20 --force`；匹配规则不会因此放宽
 - 前端所有海报默认通过 `srcset` 请求 `GET /api/media/:id/poster?width=320|640|960`；浏览器按展示位和屏幕像素密度选择尺寸，代理失败时回退原始地址

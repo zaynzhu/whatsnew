@@ -1,5 +1,6 @@
 import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
+import { hasSameWorkKind, mediaWorkKind } from "../domain/mediaWorkKind.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import {
@@ -62,7 +63,7 @@ const POSTER_RETRY_DAYS = 7
 const DAY_MS = 24 * 60 * 60 * 1000
 const NETFLIX_RECENT_RELEASE_DAYS = 550
 const NETFLIX_POPULARITY_LEAD_RATIO = 4
-const MOVIE_RELEASE_FORMS = new Set(["theatrical_movie", "streaming_movie", "animated_film", "documentary_film"])
+const TITLE_ALIASES_STORAGE_LIMIT = 191
 
 function formatLocalDate(date: Date): string {
   return [
@@ -79,12 +80,21 @@ function normalizedTitle(value: string | null | undefined): string {
     .replace(/[\p{P}\p{S}\s]+/gu, "")
 }
 
+function compactAliases(values: string[]): string[] {
+  const aliases: string[] = []
+  for (const value of [...new Set(values.map((item) => item.trim()).filter(Boolean))]) {
+    const next = [...aliases, value]
+    if (toJsonArray(next).length <= TITLE_ALIASES_STORAGE_LIMIT) aliases.push(value)
+  }
+  return aliases
+}
+
 function cleanText(value: string | null | undefined): string | null {
   return value?.trim() || null
 }
 
 function mediaKind(item: MediaItem): TmdbMediaKind {
-  return MOVIE_RELEASE_FORMS.has(item.releaseForm) ? "movie" : "tv"
+  return mediaWorkKind(item) === "movie" ? "movie" : "tv"
 }
 
 function resultTitles(result: TmdbResult): string[] {
@@ -197,9 +207,23 @@ function hasConflictingExternalIds(left: MediaItem, right: MediaItem): boolean {
 function canMergeDuplicate(item: MediaItem, canonical: MediaItem): boolean {
   const itemTitleSet = new Set(itemTitles(item).map(normalizedTitle).filter(Boolean))
   const sharedTitle = itemTitles(canonical).some((title) => itemTitleSet.has(normalizedTitle(title)))
-  return item.mediaType === canonical.mediaType
+  return hasSameWorkKind(item, canonical)
     && sharedTitle
     && !hasConflictingExternalIds(item, canonical)
+}
+
+function isSpecializedClassification(item: MediaItem): boolean {
+  return !["movie", "series"].includes(item.mediaType)
+}
+
+function preferredMergePair(item: MediaItem, existing: MediaItem): {
+  canonical: MediaItem
+  duplicate: MediaItem
+} {
+  if (isSpecializedClassification(item) && !isSpecializedClassification(existing)) {
+    return { canonical: item, duplicate: existing }
+  }
+  return { canonical: existing, duplicate: item }
 }
 
 function isRecentOrActiveLocalMatch(item: MediaItem, candidate: MediaItem, today: string): boolean {
@@ -349,9 +373,47 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         where: { mediaItemId: item.id },
         data: { mediaItemId: canonical.id }
       })
+      const canonicalHasPoster = Boolean(canonical.posterUrl?.trim())
+      const inheritDuplicatePoster = !canonicalHasPoster && Boolean(item.posterUrl?.trim())
+      const titleAliases = compactAliases([
+        ...parseJsonArray(canonical.titleAliases),
+        item.titleDisplay,
+        ...parseJsonArray(item.titleAliases)
+      ].filter((title) => title !== canonical.titleDisplay))
+      const canonicalCountries = parseJsonArray(canonical.productionCountries)
+      const mergedGenres = [...new Set([
+        ...parseJsonArray(canonical.genres),
+        ...parseJsonArray(item.genres)
+      ])]
       const merged = await transaction.mediaItem.update({
         where: { id: canonical.id },
         data: {
+          titleOriginal: canonical.titleOriginal ?? item.titleOriginal,
+          titleAliases: toJsonArray(titleAliases),
+          overview: canonical.overview ?? item.overview,
+          posterUrl: canonicalHasPoster ? canonical.posterUrl : item.posterUrl,
+          ...(inheritDuplicatePoster ? {
+            posterLookupAttemptedAt: item.posterLookupAttemptedAt,
+            posterStatus: item.posterStatus,
+            posterCheckedAt: item.posterCheckedAt,
+            posterFailureCount: item.posterFailureCount,
+            posterFailureReason: item.posterFailureReason,
+            posterWidth: item.posterWidth,
+            posterHeight: item.posterHeight,
+            posterQuality: item.posterQuality
+          } : {}),
+          productionCountries: canonicalCountries.length > 0
+            ? canonical.productionCountries
+            : item.productionCountries,
+          genres: toJsonArray(mergedGenres),
+          firstReleaseDate: canonical.firstReleaseDate ?? item.firstReleaseDate,
+          originalLanguage: canonical.originalLanguage ?? item.originalLanguage,
+          status: canonical.status === "unknown" ? item.status : canonical.status,
+          tmdbId: canonical.tmdbId ?? item.tmdbId,
+          tvmazeId: canonical.tvmazeId ?? item.tvmazeId,
+          imdbId: canonical.imdbId ?? item.imdbId,
+          traktId: canonical.traktId ?? item.traktId,
+          tvdbId: canonical.tvdbId ?? item.tvdbId,
           ...data,
           heatScore: Math.max(item.heatScore, canonical.heatScore)
         }
@@ -378,7 +440,8 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         && isRecentOrActiveLocalMatch(item, candidate, today)
       ))
       if (localMatches.length === 1) {
-        const updated = await mergeDuplicate(item, localMatches[0])
+        const pair = preferredMergePair(item, localMatches[0])
+        const updated = await mergeDuplicate(pair.duplicate, pair.canonical)
         result.merged += 1
         if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
         continue
@@ -421,10 +484,11 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
           continue
         }
 
+        const pair = preferredMergePair(item, canonical)
         const updated = await mergeDuplicate(
-          item,
-          canonical,
-          metadataUpdate(canonical, metadata, kind, imageBaseUrl, today, now)
+          pair.duplicate,
+          pair.canonical,
+          metadataUpdate(pair.canonical, metadata, kind, imageBaseUrl, today, now)
         )
 
         result.merged += 1

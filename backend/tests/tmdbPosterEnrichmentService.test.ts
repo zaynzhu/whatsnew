@@ -451,9 +451,86 @@ describe("TMDb poster enrichment", () => {
 
     expect(result).toMatchObject({ merged: 1, enriched: 0, unmatched: 0 })
     expect(fetchJson).not.toHaveBeenCalled()
-    expect(transaction.mediaItem.update).toHaveBeenCalledWith({
+    expect(transaction.mediaItem.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: canonical.id },
-      data: { heatScore: 98 }
+      data: expect.objectContaining({ heatScore: 98 })
+    }))
+  })
+
+  it("keeps a specialized classification when TMDb poster enrichment finds a generic duplicate", async () => {
+    const anime = media({
+      id: "anime-copy",
+      mediaType: "anime",
+      releaseForm: "animated_series",
+      sourceContentType: "anime",
+      titleDisplay: "Chainsmoker Cat",
+      originalLanguage: "ja"
     })
+    const generic = media({
+      id: "generic-series",
+      mediaType: "series",
+      releaseForm: "tv_series",
+      sourceContentType: "tv",
+      titleDisplay: "Chainsmoker Cat",
+      posterUrl: "https://image.tmdb.test/w500/chainsmoker-cat.jpg",
+      tmdbId: 312949,
+      tvmazeId: 90001,
+      originalLanguage: "ja"
+    })
+    const transaction = {
+      mediaSourceRef: { updateMany: vi.fn(async () => ({ count: 1 })) },
+      release: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      popularitySignal: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      changeEvent: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      mediaItem: {
+        update: vi.fn(async ({ data }) => ({ ...anime, ...data })),
+        delete: vi.fn(async () => generic)
+      }
+    }
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => Array.isArray(where?.AND) ? [anime] : []),
+        findUnique: vi.fn(async () => generic),
+        update: vi.fn(async ({ data }) => ({ ...anime, ...data }))
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => ({ mediaItemId: generic.id })),
+        upsert: vi.fn()
+      },
+      $transaction: vi.fn(async (callback) => callback(transaction))
+    }
+    const fetchJson = vi.fn(async () => ({
+      results: [{
+        id: 312949,
+        name: "Chainsmoker Cat",
+        original_name: "Chainsmoker Cat",
+        poster_path: "/chainsmoker-cat.jpg",
+        first_air_date: "2026-07-03",
+        original_language: "ja"
+      }]
+    }))
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson } as never,
+      today: () => "2026-07-13",
+      now: () => new Date("2026-07-13T00:00:00.000Z")
+    })
+
+    expect(result).toMatchObject({ merged: 1, conflicts: 0 })
+    expect(transaction.mediaSourceRef.updateMany).toHaveBeenCalledWith({
+      where: { mediaItemId: generic.id },
+      data: { mediaItemId: anime.id }
+    })
+    expect(transaction.mediaItem.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: anime.id },
+      data: expect.objectContaining({
+        tmdbId: 312949,
+        tvmazeId: 90001,
+        posterUrl: "https://image.tmdb.test/w500/chainsmoker-cat.jpg"
+      })
+    }))
+    expect(transaction.mediaItem.delete).toHaveBeenCalledWith({ where: { id: generic.id } })
   })
 })
