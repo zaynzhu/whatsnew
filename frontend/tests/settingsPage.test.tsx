@@ -251,8 +251,20 @@ const posterHealthResponse: PosterHealthResponse = {
   coveragePercent: 82.5,
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
   quality: { unknown: 630, adequate: 70, undersized: 7 },
-  lookup: { notAttempted: 12, cooldown: 130, retryEligible: 8, retryAfterDays: 7 },
-  replacement: { notAttempted: 2, cooldown: 4, retryEligible: 1, retryAfterDays: 7 },
+  lookup: {
+    notAttempted: 12,
+    cooldown: 130,
+    retryEligible: 8,
+    retryAfterDays: 7,
+    nextCooldownExpiryAt: "2026-07-19T02:30:00.000Z"
+  },
+  replacement: {
+    notAttempted: 2,
+    cooldown: 4,
+    retryEligible: 1,
+    retryAfterDays: 7,
+    nextCooldownExpiryAt: "2026-07-20T02:30:00.000Z"
+  },
   cache: {
     entries: 209,
     bytes: 73_886_357,
@@ -381,7 +393,9 @@ describe("SettingsPage", () => {
     expect(screen.getByText("低清 7")).toBeInTheDocument()
     expect(screen.getByText("缺图冷却中")).toBeInTheDocument()
     expect(screen.getByText("130")).toBeInTheDocument()
+    expect(screen.getByText(/最早.*07.*19.*10:30/)).toBeInTheDocument()
     expect(screen.getByText("低清冷却中")).toBeInTheDocument()
+    expect(screen.getByText(/最早.*07.*20.*10:30/)).toBeInTheDocument()
     expect(screen.getByText("低清可重试")).toBeInTheDocument()
     expect(screen.getByText("低清未尝试 2")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster.*可以重试/ })).toBeInTheDocument()

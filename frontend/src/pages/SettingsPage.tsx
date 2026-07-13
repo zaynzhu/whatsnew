@@ -84,6 +84,16 @@ function posterLookupLabel(item: PosterHealthResponse["samples"]["missing"][numb
   }).format(new Date(item.lastLookupAt))}`
 }
 
+function cooldownExpiryLabel(value: string | null): string {
+  if (!value) return "暂无冷却任务"
+  return `最早 ${new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value))}`
+}
+
 type SourceTestResponse = {
   sourceId: string
   implementationStatus: SourceSettingsView["implementationStatus"]
@@ -588,6 +598,7 @@ export function SettingsPage() {
               <div>
                 <span>缺图冷却中</span>
                 <strong>{posterHealth.lookup.cooldown}</strong>
+                <small>{cooldownExpiryLabel(posterHealth.lookup.nextCooldownExpiryAt)}</small>
               </div>
               <div>
                 <span>缺图可重试</span>
@@ -612,6 +623,7 @@ export function SettingsPage() {
               <div>
                 <span>低清冷却中</span>
                 <strong>{posterHealth.replacement.cooldown}</strong>
+                <small>{cooldownExpiryLabel(posterHealth.replacement.nextCooldownExpiryAt)}</small>
               </div>
               <div>
                 <span>低清可重试</span>

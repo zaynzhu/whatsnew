@@ -74,8 +74,13 @@ describe("PosterHealthService", () => {
       return statusCounts[String(where.posterStatus)] ?? 0
     })
     const findMany = vi.fn(async (_args?: any) => [sample])
+    const findFirst = vi.fn(async ({ where }: any) => ({
+      posterLookupAttemptedAt: where.AND[0]?.posterQuality === "undersized"
+        ? new Date("2026-07-11T00:00:00.000Z")
+        : new Date("2026-07-10T00:00:00.000Z")
+    }))
     const service = createPosterHealthService({
-      database: { mediaItem: { count, findMany } } as never,
+      database: { mediaItem: { count, findFirst, findMany } } as never,
       cacheDir: originalCacheDir,
       variantCacheDir,
       now: () => new Date("2026-07-13T00:00:00.000Z")
@@ -88,8 +93,20 @@ describe("PosterHealthService", () => {
       coveragePercent: 80,
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
       quality: { unknown: 4, adequate: 3, undersized: 1 },
-      lookup: { notAttempted: 0, cooldown: 2, retryEligible: 0, retryAfterDays: 7 },
-      replacement: { notAttempted: 1, cooldown: 1, retryEligible: 1, retryAfterDays: 7 },
+      lookup: {
+        notAttempted: 0,
+        cooldown: 2,
+        retryEligible: 0,
+        retryAfterDays: 7,
+        nextCooldownExpiryAt: "2026-07-17T00:00:00.000Z"
+      },
+      replacement: {
+        notAttempted: 1,
+        cooldown: 1,
+        retryEligible: 1,
+        retryAfterDays: 7,
+        nextCooldownExpiryAt: "2026-07-18T00:00:00.000Z"
+      },
       cache: {
         entries: 2,
         bytes: 5,

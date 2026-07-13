@@ -45,12 +45,14 @@ export type PosterHealthResponse = {
     cooldown: number
     retryEligible: number
     retryAfterDays: number
+    nextCooldownExpiryAt: string | null
   }
   replacement: {
     notAttempted: number
     cooldown: number
     retryEligible: number
     retryAfterDays: number
+    nextCooldownExpiryAt: string | null
   }
   cache: DiskCacheHealth & { variants: DiskCacheHealth & { maxBytes: number } }
   samples: {
@@ -162,6 +164,11 @@ function sample(row: {
   }
 }
 
+function cooldownExpiry(row: { posterLookupAttemptedAt: Date | null } | null): string | null {
+  if (!row?.posterLookupAttemptedAt) return null
+  return new Date(row.posterLookupAttemptedAt.getTime() + POSTER_LOOKUP_RETRY_DAYS * DAY_MS).toISOString()
+}
+
 export function createPosterHealthService(options: PosterHealthServiceOptions) {
   const database = options.database
   const cacheDir = options.cacheDir ?? POSTER_CACHE_DIR
@@ -212,6 +219,8 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         replacementNotAttempted,
         replacementCooldown,
         replacementRetryEligible,
+        nextLookupCooldown,
+        nextReplacementCooldown,
         brokenSamples,
         degradedSamples,
         missingSamples,
@@ -234,6 +243,16 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         database.mediaItem.count({ where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: null }] } }),
         database.mediaItem.count({ where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] } }),
         database.mediaItem.count({ where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { lt: retryBefore } }] } }),
+        database.mediaItem.findFirst({
+          where: { AND: [missingPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] },
+          orderBy: { posterLookupAttemptedAt: "asc" },
+          select: { posterLookupAttemptedAt: true }
+        }),
+        database.mediaItem.findFirst({
+          where: { AND: [undersizedPosterWhere, { posterLookupAttemptedAt: { gte: retryBefore } }] },
+          orderBy: { posterLookupAttemptedAt: "asc" },
+          select: { posterLookupAttemptedAt: true }
+        }),
         database.mediaItem.findMany({
           where: { ...ACTIVE_MEDIA_WHERE, posterStatus: "broken" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
@@ -278,13 +297,15 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           notAttempted: lookupNotAttempted,
           cooldown: lookupCooldown,
           retryEligible: lookupRetryEligible,
-          retryAfterDays: POSTER_LOOKUP_RETRY_DAYS
+          retryAfterDays: POSTER_LOOKUP_RETRY_DAYS,
+          nextCooldownExpiryAt: cooldownExpiry(nextLookupCooldown)
         },
         replacement: {
           notAttempted: replacementNotAttempted,
           cooldown: replacementCooldown,
           retryEligible: replacementRetryEligible,
-          retryAfterDays: POSTER_LOOKUP_RETRY_DAYS
+          retryAfterDays: POSTER_LOOKUP_RETRY_DAYS,
+          nextCooldownExpiryAt: cooldownExpiry(nextReplacementCooldown)
         },
         cache: {
           ...cache,

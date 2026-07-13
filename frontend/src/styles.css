@@ -2784,9 +2784,14 @@ h1 {
 }
 
 .posterHealthGrid span,
+.posterHealthGrid small,
 .posterHealthSamples small {
   color: var(--muted);
   font-size: 11px;
+}
+
+.posterHealthGrid small {
+  line-height: 1.4;
 }
 
 .posterHealthGrid strong {

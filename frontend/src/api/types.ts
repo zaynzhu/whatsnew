@@ -62,12 +62,14 @@ export type PosterHealthResponse = {
     cooldown: number
     retryEligible: number
     retryAfterDays: number
+    nextCooldownExpiryAt: string | null
   }
   replacement: {
     notAttempted: number
     cooldown: number
     retryEligible: number
     retryAfterDays: number
+    nextCooldownExpiryAt: string | null
   }
   cache: {
     entries: number
