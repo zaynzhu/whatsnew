@@ -28,6 +28,7 @@ This file is the short operational handoff for the current branch.
 - Domestic-source evaluation uses the isolated `whatsnew_china_sandbox`; its scheduler, startup sync and every source switch are disabled by construction.
 - Tencent Video passed an isolated sandbox sync on 2026-07-13: 206 active source identities, 206 undated upcoming releases, 206 posters and 28 reservation signals; 167 works were new and 39 matched existing identities, while the main database counts stayed unchanged.
 - The iQIYI poster upgrade passed an isolated sandbox resync on 2026-07-13: all 155 recognized low-resolution URLs became stored `579×772` URLs, zero recognized low-resolution URLs remained, and a 20-image verification sample measured exactly `579×772` with 20 healthy/adequate results.
+- The corrected iQIYI adapter was then synced to the main database on 2026-07-13: 156 upgraded posters all passed real pixel verification at `579×772`, reducing system-wide undersized artwork from 160 to 7. The remainder is four inactive iQIYI history-only rows and three zero-heat TVmaze programmes, not active iQIYI catalog artwork.
 
 ## Source Coverage
 
