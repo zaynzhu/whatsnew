@@ -187,6 +187,8 @@ The source page polls both `/api/sources` and the read-only `/api/source-health`
 
 Check the row reason before retrying a sync. A single `fetch failed` run does not require intervention when the source still shows `降级可用`; use the last successful snapshot until it becomes stale or a later retry succeeds.
 
+设置页的来源预览会实时调用该来源的全部 adapter scope，但不会走 `runSourceSync()`，因此不会写入业务表或 `SourceSyncRun`。来源可以保持关闭；若缺少必需凭据、接入状态受限或同一来源已有预览在执行，后端会拒绝请求。
+
 ## Troubleshooting
 
 | Symptom | Check |

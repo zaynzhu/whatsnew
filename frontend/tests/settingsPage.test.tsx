@@ -5,7 +5,13 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "../src/App"
-import type { PosterHealthResponse, SettingsFieldView, SettingsResponse, SourceSettingsView } from "../src/api/types"
+import type {
+  PosterHealthResponse,
+  SettingsFieldView,
+  SettingsResponse,
+  SourcePreviewResponse,
+  SourceSettingsView
+} from "../src/api/types"
 
 type SourceFixtureOptions = {
   group: "global_metadata" | "cross_platform" | "international_platform" | "china_platform"
@@ -271,6 +277,32 @@ const posterHealthResponse: PosterHealthResponse = {
       lastLookupAt: "2026-07-01T02:30:00.000Z"
     }]
   }
+}
+
+const sourcePreviewResponse: SourcePreviewResponse = {
+  sourceId: "prime_video",
+  itemCount: 78,
+  withPoster: 6,
+  mediaTypes: { movie: 71, series: 7 },
+  releasePatterns: { catalog_addition: 78 },
+  releaseDateStart: "2026-07-01",
+  releaseDateEnd: "2026-07-31",
+  scopes: [{ scope: "monthly_releases", itemCount: 78 }],
+  samples: [{
+    scope: "monthly_releases",
+    title: "The Summer Book",
+    mediaType: "movie",
+    releaseForm: "streaming_movie",
+    posterUrl: "https://images.test/the-summer-book.jpg",
+    firstReleaseDate: "2025-01-25",
+    releaseDate: "2026-07-01",
+    releasePattern: "catalog_addition",
+    platform: "Prime Video",
+    region: "US",
+    sourceUrl: "https://www.aboutamazon.com/news/entertainment/prime-video-july-2026"
+  }],
+  fetchedAt: "2026-07-13T00:00:00.000Z",
+  persisted: false
 }
 
 function jsonResponse(body: unknown): Response {
@@ -552,6 +584,31 @@ describe("SettingsPage", () => {
     expect(screen.getByText("缺少 THETVDB_API_KEY")).toBeInTheDocument()
     expect(screen.getByRole("checkbox", { name: "启用 TheTVDB" })).not.toBeChecked()
     expect(screen.getByRole("button", { name: "同步 TheTVDB" })).toBeDisabled()
+  })
+
+  it("关闭的数据源仍可预览且明确不写入数据库", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      if (input === "/api/sources/prime_video/preview" && init?.method === "POST") {
+        return jsonResponse(sourcePreviewResponse)
+      }
+      return jsonResponse(settingsResponse)
+    })
+    const user = userEvent.setup()
+
+    renderSettings()
+    const previewButton = await screen.findByRole("button", { name: "预览 Prime Video" })
+    expect(screen.getByRole("checkbox", { name: "启用 Prime Video" })).not.toBeChecked()
+    expect(previewButton).toBeEnabled()
+    await user.click(previewButton)
+
+    expect(await screen.findByRole("dialog", { name: "预览 Prime Video" })).toBeInTheDocument()
+    expect(screen.getByText("PREVIEW / 不写入数据库")).toBeInTheDocument()
+    expect(screen.getByText("The Summer Book")).toBeInTheDocument()
+    expect(screen.getByText("78 条")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/sources/prime_video/preview",
+      expect.objectContaining({ method: "POST" })
+    )
   })
 
   it("切换活跃数据源代理模式并测试连接", async () => {

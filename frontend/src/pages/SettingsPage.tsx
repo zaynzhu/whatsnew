@@ -9,6 +9,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  ScanSearch,
   Settings,
   SlidersHorizontal,
   TestTube2,
@@ -25,9 +26,11 @@ import type {
   SettingsResponse,
   SettingsUpdateRequest,
   SettingsUpdateResponse,
+  SourcePreviewResponse,
   SourceSettingsView
 } from "../api/types"
 import { SourceConfigDialog } from "../components/SourceConfigDialog"
+import { SourcePreviewDialog } from "../components/SourcePreviewDialog"
 import {
   SOURCE_LOCAL_STATE_LABELS,
   sourceLocalStateDetail
@@ -103,6 +106,7 @@ export function SettingsPage() {
   const [schedulerChanges, setSchedulerChanges] = useState<Record<string, string>>({})
   const [schedulerSaveState, setSchedulerSaveState] = useState<"idle" | "success" | "error">("idle")
   const [selectedSource, setSelectedSource] = useState<SourceSettingsView | null>(null)
+  const [previewSource, setPreviewSource] = useState<SourceSettingsView | null>(null)
 
   const settingsQuery = useQuery({
     queryKey: ["settings"],
@@ -201,6 +205,14 @@ export function SettingsPage() {
         queryClient.invalidateQueries({ queryKey: ["dashboard"] })
       ])
     }
+  })
+
+  const sourcePreviewMutation = useMutation({
+    mutationFn: (sourceId: string) => apiRequest<SourcePreviewResponse>(
+      `/api/sources/${sourceId}/preview`,
+      "POST",
+      {}
+    )
   })
 
   function updateValue(key: string, value: string) {
@@ -723,11 +735,16 @@ export function SettingsPage() {
                     {sources.map((source) => {
                       const canEnable = source.implementationStatus === "active" && source.supportsEnable
                       const canSync = source.runnable
+                      const canPreview = source.implementationStatus === "active"
+                        && source.supportsSync
+                        && source.credentialsComplete
                       const testResult = sourceTestMutation.data?.sourceId === source.id
                         ? sourceTestMutation.data.result
                         : null
                       const isTesting = sourceTestMutation.isPending && sourceTestMutation.variables === source.id
                       const isSyncing = sourceSyncMutation.isPending && sourceSyncMutation.variables === source.id
+                      const isPreviewing = sourcePreviewMutation.isPending
+                        && sourcePreviewMutation.variables === source.id
                       const isUpdating = sourcePolicyMutation.isPending
                         && sourcePolicyMutation.variables?.sourceId === source.id
 
@@ -834,7 +851,7 @@ export function SettingsPage() {
                                 className="tableIconButton"
                                 aria-label={`测试 ${source.name}`}
                                 title={`测试 ${source.name}`}
-                                disabled={isTesting || isSyncing}
+                                disabled={isTesting || isSyncing || isPreviewing}
                                 onClick={() => sourceTestMutation.mutate(source.id)}
                               >
                                 <TestTube2 aria-hidden="true" size={17} />
@@ -842,9 +859,22 @@ export function SettingsPage() {
                               <button
                                 type="button"
                                 className="tableIconButton"
+                                aria-label={`预览 ${source.name}`}
+                                title={`预览 ${source.name}，不写入数据库`}
+                                disabled={!canPreview || sourcePreviewMutation.isPending || isSyncing || isTesting}
+                                onClick={() => {
+                                  setPreviewSource(source)
+                                  sourcePreviewMutation.mutate(source.id)
+                                }}
+                              >
+                                <ScanSearch aria-hidden="true" size={17} />
+                              </button>
+                              <button
+                                type="button"
+                                className="tableIconButton"
                                 aria-label={`同步 ${source.name}`}
                                 title={`同步 ${source.name}`}
-                                disabled={!canSync || isSyncing || isTesting}
+                                disabled={!canSync || isSyncing || isTesting || isPreviewing}
                                 onClick={() => sourceSyncMutation.mutate(source.id)}
                               >
                                 <RefreshCw aria-hidden="true" size={17} />
@@ -870,7 +900,7 @@ export function SettingsPage() {
           )
         })}
 
-        {(sourcePolicyMutation.isError || sourceSyncMutation.isError) && (
+        {(sourcePolicyMutation.isError || sourceSyncMutation.isError || sourcePreviewMutation.isError) && (
           <p className="errorText sourceRegistryError">数据源操作失败</p>
         )}
       </section>
@@ -881,6 +911,17 @@ export function SettingsPage() {
           open
           onClose={() => setSelectedSource(null)}
           onSave={saveSourceConfig}
+        />
+      )}
+
+      {previewSource && sourcePreviewMutation.data && (
+        <SourcePreviewDialog
+          sourceName={previewSource.name}
+          preview={sourcePreviewMutation.data}
+          onClose={() => {
+            setPreviewSource(null)
+            sourcePreviewMutation.reset()
+          }}
         />
       )}
 

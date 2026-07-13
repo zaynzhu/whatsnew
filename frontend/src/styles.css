@@ -3356,6 +3356,156 @@ h1 {
   padding-top: 16px;
 }
 
+.sourcePreviewDialog {
+  width: min(920px, calc(100vw - 28px));
+}
+
+.sourcePreviewSummary {
+  display: grid;
+  grid-template-columns: 120px 120px minmax(190px, 1fr) minmax(220px, 1fr);
+  margin: 18px 0 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sourcePreviewSummary > div {
+  min-width: 0;
+  border-right: 1px solid var(--line-strong);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.sourcePreviewSummary > div:last-child {
+  border-right: 0;
+}
+
+.sourcePreviewSummary dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sourcePreviewSummary dd {
+  margin: 5px 0 0;
+  color: var(--mist);
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.sourcePreviewSignals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.sourcePreviewSignals span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.sourcePreviewList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.sourcePreviewItem {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px 12px 0;
+}
+
+.sourcePreviewItem:nth-child(even) {
+  border-left: 1px solid var(--line);
+  padding-right: 0;
+  padding-left: 14px;
+}
+
+.sourcePreviewPoster {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 78px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #172228;
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.sourcePreviewPoster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sourcePreviewItemBody,
+.sourcePreviewItemHeading > div {
+  min-width: 0;
+}
+
+.sourcePreviewItemHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: start;
+}
+
+.sourcePreviewItemHeading span,
+.sourcePreviewItemBody small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.sourcePreviewItemHeading h3 {
+  margin: 4px 0 0;
+  color: var(--mist);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.sourcePreviewItemHeading a {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+}
+
+.sourcePreviewItemHeading a:hover {
+  color: var(--teal);
+}
+
+.sourcePreviewItemBody p {
+  margin: 12px 0 5px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sourcePreviewFetchedAt {
+  margin-right: auto;
+  align-self: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -3519,6 +3669,29 @@ select:focus-visible {
 
   .sourceDialog {
     padding: 16px;
+  }
+
+  .sourcePreviewSummary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sourcePreviewSummary > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .sourcePreviewSummary > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .sourcePreviewList {
+    grid-template-columns: 1fr;
+  }
+
+  .sourcePreviewItem,
+  .sourcePreviewItem:nth-child(even) {
+    border-left: 0;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   .dialogFieldGrid {

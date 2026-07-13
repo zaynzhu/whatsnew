@@ -121,6 +121,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/sources` | Source catalog with semantic metadata, local state and latest runs. |
 | `GET /api/source-health` | Read-only source health matrix by adapter scope; does not trigger sync. |
 | `POST /api/sources/:source/test` | Test one source's configured connectivity. |
+| `POST /api/sources/:source/preview` | Fetch and summarize an active source without writing media data or sync runs; the source may remain disabled. |
 | `POST /api/sources/:source/sync` | Run enabled adapters for one source. |
 
 The settings routes currently have no authentication and must stay on a trusted LAN/NAS network.

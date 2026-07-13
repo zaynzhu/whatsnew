@@ -1,3 +1,5 @@
+import type { MediaType, ReleaseForm } from "./media.js"
+
 export const SOURCE_IDS = [
   "tvmaze", "tmdb", "trakt", "imdb", "thetvdb", "justwatch", "flixpatrol",
   "netflix", "prime_video", "hulu", "disney_plus", "max", "apple_tv_plus",
@@ -142,6 +144,39 @@ export type SourceCatalogItem = SourceSettingsView
 
 export type SourcesResponse = {
   items: SourceCatalogItem[]
+}
+
+export type SourcePreviewScope = {
+  scope: string
+  itemCount: number
+}
+
+export type SourcePreviewSample = {
+  scope: string
+  title: string
+  mediaType: MediaType
+  releaseForm: ReleaseForm
+  posterUrl: string | null
+  firstReleaseDate: string | null
+  releaseDate: string | null
+  releasePattern: string | null
+  platform: string | null
+  region: string | null
+  sourceUrl: string | null
+}
+
+export type SourcePreviewResponse = {
+  sourceId: string
+  itemCount: number
+  withPoster: number
+  mediaTypes: Partial<Record<MediaType, number>>
+  releasePatterns: Record<string, number>
+  releaseDateStart: string | null
+  releaseDateEnd: string | null
+  scopes: SourcePreviewScope[]
+  samples: SourcePreviewSample[]
+  fetchedAt: string
+  persisted: false
 }
 
 export type SettingsUpdateRequest = {

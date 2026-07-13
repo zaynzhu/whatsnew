@@ -11,6 +11,7 @@ export type {
   SourceCatalogItem,
   SourceHealthResponse,
   SourceHealthRow,
+  SourcePreviewResponse,
   SourceSettingsView
 } from "@whatsnew/shared/settings"
 

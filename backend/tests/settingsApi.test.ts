@@ -8,6 +8,7 @@ import { createApp } from "../src/app.js"
 import { createSettingsRouter } from "../src/routes/settings.js"
 import { createSourcesRouter } from "../src/routes/sources.js"
 import type { ConnectionTestService } from "../src/services/connectionTestService.js"
+import type { SourcePreviewResponse } from "@whatsnew/shared/settings"
 import { EnvFileStore } from "../src/settings/envFileStore.js"
 import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
 
@@ -37,6 +38,32 @@ const database = {
     findMany: vi.fn(async () => [])
   }
 }
+
+const sourcePreviewRunner = vi.fn(async (sourceId: string): Promise<SourcePreviewResponse> => ({
+  sourceId,
+  itemCount: 1,
+  withPoster: 1,
+  mediaTypes: { movie: 1 },
+  releasePatterns: { catalog_addition: 1 },
+  releaseDateStart: "2026-07-13",
+  releaseDateEnd: "2026-07-13",
+  scopes: [{ scope: "all", itemCount: 1 }],
+  samples: [{
+    scope: "all",
+    title: "Preview Movie",
+    mediaType: "movie",
+    releaseForm: "streaming_movie",
+    posterUrl: "https://images.test/preview.jpg",
+    firstReleaseDate: "2026-07-13",
+    releaseDate: "2026-07-13",
+    releasePattern: "catalog_addition",
+    platform: "Preview+",
+    region: "US",
+    sourceUrl: "https://preview.test/title"
+  }],
+  fetchedAt: "2026-07-13T00:00:00.000Z",
+  persisted: false
+}))
 
 const scheduler = {
   view: vi.fn(() => ({
@@ -86,6 +113,7 @@ function testApp() {
     sourcesRouter: createSourcesRouter({
       connectionTester,
       database: database as never,
+      previewSource: sourcePreviewRunner,
       settings: testSettings
     })
   })
@@ -384,6 +412,34 @@ describe("settings API", () => {
     expect(response.body.implementationStatus).toBe("planned")
     expect(response.body.result.mode).toBe("source")
     expect(response.body.implementationStatus).not.toBe("active")
+  })
+
+  it("允许预览已关闭的数据源且不写入数据库", async () => {
+    await testSettings.update({ SOURCE_TMDB_ENABLED: "false" }, [])
+
+    const response = await request(testApp()).post("/api/sources/tmdb/preview")
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({
+      sourceId: "tmdb",
+      itemCount: 1,
+      persisted: false
+    })
+    expect(sourcePreviewRunner).toHaveBeenCalledWith("tmdb")
+    expect(database.sourceSyncRun.findMany).not.toHaveBeenCalled()
+  })
+
+  it("缺少凭据时禁止预览数据源", async () => {
+    await testSettings.update({}, ["TMDB_API_KEY"])
+
+    const response = await request(testApp()).post("/api/sources/tmdb/preview")
+
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({
+      error: "credential_missing",
+      missingCredentials: ["TMDB_API_KEY"]
+    })
+    expect(sourcePreviewRunner).not.toHaveBeenCalled()
   })
 
   it("tests direct and unsaved proxy paths", async () => {

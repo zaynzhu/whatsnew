@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
-import type { SourceLocalStateView } from "@whatsnew/shared/settings"
+import type { SourceLocalStateView, SourcePreviewResponse } from "@whatsnew/shared/settings"
 import { Router } from "express"
 import {
   getEnabledAdapters,
@@ -12,6 +12,7 @@ import {
   connectionTestService
 } from "../services/connectionTestService.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
+import { previewSourceData } from "../services/sourcePreviewService.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import type { RuntimeSettingsService } from "../settings/runtimeSettingsService.js"
 import { SOURCE_CATALOG, getSourceDefinition } from "../settings/sourceCatalog.js"
@@ -22,8 +23,11 @@ import { aggregateLatestSourceRuns } from "./sourceRunView.js"
 type SourcesRouterDependencies = {
   connectionTester?: ConnectionTestService
   database?: Pick<PrismaClient, "sourceSyncRun">
+  previewSource?: (sourceId: string) => Promise<SourcePreviewResponse>
   settings?: RuntimeSettingsService
 }
+
+const sourcePreviewsInFlight = new Set<string>()
 
 async function sourceLocalState(
   sourceId: string,
@@ -38,6 +42,9 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
   const connectionTester = dependencies.connectionTester ?? connectionTestService
   const database = dependencies.database ?? db
   const settings = dependencies.settings ?? runtimeSettings
+  const previewSource = dependencies.previewSource ?? ((sourceId: string) => (
+    previewSourceData(sourceId, getImplementedAdaptersForSource(sourceId))
+  ))
 
   router.get("/", async (_req, res) => {
     const runs = await database.sourceSyncRun.findMany({
@@ -99,6 +106,41 @@ export function createSourcesRouter(dependencies: SourcesRouterDependencies = {}
       implementationStatus: source.implementationStatus,
       result
     })
+  })
+
+  router.post("/:source/preview", async (req, res) => {
+    const implementedAdapters = getImplementedAdaptersForSource(req.params.source)
+
+    if (implementedAdapters.length === 0) {
+      res.status(404).json({ error: "source_not_implemented" })
+      return
+    }
+
+    const source = getSourceDefinition(req.params.source)
+    if (source.implementationStatus !== "active" || !source.supportsSync) {
+      res.status(409).json({ error: "source_preview_unavailable" })
+      return
+    }
+
+    const missingCredentials = settings.missingCredentials(req.params.source)
+    if (missingCredentials.length > 0) {
+      res.status(409).json({ error: "credential_missing", missingCredentials })
+      return
+    }
+
+    if (sourcePreviewsInFlight.has(source.id)) {
+      res.status(409).json({ error: "preview_in_progress" })
+      return
+    }
+
+    sourcePreviewsInFlight.add(source.id)
+    try {
+      res.json(await previewSource(source.id))
+    } catch {
+      res.status(502).json({ error: "source_preview_failed" })
+    } finally {
+      sourcePreviewsInFlight.delete(source.id)
+    }
   })
 
   router.post("/:source/sync", async (req, res) => {

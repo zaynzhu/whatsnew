@@ -121,6 +121,14 @@ curl -s http://127.0.0.1:19993/api/sources
 
 Returns the source catalog, implementation state, enablement, local state, manual commands and aggregated latest run.
 
+Preview one active source before enabling it:
+
+```bash
+curl -X POST http://127.0.0.1:19993/api/sources/prime_video/preview
+```
+
+The response summarizes item counts, media types, release patterns, source scopes, date coverage, poster coverage and up to 12 samples. Preview requires complete credentials when the source needs them, but does not require the source switch to be enabled. It calls the registered adapters without creating media, release, popularity or sync-run records.
+
 ## Source Health
 
 ```bash
