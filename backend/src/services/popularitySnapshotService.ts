@@ -2,7 +2,8 @@ import type { PopularitySignal, Prisma, PrismaClient } from "@prisma/client"
 import {
   calculateRankDelta,
   classifyPopularityEvent,
-  heatFromCurrentSignals
+  heatFromCurrentSignals,
+  isHeatBearingSignal
 } from "../domain/popularityMovement.js"
 import type { PopularitySignalInput } from "../domain/types.js"
 import { createPopularityEvent } from "./eventService.js"
@@ -74,7 +75,9 @@ export class PopularitySnapshotService {
         }
       })
 
-      const eventType = classifyPopularityEvent(previousRank, input.signal.rank)
+      const eventType = isHeatBearingSignal(input.signal)
+        ? classifyPopularityEvent(previousRank, input.signal.rank)
+        : null
       if (eventType) {
         await createPopularityEvent(tx, input.mediaItemId, input.mediaTitle, eventType, {
           source: input.signal.source,
@@ -163,7 +166,7 @@ export class PopularitySnapshotService {
   ): Promise<void> {
     const signals = await tx.popularitySignal.findMany({
       where: { mediaItemId, isCurrent: true },
-      select: { rank: true }
+      select: { source: true, rank: true }
     })
     await tx.mediaItem.update({
       where: { id: mediaItemId },

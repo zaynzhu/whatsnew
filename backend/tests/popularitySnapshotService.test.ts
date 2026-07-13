@@ -134,6 +134,27 @@ describe("PopularitySnapshotService", () => {
     expect(media?.heatScore).toBe(98)
   })
 
+  it("preserves Douban ranks without treating them as Heat or movement events", async () => {
+    const capturedAt = new Date("2026-06-21T00:00:00Z")
+
+    await service.persistSignal(input({
+      source: "douban_top",
+      sourceCategory: "chinese_reputation",
+      platform: "豆瓣",
+      region: "CN",
+      rank: 1,
+      value: 9.7,
+      valueLabel: "豆瓣评分"
+    }, capturedAt))
+
+    const signal = await testPrisma.popularitySignal.findFirstOrThrow()
+    const media = await testPrisma.mediaItem.findUniqueOrThrow({ where: { id: mediaId } })
+
+    expect(signal.rank).toBe(1)
+    expect(media.heatScore).toBe(0)
+    expect(await testPrisma.changeEvent.count()).toBe(0)
+  })
+
   it("creates at most one event with an explainable payload", async () => {
     await service.persistSignal(input(
       { rank: 12 },

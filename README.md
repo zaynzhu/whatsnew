@@ -132,13 +132,14 @@ Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可
 
 - 热度信号按 `作品 + 来源 + 平台 + 地区 + 窗口 + 榜单范围` 保存独立口径，不把不同平台或同一来源下的独立子榜混成一个“真实综合榜”
 - Trakt 趋势榜与期待榜分别区分电影榜、剧集榜；Netflix Top 10 区分英语电影、非英语电影、英语剧集、非英语剧集，页面会显示并支持筛选这些榜单范围
+- 豆瓣即将播出的日期分组顺序和 TOP250 口碑名次继续保留并可按来源查看，但不计入 Heat，也不生成热度异动事件
 - 热度页默认按作品 Heat 选择 50 部作品，并在一张卡内归拢该作品的全部当前信号；海报突出 Heat，具体名次与来源、榜单范围一起展示。选择信号筛选后才按对应榜单名次取数
 - 同一来源条目通过稳定的 `sourceId` 关联作品；下一次完整榜单未再出现的信号会转为历史
 - `rankDelta = previousRank - currentRank`，正数表示上升，负数表示下降
 - 默认保留 90 天非当前快照，当前快照不会被保留策略删除
 - `GET /api/trending` 默认只返回当前信号，支持 `movement`、`source`、`platform`、`region`、`mediaType` 等筛选
 - `GET /api/media/:id/popularity-history` 支持 1–90 天、最多 1000 条的有界历史查询
-- `heatScore` 只取作品各当前来源中的最强排名用于列表排序，页面仍展示原始来源、名次、数值和采集时间
+- `heatScore` 只取作品各当前动态热度来源中的最强排名用于列表排序，页面仍展示所有原始来源、名次、数值和采集时间
 
 ## 📡 数据源
 
@@ -178,7 +179,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 - 重复身份两侧都有海报时会先保留健康度更可靠的图片；状态与清晰度相同则选择实测像素面积更大的版本，并同步迁移尺寸和健康字段
 - 对完全没有外部 ID 的记录，只有两个以上独立来源同时给出相同作品类型、规范化标题和精确首发日期时才自动归并
 - 启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
-- 状态、热度榜单范围、重复身份和平台孤立项维护都可先预览再执行：`npm run reconcile:media-statuses --workspace backend`、`npm run reconcile:release-statuses --workspace backend`、`npm run reconcile:popularity-scopes --workspace backend`、`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
+- 状态、热度得分、榜单范围、重复身份和平台孤立项维护都可先预览再执行：`npm run reconcile:media-statuses --workspace backend`、`npm run reconcile:release-statuses --workspace backend`、`npm run reconcile:heat-scores --workspace backend`、`npm run reconcile:popularity-scopes --workspace backend`、`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
 
 ### Trakt
 

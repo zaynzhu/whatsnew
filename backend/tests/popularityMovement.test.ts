@@ -3,7 +3,8 @@ import {
   calculateRankDelta,
   classifyMovement,
   classifyPopularityEvent,
-  heatFromCurrentSignals
+  heatFromCurrentSignals,
+  isHeatBearingSignal
 } from "../src/domain/popularityMovement.js"
 
 describe("popularity movement", () => {
@@ -24,7 +25,21 @@ describe("popularity movement", () => {
   })
 
   it("uses the strongest current rank as the auxiliary heat score", () => {
-    expect(heatFromCurrentSignals([{ rank: 18 }, { rank: 3 }, { rank: null }])).toBe(98)
+    expect(heatFromCurrentSignals([
+      { source: "trakt_trending", rank: 18 },
+      { source: "tmdb_trending", rank: 3 },
+      { source: "imdb_rating", rank: null }
+    ])).toBe(98)
     expect(heatFromCurrentSignals([])).toBe(0)
+  })
+
+  it("keeps Douban preview and reputation ranks outside Heat", () => {
+    expect(isHeatBearingSignal({ source: "douban_upcoming", rank: 1 })).toBe(false)
+    expect(isHeatBearingSignal({ source: "douban_top", rank: 1 })).toBe(false)
+    expect(heatFromCurrentSignals([
+      { source: "douban_upcoming", rank: 1 },
+      { source: "douban_top", rank: 1 },
+      { source: "trakt_trending", rank: 8 }
+    ])).toBe(93)
   })
 })

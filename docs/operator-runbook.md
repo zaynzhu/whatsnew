@@ -232,11 +232,13 @@ Preview data-quality maintenance before applying it manually:
 ```bash
 npm run reconcile:media-statuses --workspace backend
 npm run reconcile:release-statuses --workspace backend
+npm run reconcile:heat-scores --workspace backend
 npm run reconcile:popularity-scopes --workspace backend
 npm run reconcile:duplicate-identities --workspace backend
 npm run cleanup:platform-orphans --workspace backend
 npm run reconcile:media-statuses --workspace backend -- --apply
 npm run reconcile:release-statuses --workspace backend -- --apply
+npm run reconcile:heat-scores --workspace backend -- --apply
 npm run reconcile:popularity-scopes --workspace backend -- --apply
 npm run reconcile:duplicate-identities --workspace backend -- --apply
 npm run cleanup:platform-orphans --workspace backend -- --apply
@@ -245,6 +247,8 @@ npm run cleanup:platform-orphans --workspace backend -- --apply
 `reconcile:media-statuses` repairs only exact-date contradictions: a future first release becomes `upcoming`, and an `upcoming` or `unknown` work whose first-release date has arrived becomes `released`. It leaves undated `unknown` works unchanged, does not infer `ongoing`, `returning` or `ended`, and does not alter platform-specific release rows. The same reconciliation runs automatically after initial, hourly and daily source batches.
 
 `reconcile:release-statuses` advances exact-dated release rows to `upcoming`, `airing_today` or `available` according to the current local date. Explicit same-day `available`, `delayed` and `ended` states are retained. The same rule is applied before every release write and during scheduled data-quality maintenance.
+
+`reconcile:heat-scores` recomputes the auxiliary Heat value from current dynamic ranking signals. Douban upcoming date-group positions and TOP250 reputation positions remain queryable source ranks but contribute zero Heat; applying the command also removes historical popularity movement events derived from those two non-Heat sources.
 
 `reconcile:popularity-scopes` backfills independent chart identity for historical Trakt and Netflix signals. Trakt is derived from the canonical movie/series work kind. Netflix is updated only when one stable Netflix source category maps unambiguously to the work; ambiguous records stay `overall`. Run the dry mode first, then append `-- --apply`.
 

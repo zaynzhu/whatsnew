@@ -1,6 +1,22 @@
 export type PopularityMovement = "new" | "rising" | "falling" | "stable"
 export type PopularityEventType = "rank_entered" | "heat_rising" | "rank_changed"
 
+export const NON_HEAT_SIGNAL_SOURCES = [
+  "douban_top",
+  "douban_upcoming"
+] as const
+
+const nonHeatSignalSources = new Set<string>(NON_HEAT_SIGNAL_SOURCES)
+
+export type RankedPopularitySignal = {
+  source: string
+  rank: number | null
+}
+
+export function isHeatBearingSignal(signal: RankedPopularitySignal): boolean {
+  return signal.rank != null && !nonHeatSignalSources.has(signal.source)
+}
+
 export function calculateRankDelta(
   previousRank: number | null,
   currentRank: number | null
@@ -31,8 +47,9 @@ export function classifyPopularityEvent(
   return Math.abs(delta) >= 3 ? "rank_changed" : null
 }
 
-export function heatFromCurrentSignals(signals: Array<{ rank: number | null }>): number {
+export function heatFromCurrentSignals(signals: RankedPopularitySignal[]): number {
   return signals.reduce((score, signal) => {
-    return Math.max(score, signal.rank == null ? 0 : Math.max(0, 101 - signal.rank))
+    if (!isHeatBearingSignal(signal) || signal.rank == null) return score
+    return Math.max(score, Math.max(0, 101 - signal.rank))
   }, 0)
 }

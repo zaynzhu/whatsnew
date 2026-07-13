@@ -92,6 +92,8 @@ Platform catalog additions use `releasePattern=catalog_addition` and do not over
 
 Platform schedule or reservation pages do not prove a work's original language or production country. Hulu, Disney+, Prime Video, Apple TV+, Max, Youku and iQIYI leave unknown locale metadata null instead of deriving it from page language or market. Stable source-owned legacy rows clear those inferred values on resync unless another source has already supplied an external identity.
 
+`MediaItem.heatScore` is an auxiliary sort value derived from the strongest current dynamic ranking, not a cross-source real chart. Douban `douban_upcoming` positions are date-group presentation order and `douban_top` is a reputation chart, so both retain their source rank and metric while remaining outside Heat and popularity movement events. `reconcile:heat-scores` previews and repairs stored scores and removes historical movement events created from those non-Heat signals.
+
 ## Status Semantics
 
 Source status is aggregated by latest `source + scope` rows, then grouped by source. This matters for Trakt (`popularity` and `calendar`) and Douban (`popularity` and `upcoming`) because their scopes run separately. Both `/api/sources` and `/api/settings` must use `aggregateLatestSourceRuns()` so the UI stays consistent.
