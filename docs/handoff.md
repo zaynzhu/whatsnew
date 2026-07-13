@@ -65,7 +65,7 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Recheck retry-eligible missing titles after the seven-day window without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet.
+1. Recheck retry-eligible missing and undersized titles after the seven-day window without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet, while unmatched low-resolution platform artwork should remain in place until a trustworthy replacement appears.
 
 ## Validation Baseline
 
