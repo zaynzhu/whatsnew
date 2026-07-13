@@ -116,6 +116,7 @@ describe("traktAdapter", () => {
       expect.objectContaining({
         source: "trakt_trending",
         window: "current",
+        rankingScope: "movie",
         rank: 1,
         value: 321,
         valueLabel: "321 watchers"
@@ -123,6 +124,7 @@ describe("traktAdapter", () => {
       expect.objectContaining({
         source: "trakt_anticipated",
         window: "upcoming",
+        rankingScope: "movie",
         rank: 1,
         value: 88,
         valueLabel: "88 list_count"
@@ -145,8 +147,8 @@ describe("traktAdapter", () => {
       tvdbId: 302
     })
     expect(showItem.popularitySignals).toEqual(expect.arrayContaining([
-      expect.objectContaining({ source: "trakt_trending", value: 654, valueLabel: "654 watchers" }),
-      expect.objectContaining({ source: "trakt_anticipated", value: 99, valueLabel: "99 list_count" })
+      expect.objectContaining({ source: "trakt_trending", rankingScope: "series", value: 654, valueLabel: "654 watchers" }),
+      expect.objectContaining({ source: "trakt_anticipated", rankingScope: "series", value: 99, valueLabel: "99 list_count" })
     ]))
     expect(batch.completePopularitySources).toEqual(["trakt_trending", "trakt_anticipated"])
   })

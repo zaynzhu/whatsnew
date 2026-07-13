@@ -21,7 +21,7 @@ TVmaze combines its country schedule and web schedule before grouping episodes b
 | `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry time, availability health, measured poster dimensions and `posterQuality`. |
 | `MediaSourceRef` | Stable identity link from a source item to a `MediaItem`. Unique by `source + sourceId`. |
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
-| `PopularitySignal` | Source-specific ranking or metric snapshots. Current rows power `/api/trending`; historical rows power detail charts. |
+| `PopularitySignal` | Source-specific ranking or metric snapshots. `rankingScope` keeps independent subcharts separate; current rows power `/api/trending`, while historical rows power detail charts. |
 | `SourceSyncRun` | One adapter execution, including `source`, `scope`, status, counts, duration and redacted errors. |
 | `ChangeEvent` | Change feed events. Types: `media_detected`, `release_announced`, `airing_today`, `available_now`, `rank_entered`, `rank_changed`, `heat_rising`, `delayed`, `source_failed`. `mediaItemId` is nullable for `source_failed`. |
 
@@ -33,7 +33,7 @@ Current catalog surfaces require at least one active `MediaSourceRef`: dashboard
 2. `runSourceSync()` creates a `SourceSyncRun` with `running`.
 3. Items are matched by stable source refs and external IDs before title matching. External IDs require the same work kind: theatrical, streaming, animated and documentary films share the movie namespace; regular, animated, documentary, variety and short-form series share the series namespace. This permits specialized content classifications to reconcile with generic upstream types without ever merging a movie into a series.
 4. Canonical work status is constrained by an exact `firstReleaseDate`: a future premiere is `upcoming`, while a reached premiere cannot remain `upcoming` or `unknown`. Undated works retain `unknown`; platform availability remains a source-attributed `Release` rather than overwriting the work lifecycle. Exact-dated release rows also advance from `upcoming` to `airing_today` and `available`; explicit same-day availability, delayed and ended states are preserved.
-5. Releases and popularity signals are upserted with original source attribution.
+5. Releases and popularity signals are upserted with original source attribution. Popularity snapshot identity also includes `rankingScope`, so Trakt movie/show charts and the four Netflix Top 10 categories retain independent ranks.
 6. Complete snapshots can retire missing releases or mark missing popularity signals historical.
 7. The sync run is finished as `success`, `warning` or `failed`.
 8. After initial, hourly and daily adapter batches, data-quality maintenance repairs legacy work and release date/status contradictions before duplicate reconciliation. Stable-identity reconciliation connects records through matching TMDb, TVmaze, IMDb, Trakt or TheTVDB IDs within one work kind, rejects a whole component when any external ID conflicts, and keeps specialized classifications over generic `movie` / `series`; TMDb poster enrichment then processes up to 40 eligible missing-poster titles when TMDb is runnable.
@@ -122,7 +122,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |
 | `GET /api/poster-health` | Return poster coverage, persistent health counts, separate original/variant cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |
-| `GET /api/trending` | Current popularity signals with movement and source filters. |
+| `GET /api/trending` | Current popularity signals with movement, source and ranking-scope filters. |
 | `GET /api/calendar` | Release calendar by date window, plus poster-first daily summaries for the month view. |
 | `GET /api/preview` | Read-only complete Douban upcoming timeline grouped by date, including every current future/undated title and source status. |
 | `POST /api/preview/sync` | Run only the paginated Douban movie and TV coming-soon pages; rejects duplicate in-flight source work. |

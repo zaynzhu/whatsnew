@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "../src/App"
-import { trendingPosterUrl } from "../src/pages/TrendingPage"
+import { rankingScopeLabel, trendingPosterUrl } from "../src/pages/TrendingPage"
 
 const mediaItem = {
   id: "media-1",
@@ -80,6 +80,7 @@ const signal = {
   platform: "Trakt",
   region: "US",
   window: "week",
+  rankingScope: "movie",
   rank: 4,
   previousRank: 1,
   rankDelta: -3,
@@ -100,6 +101,7 @@ const risingSignal = {
   source: "tmdb_trending",
   platform: "TMDb",
   region: "GLOBAL",
+  rankingScope: "overall",
   rank: 7,
   previousRank: 12,
   rankDelta: 5,
@@ -126,6 +128,7 @@ const tencentSignal = {
   platform: "腾讯视频",
   region: "CN",
   window: "upcoming",
+  rankingScope: "overall",
   rank: 2,
   previousRank: 3,
   rankDelta: 1,
@@ -516,7 +519,7 @@ describe("frontend pages", () => {
     expect(screen.getByText("#4")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
     expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()
-    expect(screen.getByText("88 list_count")).toBeInTheDocument()
+    expect(screen.getByText("电影榜 · 88 list_count")).toBeInTheDocument()
     expect(screen.getByText("预约破50万")).toBeInTheDocument()
     expect(screen.getByText("腾讯视频预约", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute(
@@ -623,6 +626,21 @@ describe("frontend pages", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/trending?movement=rising&source=tmdb_trending"
     )
+  })
+
+  it("将独立榜单范围写入热度接口并显示中文名称", async () => {
+    const fetchMock = mockFetch()
+    const user = userEvent.setup()
+    renderRoute("/trending")
+
+    await user.selectOptions(await screen.findByLabelText("热度来源"), "netflix_top10")
+    await user.selectOptions(screen.getByLabelText("榜单范围"), "films_non_english")
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trending?source=netflix_top10&rankingScope=films_non_english"
+    )
+    expect(rankingScopeLabel("films_non_english")).toBe("非英语电影榜")
+    expect(rankingScopeLabel("overall")).toBeNull()
   })
 
   it("使用接口中的中文平台值筛选爱奇艺预约", async () => {

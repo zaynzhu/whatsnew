@@ -16,7 +16,7 @@
 </div>
 
 > [!TIP]
-> WhatsNew 聚合 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷、爱奇艺、腾讯视频等多来源信号，按 `作品 + 来源 + 平台 + 地区 + 窗口` 保留独立口径的热度历史，适合部署在家庭局域网或 NAS 私有网络中自用。
+> WhatsNew 聚合 TVmaze、TMDb、Trakt、TheTVDB、Netflix、优酷、爱奇艺、腾讯视频等多来源信号，按 `作品 + 来源 + 平台 + 地区 + 窗口 + 榜单范围` 保留独立口径的热度历史，适合部署在家庭局域网或 NAS 私有网络中自用。
 
 ---
 
@@ -130,7 +130,8 @@ Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可
 
 ## 🔥 热度历史
 
-- 热度信号按 `作品 + 来源 + 平台 + 地区 + 窗口` 保存独立口径，不把不同平台混成一个“真实综合榜”
+- 热度信号按 `作品 + 来源 + 平台 + 地区 + 窗口 + 榜单范围` 保存独立口径，不把不同平台或同一来源下的独立子榜混成一个“真实综合榜”
+- Trakt 趋势榜与期待榜分别区分电影榜、剧集榜；Netflix Top 10 区分英语电影、非英语电影、英语剧集、非英语剧集，页面会显示并支持筛选这些榜单范围
 - 同一来源条目通过稳定的 `sourceId` 关联作品；下一次完整榜单未再出现的信号会转为历史
 - `rankDelta = previousRank - currentRank`，正数表示上升，负数表示下降
 - 默认保留 90 天非当前快照，当前快照不会被保留策略删除
@@ -176,7 +177,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 - 重复身份两侧都有海报时会先保留健康度更可靠的图片；状态与清晰度相同则选择实测像素面积更大的版本，并同步迁移尺寸和健康字段
 - 对完全没有外部 ID 的记录，只有两个以上独立来源同时给出相同作品类型、规范化标题和精确首发日期时才自动归并
 - 启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
-- 状态、重复身份和平台孤立项维护都可先预览再执行：`npm run reconcile:media-statuses --workspace backend`、`npm run reconcile:release-statuses --workspace backend`、`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
+- 状态、热度榜单范围、重复身份和平台孤立项维护都可先预览再执行：`npm run reconcile:media-statuses --workspace backend`、`npm run reconcile:release-statuses --workspace backend`、`npm run reconcile:popularity-scopes --workspace backend`、`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
 
 ### Trakt
 

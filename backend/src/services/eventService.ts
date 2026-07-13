@@ -7,6 +7,7 @@ export type PopularityEventPayload = {
   platform: string | null
   region: string | null
   window: string
+  rankingScope: string
   previousRank: number | null
   currentRank: number | null
   rankDelta: number | null
@@ -25,6 +26,15 @@ const POPULARITY_SOURCE_LABELS: Record<string, string> = {
   tencent_reserve: "腾讯视频预约",
   douban_upcoming: "豆瓣即将播出",
   douban_top: "豆瓣 TOP250"
+}
+
+const RANKING_SCOPE_LABELS: Record<string, string> = {
+  movie: "电影榜",
+  series: "剧集榜",
+  films_english: "英语电影榜",
+  films_non_english: "非英语电影榜",
+  tv_english: "英语剧集榜",
+  tv_non_english: "非英语剧集榜"
 }
 
 export async function createSourceFailedEvent(
@@ -78,7 +88,9 @@ export async function createPopularityEvent(
   payload: PopularityEventPayload,
   sourceUrl: string | null
 ): Promise<void> {
-  const sourceName = POPULARITY_SOURCE_LABELS[payload.source] ?? payload.platform ?? payload.source
+  const sourceLabel = POPULARITY_SOURCE_LABELS[payload.source] ?? payload.platform ?? payload.source
+  const scopeLabel = RANKING_SCOPE_LABELS[payload.rankingScope]
+  const sourceName = scopeLabel ? `${sourceLabel} · ${scopeLabel}` : sourceLabel
   const currentRank = payload.currentRank == null ? "未知" : `${payload.currentRank}`
   const previousRank = payload.previousRank == null ? "未知" : `${payload.previousRank}`
   const direction = (payload.rankDelta ?? 0) > 0 ? "上升" : "下降"

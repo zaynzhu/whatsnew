@@ -88,6 +88,33 @@ describe("PopularitySnapshotService", () => {
     expect(await testPrisma.changeEvent.count()).toBe(1)
   })
 
+  it("keeps independent chart scopes current for the same source", async () => {
+    const capturedAt = new Date("2026-06-21T00:00:00Z")
+
+    await service.persistSignal(input({
+      source: "netflix_top10",
+      platform: "Netflix",
+      rankingScope: "films_english",
+      rank: 1
+    }, capturedAt))
+    await service.persistSignal(input({
+      source: "netflix_top10",
+      platform: "Netflix",
+      rankingScope: "films_non_english",
+      rank: 1
+    }, capturedAt))
+
+    const signals = await testPrisma.popularitySignal.findMany({
+      where: { isCurrent: true },
+      orderBy: { rankingScope: "asc" }
+    })
+    expect(signals).toHaveLength(2)
+    expect(signals.map((signal) => signal.rankingScope)).toEqual([
+      "films_english",
+      "films_non_english"
+    ])
+  })
+
   it("recomputes heat from every current source", async () => {
     const capturedAt = new Date("2026-06-21T00:00:00Z")
 
@@ -131,6 +158,7 @@ describe("PopularitySnapshotService", () => {
       platform: "TMDb",
       region: "GLOBAL",
       window: "week",
+      rankingScope: "overall",
       previousRank: 12,
       currentRank: 7,
       rankDelta: 5,

@@ -106,6 +106,7 @@ model PopularitySignal {
   platform        String?
   region          String?
   window          String
+  rankingScope    String   @default("overall")
   rank            Int?
   previousRank    Int?
   rankDelta       Int?
@@ -120,10 +121,11 @@ model PopularitySignal {
 
   @@index([source])
   @@index([window])
+  @@index([rankingScope])
   @@index([rank])
   @@index([capturedAt])
   @@index([mediaItemId, source, isCurrent])
-  @@index([source, window, isCurrent, rank])
+  @@index([source, rankingScope, window, isCurrent, rank])
   @@index([capturedAt, isCurrent])
   @@index([sourceSyncRunId])
 }

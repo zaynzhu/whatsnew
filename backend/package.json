@@ -33,6 +33,7 @@
     "cleanup:platform-orphans": "tsx src/scripts/cleanupPlatformOrphans.ts",
     "reconcile:media-statuses": "tsx src/scripts/reconcileMediaStatuses.ts",
     "reconcile:release-statuses": "tsx src/scripts/reconcileReleaseStatuses.ts",
+    "reconcile:popularity-scopes": "tsx src/scripts/reconcilePopularityScopes.ts",
     "reconcile:duplicate-identities": "tsx src/scripts/reconcileDuplicateIdentities.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",

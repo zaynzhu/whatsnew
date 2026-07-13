@@ -577,7 +577,7 @@ describe("api routes", () => {
 
     await prisma.popularitySignal.createMany({
       data: [
-        { ...baseSignal, source: "movement_new", rank: 8, previousRank: null, rankDelta: null },
+        { ...baseSignal, source: "movement_new", rankingScope: "movie", rank: 8, previousRank: null, rankDelta: null },
         { ...baseSignal, source: "movement_rising", rank: 7, previousRank: 12, rankDelta: 5 },
         { ...baseSignal, source: "movement_falling", rank: 7, previousRank: 4, rankDelta: -3 },
         { ...baseSignal, source: "movement_stable", rank: 7, previousRank: 7, rankDelta: 0 }
@@ -592,7 +592,7 @@ describe("api routes", () => {
     ]
     for (const [movement, source] of cases) {
       const response = await request(createApp()).get(
-        `/api/trending?movement=${movement}&source=${source}&platform=TMDb&region=GLOBAL`
+        `/api/trending?movement=${movement}&source=${source}&platform=TMDb&region=GLOBAL${source === "movement_new" ? "&rankingScope=movie" : ""}`
       )
       expect(response.status).toBe(200)
       expect(response.body.items).toHaveLength(1)

@@ -232,10 +232,12 @@ Preview data-quality maintenance before applying it manually:
 ```bash
 npm run reconcile:media-statuses --workspace backend
 npm run reconcile:release-statuses --workspace backend
+npm run reconcile:popularity-scopes --workspace backend
 npm run reconcile:duplicate-identities --workspace backend
 npm run cleanup:platform-orphans --workspace backend
 npm run reconcile:media-statuses --workspace backend -- --apply
 npm run reconcile:release-statuses --workspace backend -- --apply
+npm run reconcile:popularity-scopes --workspace backend -- --apply
 npm run reconcile:duplicate-identities --workspace backend -- --apply
 npm run cleanup:platform-orphans --workspace backend -- --apply
 ```
@@ -243,5 +245,7 @@ npm run cleanup:platform-orphans --workspace backend -- --apply
 `reconcile:media-statuses` repairs only exact-date contradictions: a future first release becomes `upcoming`, and an `upcoming` or `unknown` work whose first-release date has arrived becomes `released`. It leaves undated `unknown` works unchanged, does not infer `ongoing`, `returning` or `ended`, and does not alter platform-specific release rows. The same reconciliation runs automatically after initial, hourly and daily source batches.
 
 `reconcile:release-statuses` advances exact-dated release rows to `upcoming`, `airing_today` or `available` according to the current local date. Explicit same-day `available`, `delayed` and `ended` states are retained. The same rule is applied before every release write and during scheduled data-quality maintenance.
+
+`reconcile:popularity-scopes` backfills independent chart identity for historical Trakt and Netflix signals. Trakt is derived from the canonical movie/series work kind. Netflix is updated only when one stable Netflix source category maps unambiguously to the work; ambiguous records stay `overall`. Run the dry mode first, then append `-- --apply`.
 
 `reconcile:duplicate-identities` reports `stableIdentity`, `uniqueTitle` and `sharedDateTitle` separately. `stableIdentity` connects records that share a TMDb, TVmaze, IMDb, Trakt or TheTVDB ID within one movie or series work kind. A generic series record can therefore merge into an animation, documentary, variety or short-form classification, while movie and series namespaces stay separate. If both records have artwork, the merge prefers a healthier availability state, then a better quality state, then the larger measured pixel area; URL, dimensions and health fields move together. If any external ID has two different non-null values inside the connected group, the entire group is reported as a conflict and is not merged. `uniqueTitle` applies only when one external identity is uniquely anchored; `sharedDateTitle` requires at least two independent sources to agree on exact title, type and first-release date. `ambiguous` entries are never merged automatically. Always inspect the dry-run samples before using `--apply` on a new dataset.

@@ -197,6 +197,7 @@ function popularitySignal(
     platform: "Trakt",
     region: null,
     window: isTrending ? "current" : "upcoming",
+    rankingScope: mediaKind === "movie" ? "movie" : "series",
     rank,
     rankDelta: null,
     value,

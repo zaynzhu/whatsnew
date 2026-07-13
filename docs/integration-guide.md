@@ -92,6 +92,7 @@ curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trendi
 | `mediaType` | Media type filter. |
 | `releaseForm` | Release form filter. |
 | `window` | Source-specific window such as `week`. |
+| `rankingScope` | Independent chart scope. Trakt uses `movie` or `series`; Netflix uses `films_english`, `films_non_english`, `tv_english` or `tv_non_english`. |
 
 ## Calendar
 

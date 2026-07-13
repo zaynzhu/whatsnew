@@ -49,6 +49,7 @@ export interface PopularitySignalInput {
   platform: string | null
   region: string | null
   window: string
+  rankingScope?: string
   rank: number | null
   rankDelta: number | null
   value: number | null

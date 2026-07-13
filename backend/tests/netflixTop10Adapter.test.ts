@@ -116,6 +116,7 @@ describe("Netflix Top 10 adapter", () => {
       platform: "Netflix",
       region: "GLOBAL",
       window: "week",
+      rankingScope: "tv_english",
       rank: 1,
       value: 12_500_000,
       capturedAt: new Date("2026-06-14T00:00:00.000Z")

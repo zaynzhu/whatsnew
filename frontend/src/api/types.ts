@@ -116,6 +116,7 @@ export type PopularitySignal = {
   platform: string | null
   region: string | null
   window: string
+  rankingScope: string
   rank: number | null
   previousRank: number | null
   rankDelta: number | null

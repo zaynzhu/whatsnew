@@ -26,26 +26,31 @@ const CATEGORY_TYPES: Record<string, {
   mediaType: "movie" | "series"
   releaseForm: ReleaseForm
   originalLanguage: string | null
+  rankingScope: string
 }> = {
   "Films (English)": {
     mediaType: "movie",
     releaseForm: "streaming_movie",
-    originalLanguage: "en"
+    originalLanguage: "en",
+    rankingScope: "films_english"
   },
   "Films (Non-English)": {
     mediaType: "movie",
     releaseForm: "streaming_movie",
-    originalLanguage: null
+    originalLanguage: null,
+    rankingScope: "films_non_english"
   },
   "TV (English)": {
     mediaType: "series",
     releaseForm: "tv_series",
-    originalLanguage: "en"
+    originalLanguage: "en",
+    rankingScope: "tv_english"
   },
   "TV (Non-English)": {
     mediaType: "series",
     releaseForm: "tv_series",
-    originalLanguage: null
+    originalLanguage: null,
+    rankingScope: "tv_non_english"
   }
 }
 
@@ -96,6 +101,7 @@ function rowToAdapterItem(row: NetflixTop10Row, sourceUrl: string): AdapterItem 
       platform: "Netflix",
       region: "GLOBAL",
       window: "week",
+      rankingScope: classification.rankingScope,
       rank: row.weeklyRank,
       rankDelta: null,
       value: row.weeklyViews,

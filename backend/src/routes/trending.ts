@@ -13,6 +13,7 @@ const trendingQuerySchema = z.object({
   mediaType: z.string().min(1).optional(),
   releaseForm: z.string().min(1).optional(),
   window: z.string().min(1).optional(),
+  rankingScope: z.string().min(1).optional(),
   movement: z.enum(["new", "rising", "falling", "stable"]).optional()
 })
 
@@ -49,6 +50,7 @@ trendingRouter.get("/", async (req, res) => {
       platform: query.platform,
       region: query.region,
       window: query.window,
+      rankingScope: query.rankingScope,
       ...movementWhere(query.movement),
       mediaItem: {
         ...ACTIVE_MEDIA_WHERE,

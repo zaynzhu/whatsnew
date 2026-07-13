@@ -33,6 +33,7 @@ export class PopularitySnapshotService {
           data: {
             sourceSyncRunId: input.sourceSyncRunId,
             sourceCategory: input.signal.sourceCategory,
+            rankingScope: input.signal.rankingScope ?? "overall",
             rank: input.signal.rank,
             rankDelta: calculateRankDelta(previous.previousRank, input.signal.rank),
             value: input.signal.value,
@@ -61,6 +62,7 @@ export class PopularitySnapshotService {
           platform: input.signal.platform,
           region: input.signal.region,
           window: input.signal.window,
+          rankingScope: input.signal.rankingScope ?? "overall",
           rank: input.signal.rank,
           previousRank,
           rankDelta,
@@ -79,6 +81,7 @@ export class PopularitySnapshotService {
           platform: input.signal.platform,
           region: input.signal.region,
           window: input.signal.window,
+          rankingScope: input.signal.rankingScope ?? "overall",
           previousRank,
           currentRank: input.signal.rank,
           rankDelta,
@@ -149,6 +152,7 @@ export class PopularitySnapshotService {
       platform: input.signal.platform,
       region: input.signal.region,
       window: input.signal.window,
+      rankingScope: input.signal.rankingScope ?? "overall",
       isCurrent: true
     }
   }

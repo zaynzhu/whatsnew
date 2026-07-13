@@ -35,6 +35,20 @@ const SOURCE_OPTIONS = [
 
 const PLATFORM_OPTIONS = ["TMDb", "Trakt", "优酷", "爱奇艺", "腾讯视频", "Netflix", "豆瓣"]
 
+const RANKING_SCOPE_OPTIONS = [
+  ["movie", "电影榜"],
+  ["series", "剧集榜"],
+  ["films_english", "英语电影榜"],
+  ["films_non_english", "非英语电影榜"],
+  ["tv_english", "英语剧集榜"],
+  ["tv_non_english", "非英语剧集榜"]
+]
+
+export function rankingScopeLabel(rankingScope: string): string | null {
+  if (rankingScope === "overall") return null
+  return RANKING_SCOPE_OPTIONS.find(([value]) => value === rankingScope)?.[1] ?? rankingScope
+}
+
 export function movementLabel(signal: PopularitySignal): string {
   if (signal.previousRank == null && signal.rank != null) return "新进榜"
   if ((signal.rankDelta ?? 0) > 0) return `上升 ${signal.rankDelta} 位`
@@ -105,12 +119,14 @@ export function TrendingPage() {
   const source = searchParams.get("source") ?? ""
   const platform = searchParams.get("platform") ?? ""
   const mediaType = searchParams.get("mediaType") ?? ""
+  const rankingScope = searchParams.get("rankingScope") ?? ""
   const apiParams = new URLSearchParams()
 
   if (movement) apiParams.set("movement", movement)
   if (source) apiParams.set("source", source)
   if (platform) apiParams.set("platform", platform)
   if (mediaType) apiParams.set("mediaType", mediaType)
+  if (rankingScope) apiParams.set("rankingScope", rankingScope)
 
   const queryString = apiParams.toString()
   const apiPath = `/api/trending${queryString ? `?${queryString}` : ""}`
@@ -124,6 +140,16 @@ export function TrendingPage() {
       const next = new URLSearchParams(current)
       if (value) next.set(key, value)
       else next.delete(key)
+      return next
+    }, { replace: true })
+  }
+
+  function updateSourceFilter(value: string) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (value) next.set("source", value)
+      else next.delete("source")
+      next.delete("rankingScope")
       return next
     }, { replace: true })
   }
@@ -144,7 +170,8 @@ export function TrendingPage() {
   }
 
   const selectedSourceLabel = SOURCE_OPTIONS.find(([value]) => value === source)?.[1] ?? "全部榜单来源"
-  const hasFilters = Boolean(movement || source || platform || mediaType)
+  const selectedScopeLabel = rankingScopeLabel(rankingScope)
+  const hasFilters = Boolean(movement || source || platform || mediaType || rankingScope)
 
   function clearFilters() {
     setSearchParams({}, { replace: true })
@@ -165,7 +192,7 @@ export function TrendingPage() {
           <div className="trendingControlTitle">
             <SlidersHorizontal aria-hidden="true" size={18} />
             <span>榜单控制台</span>
-            <strong>{selectedSourceLabel}</strong>
+            <strong>{selectedScopeLabel ? `${selectedSourceLabel} · ${selectedScopeLabel}` : selectedSourceLabel}</strong>
           </div>
           <div className="trendingControlResult" aria-live="polite">
             <strong>{isLoading ? "--" : works.length}</strong>
@@ -186,9 +213,18 @@ export function TrendingPage() {
         <div className="trendingSelects">
           <label className="trendingSourceSelect">
             <span>榜单来源</span>
-            <select aria-label="热度来源" value={source} onChange={(event) => updateFilter("source", event.target.value)}>
+            <select aria-label="热度来源" value={source} onChange={(event) => updateSourceFilter(event.target.value)}>
               <option value="">全部来源</option>
               {SOURCE_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>榜单范围</span>
+            <select aria-label="榜单范围" value={rankingScope} onChange={(event) => updateFilter("rankingScope", event.target.value)}>
+              <option value="">全部范围</option>
+              {RANKING_SCOPE_OPTIONS.map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
@@ -238,6 +274,7 @@ export function TrendingPage() {
           works.map(({ mediaItem, signals }, index) => {
             const primarySignal = signals[0]
             const posterUrl = trendingPosterUrl(primarySignal, mediaItem.posterUrl)
+            const primaryScopeLabel = rankingScopeLabel(primarySignal.rankingScope)
 
             return (
               <article className={`trendingCard ${sourceTone(primarySignal.source)}`} key={mediaItem.id}>
@@ -260,7 +297,7 @@ export function TrendingPage() {
 
                 <div className="trendingCardBody">
                   <div className="trendingCardProvenance">
-                    <span>{signals.length > 1 ? `${signals.length} 个榜单` : mediaTypeLabel(mediaItem.mediaType)}</span>
+                    <span>{signals.length > 1 ? `${signals.length} 个榜单` : primaryScopeLabel ?? mediaTypeLabel(mediaItem.mediaType)}</span>
                     <time dateTime={primarySignal.capturedAt}>{capturedAtLabel(primarySignal.capturedAt)}</time>
                   </div>
                   <div className="trendingRankLine">
@@ -275,6 +312,7 @@ export function TrendingPage() {
                     <strong className="trendingPrimaryMetric">{signalMetric(primarySignal)}</strong>
                     <span className="rankSource trendingPrimarySource">
                       <SourceLink source={primarySignal.source} sourceUrl={primarySignal.sourceUrl} prefix={null} />
+                      {primaryScopeLabel ? <small>{primaryScopeLabel}</small> : null}
                     </span>
                   </div>
                   <div className="trendingSignalList">
@@ -282,7 +320,7 @@ export function TrendingPage() {
                       <div className="trendingSignalRow" key={signal.id}>
                         <span className="rankSource">
                           <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
-                          <small>{signalMetric(signal)}</small>
+                          <small>{[rankingScopeLabel(signal.rankingScope), signalMetric(signal)].filter(Boolean).join(" · ")}</small>
                         </span>
                         <span className="trendingSignalRank">
                           <strong>#{signal.rank ?? "-"}</strong>
