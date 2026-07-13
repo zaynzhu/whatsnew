@@ -1,4 +1,6 @@
 import type { MediaItem, Prisma, PrismaClient } from "@prisma/client"
+import type { ContentAttentionCategory } from "@whatsnew/shared/settings"
+import { contentAttentionWeight } from "../domain/contentAttention.js"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { hasSameWorkKind, mediaWorkKind } from "../domain/mediaWorkKind.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
@@ -7,6 +9,7 @@ import {
   RuntimeSettingsService,
   runtimeSettings
 } from "../settings/runtimeSettingsService.js"
+import { contentWeightMap } from "../settings/contentAttentionSettings.js"
 import { posterQuality } from "./posterHealthStateService.js"
 import { posterImageService, type PosterImage, type PosterImageService } from "./posterImageService.js"
 import {
@@ -319,6 +322,13 @@ function isUsablePoster(image: PosterImage): boolean {
     && image.height / image.width >= 1.2
 }
 
+function enrichmentPriority(
+  item: MediaItem,
+  weights: Record<ContentAttentionCategory, number>
+): number {
+  return contentAttentionWeight(item, weights) * 0.7 + item.heatScore * 0.3
+}
+
 function omdbPoster(response: OmdbResponse, imdbId: string): string | null {
   if (response.Response !== "True" || response.imdbID !== imdbId || !response.Poster || response.Poster === "N/A") {
     return null
@@ -368,7 +378,9 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   const now = (options.now ?? (() => new Date()))()
   const today = (options.today ?? (() => formatLocalDate(now)))()
   const retryBefore = new Date(now.getTime() - POSTER_RETRY_DAYS * DAY_MS)
-  const items = await enrichmentDatabase.mediaItem.findMany({
+  const requestedLimit = Math.max(1, Math.min(options.limit ?? 120, 500))
+  const weights = contentWeightMap(currentSettings)
+  const candidates = await enrichmentDatabase.mediaItem.findMany({
     where: {
       AND: [
         ACTIVE_MEDIA_WHERE,
@@ -387,10 +399,14 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
           ]
         }] : [])
       ]
-    },
-    orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
-    take: Math.max(1, Math.min(options.limit ?? 120, 500))
+    }
   })
+  const items = candidates
+    .sort((left, right) => (
+      enrichmentPriority(right, weights) - enrichmentPriority(left, weights)
+      || right.updatedAt.getTime() - left.updatedAt.getTime()
+    ))
+    .slice(0, requestedLimit)
   const result: PosterEnrichmentResult = {
     scanned: items.length,
     enriched: 0,

@@ -152,7 +152,7 @@ Tencent Video is disabled by default. It reads the internal `getMVLPage` page se
 
 All normal source reads use the shared HTTP client with a two-second minimum interval per origin. Safe `GET`, `HEAD` and `OPTIONS` requests make at most two attempts when the first attempt fails because of a network error, timeout, HTTP 408, HTTP 429 or HTTP 5xx. Ordinary HTTP 4xx responses and non-idempotent requests are not retried automatically.
 
-When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Completed but unmatched or ambiguous lookups wait 3 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
+When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing, broken or undersized titles. Completed but unmatched or ambiguous lookups wait 3 days before retry. The manual command accepts `--limit=1..500`. Candidate order uses 70% of the configured content-attention weight and 30% Heat, with update time only breaking ties; changing the Settings weights therefore also changes future poster-maintenance priority.
 
 Hourly batches verify up to 20 high-priority poster URLs; startup sync and daily batches verify up to 100. Verification uses the same proxy, per-origin rate limiter and disk cache as browser requests. With the default hourly interval, the backlog progresses continuously instead of waiting only for the daily run.
 

@@ -97,6 +97,60 @@ describe("TMDb poster enrichment", () => {
     })
   })
 
+  it("prioritizes configured content attention over recently updated news", async () => {
+    const news = media({
+      id: "news",
+      titleDisplay: "Morning News",
+      sourceContentType: "news",
+      heatScore: 100,
+      updatedAt: new Date("2026-07-14T00:00:00.000Z")
+    })
+    const drama = media({
+      id: "drama",
+      titleDisplay: "Upcoming Drama",
+      sourceContentType: "scripted",
+      heatScore: 0,
+      updatedAt: new Date("2026-07-01T00:00:00.000Z")
+    })
+    const update = vi.fn(async ({ where, data }) => ({
+      ...(where.id === drama.id ? drama : news),
+      ...data
+    }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [news, drama]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => null),
+        upsert: vi.fn(async () => ({}))
+      }
+    }
+    const fetchJson = vi.fn(async (_source: string, rawUrl: string) => {
+      const url = new URL(rawUrl)
+      expect(url.searchParams.get("query")).toBe("Upcoming Drama")
+      return {
+        results: [{
+          id: 902,
+          title: "Upcoming Drama",
+          poster_path: "/upcoming-drama.jpg"
+        }]
+      }
+    })
+
+    const result = await enrichPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson } as never,
+      limit: 1
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, failed: 0 })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "drama" }
+    }))
+  })
+
   it("enriches direct TMDb IDs and unique exact title matches", async () => {
     const items = [
       media({ id: "direct", titleDisplay: "Direct Movie", tmdbId: 101 }),

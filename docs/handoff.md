@@ -23,6 +23,7 @@ This file is the short operational handoff for the current branch.
 - Poster quality is tracked separately from availability. Requests and verification persist dimensions; images below 300×400 are listed as undersized and enter strict TMDb replacement without relaxing identity matching.
 - Exact IMDb identities can use OMDb as a poster-only fallback inside the strict enrichment queue. The candidate is downloaded before persistence and must be currently available, at least 300×400 and portrait-oriented; dead Amazon URLs and horizontal artwork leave the existing poster untouched.
 - TMDb enrichment now uses the same pre-persistence image check. A candidate URL must be downloaded and pass the 300×400 portrait threshold before replacing a low-resolution image or filling a missing one; transport failures remain immediately retryable and no longer create a temporary blank image state.
+- Poster enrichment now ranks the complete eligible queue with the configured content-attention weights plus Heat instead of database update time. In the 2026-07-14 live 123-title queue, all eight classified news rows moved to positions 116–123 while high-heat scripted and animation titles remained first.
 - Poster lookup observability separately tracks missing-poster enrichment and undersized-poster replacement across never-attempted, three-day cooldown and retry-eligible states. Health counts, verification and enrichment only include titles with an active source reference; inactive history remains stored without consuming maintenance capacity. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
@@ -91,7 +92,7 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Continue poster-system phase two: process never-attempted missing titles in the next maintenance cycle, then recheck cooling missing and undersized titles after their three-day windows open without relaxing identity matching. Source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
+1. Continue poster-system phase two: recheck the 123 cooling missing titles when their three-day windows open, beginning at 2026-07-14 08:04 Asia/Shanghai, then recheck the four undersized titles when their replacement windows open. Keep the content-attention queue order and existing strict identity matching; source-generic placeholders must stay classified as missing until a trustworthy replacement exists.
 
 ## Validation Baseline
 
