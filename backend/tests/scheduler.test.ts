@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   mgtvAdapter: { source: "mgtv" },
   bilibiliAdapter: { source: "bilibili" },
   appleTvPlusAdapter: { source: "apple_tv_plus" },
-  doubanAdapter: { source: "douban" },
+  doubanTopAdapter: { source: "douban", scope: "popularity" },
+  doubanUpcomingAdapter: { source: "douban", scope: "upcoming" },
   netflixAdapter: { source: "netflix" },
   primeVideoAdapter: { source: "prime_video" },
   huluAdapter: { source: "hulu" },
@@ -97,7 +98,8 @@ vi.mock("../src/adapters/appleTvPlusAdapter.js", () => ({
 }))
 
 vi.mock("../src/adapters/doubanAdapter.js", () => ({
-  doubanAdapter: mocks.doubanAdapter
+  doubanTopAdapter: mocks.doubanTopAdapter,
+  doubanUpcomingAdapter: mocks.doubanUpcomingAdapter
 }))
 
 vi.mock("../src/adapters/netflixTop10Adapter.js", () => ({
@@ -213,7 +215,7 @@ describe("scheduler", () => {
     })?.[1] as () => Promise<void>
     await dailyJob()
 
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(10)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(11)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.netflixAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.primeVideoAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
@@ -223,7 +225,8 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.maxAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanTopAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanUpcomingAdapter)
     expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
       database: mocks.db,
       limit: 40
@@ -244,11 +247,12 @@ describe("scheduler", () => {
       return !["netflix", "prime_video", "thetvdb", "hulu", "disney_plus", "max"].includes(sourceId)
     })
     await dailyJob()
-    expect(mocks.runSourceSync).toHaveBeenCalledTimes(4)
+    expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
-    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanTopAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanUpcomingAdapter)
   })
 
   it("re-registers future jobs when schedule settings change", async () => {
@@ -302,8 +306,9 @@ describe("scheduler", () => {
       expect(mocks.runSourceSync).not.toHaveBeenCalledWith(mocks.db, mocks.mgtvAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)
       expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.appleTvPlusAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanAdapter)
-      expect(mocks.runSourceSync).toHaveBeenCalledTimes(15)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanTopAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanUpcomingAdapter)
+      expect(mocks.runSourceSync).toHaveBeenCalledTimes(16)
       expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
         database: mocks.db,
         limit: 40
@@ -348,10 +353,12 @@ describe("scheduler", () => {
       { sourceId: "iqiyi", scheduleGroup: "hourly" },
       { sourceId: "tencent", scheduleGroup: "hourly" },
       { sourceId: "bilibili", scheduleGroup: "daily" },
+      { sourceId: "douban", scheduleGroup: "daily" },
       { sourceId: "douban", scheduleGroup: "daily" }
     ])
     expect(getImplementedAdaptersForSource("tmdb")).toHaveLength(1)
     expect(getImplementedAdaptersForSource("trakt")).toHaveLength(2)
+    expect(getImplementedAdaptersForSource("douban")).toHaveLength(2)
 
     mocks.settings.sourceRunnable.mockImplementation((sourceId: string) => sourceId !== "tmdb")
     expect(getEnabledAdaptersForSource("tmdb")).toEqual([])

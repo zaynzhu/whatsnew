@@ -7,7 +7,7 @@ import { RateLimiter } from "../utils/rateLimiter.js"
 import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
 
 type DoubanAdapterOptions = {
-  scope?: "all" | "upcoming"
+  scope?: "all" | "popularity" | "upcoming"
   url?: string
   movieComingSoonUrl?: string
   tvComingSoonUrl?: string
@@ -50,7 +50,9 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
 
   return {
     source: "douban",
-    scope: options.scope === "upcoming" ? "upcoming" : undefined,
+    scope: options.scope === "popularity" || options.scope === "upcoming"
+      ? options.scope
+      : undefined,
     async fetchItems(): Promise<SourceFetchBatch> {
       const currentSettings = settings.view()
       const baseUrl = (options.url ?? currentSettings.get("DOUBAN_BASE_URL")) || DOUBAN_CHART_URL
@@ -88,10 +90,12 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
         }
         return items
       }
-      const upcomingItems = [
-        ...await fetchComingSoon("movie", options.movieComingSoonUrl ?? DOUBAN_MOVIE_COMING_SOON_URL),
-        ...await fetchComingSoon("tv", options.tvComingSoonUrl ?? DOUBAN_TV_COMING_SOON_URL)
-      ]
+      const upcomingItems = options.scope === "popularity"
+        ? []
+        : [
+            ...await fetchComingSoon("movie", options.movieComingSoonUrl ?? DOUBAN_MOVIE_COMING_SOON_URL),
+            ...await fetchComingSoon("tv", options.tvComingSoonUrl ?? DOUBAN_TV_COMING_SOON_URL)
+          ]
       const items: AdapterItem[] = [
         ...chartItems,
         ...upcomingItems
@@ -112,4 +116,5 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
 }
 
 export const doubanAdapter = createDoubanAdapter()
+export const doubanTopAdapter = createDoubanAdapter({ scope: "popularity" })
 export const doubanUpcomingAdapter = createDoubanAdapter({ scope: "upcoming" })

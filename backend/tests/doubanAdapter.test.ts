@@ -283,6 +283,26 @@ describe("doubanAdapter", () => {
     expect(result.items).toEqual([])
   })
 
+  it("fetches only TOP250 signals in popularity scope", async () => {
+    const fetchText = vi.fn(async (_sourceId: string, url: string) => {
+      expect(url).toContain("top_list")
+      return chartJson
+    })
+    const adapter = createDoubanAdapter({
+      scope: "popularity",
+      httpClient: { fetchText } as unknown as SourceHttpClient,
+      minIntervalMs: 0
+    })
+
+    const result = await adapter.fetchItems()
+
+    expect(adapter.scope).toBe("popularity")
+    expect(fetchText).toHaveBeenCalledOnce()
+    expect(result.items).toHaveLength(2)
+    expect(result.completePopularitySources).toEqual(["douban_top"])
+    expect(result.completeReleaseSources).toEqual([])
+  })
+
   it("paginates the dedicated coming-soon page", async () => {
     const subject = (index: number) => ({
       id: `tv-${index}`,

@@ -71,6 +71,29 @@ describe("source health registry", () => {
         signalKinds: ["release_calendar"]
       }
     ])
+
+    const doubanScopes = registeredHealthScopes
+      .filter((entry) => entry.sourceId === "douban")
+      .map((entry) => ({
+        key: healthScopeKey(entry),
+        signalKinds: entry.healthPolicy.expectedSignalKinds,
+        sampleStrategy: entry.healthPolicy.sampleStrategy,
+        sampleSources: entry.healthPolicy.sampleSources
+      }))
+    expect(doubanScopes).toEqual([
+      {
+        key: "douban:popularity",
+        signalKinds: ["rating"],
+        sampleStrategy: "popularity",
+        sampleSources: ["douban_top"]
+      },
+      {
+        key: "douban:upcoming",
+        signalKinds: ["release_calendar"],
+        sampleStrategy: "release",
+        sampleSources: undefined
+      }
+    ])
   })
 
   it("keeps health scope keys unique and includes manual IMDb health", () => {
@@ -248,6 +271,77 @@ describe("source health service", () => {
         sourceUrl: "https://trakt.tv/movies/sample-movie-2026",
         capturedAtOrFetchedAt: "2026-07-08T03:01:00.000Z"
       }
+    ])
+  })
+
+  it("keeps Douban TOP250 health samples separate from upcoming signals", async () => {
+    const now = new Date("2026-07-08T04:00:00Z")
+    const topMedia = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "movie",
+        titleDisplay: "TOP250 Movie",
+        titleOriginal: "TOP250 Movie",
+        status: "released",
+        sourceContentType: "movie"
+      }
+    })
+    const upcomingMedia = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "movie",
+        titleDisplay: "Upcoming Movie",
+        titleOriginal: "Upcoming Movie",
+        status: "upcoming",
+        sourceContentType: "movie"
+      }
+    })
+    await prisma.sourceSyncRun.create({
+      data: {
+        source: "douban",
+        scope: "popularity",
+        status: "success",
+        startedAt: new Date("2026-07-08T03:00:00Z"),
+        finishedAt: new Date("2026-07-08T03:01:00Z"),
+        itemCount: 1
+      }
+    })
+    await prisma.popularitySignal.createMany({
+      data: [
+        {
+          mediaItemId: topMedia.id,
+          source: "douban_top",
+          sourceCategory: "rating",
+          platform: "Douban",
+          region: "CN",
+          window: "all_time",
+          rank: 1,
+          value: 9.7,
+          capturedAt: new Date("2026-07-08T03:01:00Z"),
+          isCurrent: true
+        },
+        {
+          mediaItemId: upcomingMedia.id,
+          source: "douban_upcoming",
+          sourceCategory: "anticipation",
+          platform: "Douban",
+          region: "CN",
+          window: "upcoming",
+          rank: 1,
+          value: 100000,
+          capturedAt: new Date("2026-07-08T03:02:00Z"),
+          isCurrent: true
+        }
+      ]
+    })
+
+    const settings = settingsWith({ SOURCE_DOUBAN_ENABLED: "true" })
+    const service = createSourceHealthService({ database: prisma, settings })
+    const response = await service.getSourceHealth(now)
+    const row = response.items.find((item) => `${item.sourceId}:${item.scope}` === "douban:popularity")
+
+    expect(row?.samples.map((sample) => ({ title: sample.title, source: sample.source }))).toEqual([
+      { title: "TOP250 Movie", source: "douban_top" }
     ])
   })
 })

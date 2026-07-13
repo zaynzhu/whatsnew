@@ -114,6 +114,8 @@ npm run sync:douban --workspace backend
 npm run enrich:posters --workspace backend -- --limit=120
 ```
 
+`sync:douban` runs two independent daily scopes in sequence: `popularity` fetches only TOP250 rating signals, then `upcoming` fetches only the paginated movie and TV coming-soon feeds. Their `SourceSyncRun` records and health samples remain separate.
+
 The `/preview` page reads only Douban movie and TV upcoming releases. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
 
 IMDb is local-cache based:
@@ -182,7 +184,7 @@ The first prune command is a dry run. Add `--apply` to remove stale corrupt/orph
 
 ## Source Health
 
-The source page polls both `/api/sources` and the read-only `/api/source-health` endpoint every five seconds. Its summary counts enabled sources, not every catalog entry or adapter scope. A source with multiple scopes, such as Trakt, uses its least healthy scope as the source-level status.
+The source page polls both `/api/sources` and the read-only `/api/source-health` endpoint every five seconds. Its summary counts enabled sources, not every catalog entry or adapter scope. A source with multiple scopes, such as Trakt or Douban, uses its least healthy scope as the source-level status.
 
 - `健康`: the latest accepted data is fresh and has verifiable samples.
 - `降级可用`: the latest run has a problem, but a recent successful snapshot is still fresh enough to serve.

@@ -8,7 +8,7 @@ import type { ScheduleGroup } from "../settings/sourceCatalog.js"
 import { appleTvPlusAdapter } from "./appleTvPlusAdapter.js"
 import { bilibiliAdapter } from "./bilibiliAdapter.js"
 import { disneyPlusAdapter } from "./disneyPlusAdapter.js"
-import { doubanAdapter } from "./doubanAdapter.js"
+import { doubanTopAdapter, doubanUpcomingAdapter } from "./doubanAdapter.js"
 import { huluAdapter } from "./huluAdapter.js"
 import { iqiyiAdapter } from "./iqiyiAdapter.js"
 import { maxAdapter } from "./maxAdapter.js"
@@ -35,6 +35,7 @@ export type SourceHealthPolicy = {
   staleAfterHours: number | null
   emptyOk: boolean
   sampleStrategy: SourceHealthSampleStrategy
+  sampleSources?: string[]
 }
 
 export type RegisteredHealthScope = {
@@ -52,7 +53,8 @@ function healthPolicy(
   expectedSignalKinds: SourceSignalKind[],
   scheduleGroup: ScheduleGroup | "manual",
   sampleStrategy: SourceHealthSampleStrategy,
-  emptyOk = false
+  emptyOk = false,
+  sampleSources?: string[]
 ): SourceHealthPolicy {
   return {
     expectedSignalKinds,
@@ -62,7 +64,8 @@ function healthPolicy(
         ? HOURLY_STALE_HOURS
         : DAILY_STALE_HOURS,
     emptyOk,
-    sampleStrategy
+    sampleStrategy,
+    sampleSources
   }
 }
 
@@ -82,7 +85,8 @@ export const registeredAdapters: RegisteredAdapter[] = [
   { sourceId: "iqiyi", scheduleGroup: "hourly", adapter: iqiyiAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
   { sourceId: "tencent", scheduleGroup: "hourly", adapter: tencentVideoAdapter, healthPolicy: healthPolicy(["release_calendar", "platform_rank"], "hourly", "release") },
   { sourceId: "bilibili", scheduleGroup: "daily", adapter: bilibiliAdapter, healthPolicy: healthPolicy(["platform_rank"], "daily", "popularity") },
-  { sourceId: "douban", scheduleGroup: "daily", adapter: doubanAdapter, healthPolicy: healthPolicy(["rating", "release_calendar"], "daily", "release") }
+  { sourceId: "douban", scheduleGroup: "daily", adapter: doubanTopAdapter, healthPolicy: healthPolicy(["rating"], "daily", "popularity", false, ["douban_top"]) },
+  { sourceId: "douban", scheduleGroup: "daily", adapter: doubanUpcomingAdapter, healthPolicy: healthPolicy(["release_calendar"], "daily", "release") }
 ]
 
 export function healthScopeKey(entry: RegisteredAdapter | Pick<RegisteredHealthScope, "sourceId" | "scope">): string {

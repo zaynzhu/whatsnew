@@ -1,14 +1,18 @@
-import { doubanAdapter } from "../adapters/doubanAdapter.js"
+import { doubanTopAdapter, doubanUpcomingAdapter } from "../adapters/doubanAdapter.js"
 import { db } from "../config/db.js"
 import { runSourceSync } from "../services/sourceSyncService.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 
 await runtimeSettings.load()
-const run = await runSourceSync(db, doubanAdapter)
+const topRun = await runSourceSync(db, doubanTopAdapter)
+const upcomingRun = await runSourceSync(db, doubanUpcomingAdapter)
+const runs = [topRun, upcomingRun]
 
-console.log(`豆瓣 sync complete: ${run.itemCount} items, status=${run.status}`)
+console.log(runs.map((run) => (
+  `豆瓣 ${run.scope} sync complete: ${run.itemCount} items, status=${run.status}`
+)).join("\n"))
 await db.$disconnect()
 
-if (run.status !== "success") {
+if (runs.some((run) => run.status !== "success")) {
   process.exit(1)
 }

@@ -13,6 +13,10 @@ const SIGNAL_KIND_PRIORITY: Record<SourceHealthSampleStrategy, SourceSignalKind[
 }
 
 function sourceIdentifiers(scope: RegisteredHealthScope): string[] {
+  if (scope.healthPolicy.sampleSources?.length) {
+    return scope.healthPolicy.sampleSources
+  }
+
   return [
     scope.sourceId,
     scope.adapter?.source ?? ""
@@ -20,6 +24,10 @@ function sourceIdentifiers(scope: RegisteredHealthScope): string[] {
 }
 
 function sourcePredicates(scope: RegisteredHealthScope) {
+  if (scope.healthPolicy.sampleSources?.length) {
+    return sourceIdentifiers(scope).map((source) => ({ source }))
+  }
+
   return sourceIdentifiers(scope).flatMap((source) => [
     { source },
     { source: { startsWith: `${source}_` } }

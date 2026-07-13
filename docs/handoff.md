@@ -29,6 +29,7 @@ This file is the short operational handoff for the current branch.
 - Tencent Video passed an isolated sandbox sync on 2026-07-13: 206 active source identities, 206 undated upcoming releases, 206 posters and 28 reservation signals; 167 works were new and 39 matched existing identities, while the main database counts stayed unchanged.
 - The iQIYI poster upgrade passed an isolated sandbox resync on 2026-07-13: all 155 recognized low-resolution URLs became stored `579×772` URLs, zero recognized low-resolution URLs remained, and a 20-image verification sample measured exactly `579×772` with 20 healthy/adequate results.
 - The corrected iQIYI adapter was then synced to the main database on 2026-07-13: 156 upgraded posters all passed real pixel verification at `579×772`, reducing system-wide undersized artwork from 160 to 7. The remainder is four inactive iQIYI history-only rows and three zero-heat TVmaze programmes, not active iQIYI catalog artwork.
+- Douban now runs as two daily scopes instead of one ambiguous `all` scope: `popularity` fetches TOP250 only and `upcoming` fetches movie/TV coming-soon only. A real main-database check on 2026-07-13 reported both scopes fresh and passed with 20 and 206 items respectively; TOP250 health samples were verified to come only from `douban_top`.
 
 ## Source Coverage
 
@@ -49,7 +50,7 @@ This file is the short operational handoff for the current branch.
 | Tencent Video | Paginated movie/series “即将上线” channel filters and reservation lower bounds (`tencent_reserve`), disabled by default. |
 | MangoTV | Blocked; the former channel-homepage modules are not accepted as upcoming/reservation data. |
 | Bilibili | China pgc bangumi/guochuang/documentary rankings (3-day composite). |
-| Douban | Movie TOP250 signal plus paginated mobile movie/TV coming-soon timelines. |
+| Douban | Separate daily `popularity` TOP250 signal and `upcoming` paginated mobile movie/TV coming-soon scopes. |
 | IMDb | Manual local datasets enrichment only. |
 
 ## Known Constraints

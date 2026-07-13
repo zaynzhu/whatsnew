@@ -85,9 +85,11 @@ Platform catalog additions use `releasePattern=catalog_addition` and do not over
 
 ## Status Semantics
 
-Source status is aggregated by latest `source + scope` rows, then grouped by source. This matters for Trakt because `popularity` and `calendar` run separately. Both `/api/sources` and `/api/settings` must use `aggregateLatestSourceRuns()` so the UI stays consistent.
+Source status is aggregated by latest `source + scope` rows, then grouped by source. This matters for Trakt (`popularity` and `calendar`) and Douban (`popularity` and `upcoming`) because their scopes run separately. Both `/api/sources` and `/api/settings` must use `aggregateLatestSourceRuns()` so the UI stays consistent.
 
 `GET /api/source-health` separates run status from acceptance status, applies stale thresholds by schedule group, and returns blocked coverage rows for unavailable sources. It is read-only and does not trigger adapter sync.
+
+Health samples must prove the semantic scope they represent. Douban `popularity` accepts only persisted `douban_top` signals, while `upcoming` reads Douban release rows; upcoming anticipation signals cannot make the TOP250 rating scope appear healthy.
 
 The source page groups health rows by source and exposes the least healthy scope. Its summary counts enabled sources as healthy only when every reported scope passes. A latest failed run can remain `degraded` while a recent successful snapshot is still within its freshness window; it becomes `failed` when no fresh success remains.
 
