@@ -14,10 +14,22 @@ function isDoubanImageUrl(value: string): boolean {
   }
 }
 
+export function isDoubanPlaceholderPosterUrl(value: string | null | undefined): boolean {
+  const url = absoluteDoubanUrl(value)
+  if (!url || !isDoubanImageUrl(url)) return false
+
+  try {
+    return /\/pics\/subject\/(?:movie|tv)(?:_[^/]+)?\.(?:jpe?g|png|webp)$/i.test(new URL(url).pathname)
+  } catch {
+    return false
+  }
+}
+
 export function normalizeDoubanPosterUrl(value: string | null | undefined): string | null {
   const url = absoluteDoubanUrl(value)
   if (!url) return null
   if (!isDoubanImageUrl(url)) return url
+  if (isDoubanPlaceholderPosterUrl(url)) return null
 
   return url.replace("/view/photo/s_ratio_poster/", "/view/photo/l_ratio_poster/")
 }

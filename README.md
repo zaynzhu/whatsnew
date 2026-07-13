@@ -117,7 +117,7 @@ Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默�
 - 后端原图按图片 URL 缓存到 `backend/.cache/posters/`，响应式 WebP 变体缓存到 `backend/.cache/poster-variants/`；变体只缩小、不放大，避免把低清原图伪装成高清图
 - 响应式缓存默认限制为 512 MB，启动同步和每日调度会在超限时按最旧条目清理到 90%；一小时写入保护期避免误删正在生成的文件
 - 爱奇艺 adapter 会把官方图域上已知的 `120×160` / `141×188` 竖版缩略图规范为 `579×772` 后入库，让后续同步的数据在全站使用高清原图；已有低清记录只接受同一稳定来源身份、同一素材 ID 的高清替换。热度页继续保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
-- 豆瓣 adapter 会把官方图域的 `s_ratio_poster` 规范为同一素材的 `l_ratio_poster` 后入库；已有小图只在同一稳定豆瓣来源身份和相同素材路径下升级，避免按标题误配海报
+- 豆瓣 adapter 会把官方图域的 `s_ratio_poster` 规范为同一素材的 `l_ratio_poster` 后入库；已有小图只在同一稳定豆瓣来源身份和相同素材路径下升级。官方 `movie*.jpg` / `tv*.jpg` 通用占位图按缺图处理并进入严格补图队列，避免把占位素材当成真实海报
 - 图片缓存会校验元数据与字节、合并同 URL 并发请求并原子写入；30 天后刷新失败时继续返回旧缓存，`X-Poster-Cache` 标记为 `stale`
 - 小时同步会按热度验证 20 张待确认图片，启动同步和每日同步各验证最多 100 张；作品持久化记录 `unverified / healthy / degraded / broken`，跨退避窗口重复失败后才判定损坏
 - 图片健康可在设置页查看，其中缺图和低清替换任务都分为尚未尝试、7 天冷却中和可以重试，样本展示最近一次严格查询时间；统计与自动维护只覆盖至少有一个启用来源的当前作品，失效来源历史不会污染任务数量；原图缓存和响应式 WebP 缓存也分别显示数量、容量及异常
@@ -242,8 +242,8 @@ Apple TV+ 来源读取官方 Press RSS feed（`https://www.apple.com/tv-pr/news-
 - daily 调度与 `sync:douban` 都依次执行两个独立 scope：`popularity` 只拉 TOP250，`upcoming` 只拉待映待播；两者独立记录运行与健康状态
 - TOP250 只输出 media 与评分 popularity signal（`sourceCategory: chinese_reputation`）
 - 独立页面输出 release calendar，并把页面排序和想看人数记录为 `douban_upcoming` 期待信号
-- 同步额外读取电影和剧集 `sortby=hot` 独立榜单各前 20，保存为 `douban_upcoming_hot`；前瞻时间线保持日期排序，只高亮命中的热门作品
-- `/preview` 不做列表截断，完整返回当前仍有效的已定档和待定档电影、剧集
+- 同步额外读取电影和剧集 `sortby=hot` 独立榜单各前 20，保存为 `douban_upcoming_hot`；前瞻时间线保持日期排序，每个日期内按热门名次优先排列并高亮命中作品
+- `/preview` 不做列表截断，完整返回当前仍有效的已定档和待定档电影、剧集；页面每个日期自动换行展示全部海报，不再通过隐藏的横向滚动截断可见片单
 - 同步入口：`m.douban.com/rexxar/api/v2/movie/coming_soon`、`m.douban.com/rexxar/api/v2/tv/coming_soon`
 - 来源默认关闭，需在设置页启用后手动同步；`DOUBAN_COOKIE` 可选，不得高频爬取或绕过登录/验证码
 - 手动同步：`npm run sync:douban --workspace backend`

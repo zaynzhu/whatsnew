@@ -198,7 +198,7 @@ function iqiyiAdapterWithPoster(posterUrl: string): SourceAdapter {
   }
 }
 
-function doubanAdapterWithPoster(posterUrl: string): SourceAdapter {
+function doubanAdapterWithPoster(posterUrl: string | null): SourceAdapter {
   return {
     source: "douban",
     async fetchItems() {
@@ -302,6 +302,35 @@ describe("runSourceSync", () => {
 
     expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
       posterUrl: highResolutionUrl,
+      posterStatus: "unverified",
+      posterCheckedAt: null,
+      posterWidth: null,
+      posterHeight: null,
+      posterQuality: "unknown"
+    })
+  })
+
+  it("把同一豆瓣来源身份的通用占位图恢复为缺图状态", async () => {
+    const placeholderUrl = "https://img2.doubanio.com/f/frodo/hash/pics/subject/tv_large.jpg"
+    await runSourceSync(prisma, doubanAdapterWithPoster(placeholderUrl))
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: {
+        posterStatus: "healthy",
+        posterCheckedAt: new Date("2026-07-13T00:00:00Z"),
+        posterWidth: 540,
+        posterHeight: 756,
+        posterQuality: "adequate",
+        posterLookupAttemptedAt: new Date("2026-07-12T00:00:00Z")
+      }
+    })
+
+    await runSourceSync(prisma, doubanAdapterWithPoster(null))
+
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterUrl: null,
+      posterLookupAttemptedAt: null,
       posterStatus: "unverified",
       posterCheckedAt: null,
       posterWidth: null,

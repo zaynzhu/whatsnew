@@ -17,6 +17,14 @@ function shanghaiDate(now = new Date()): string {
   return `${value("year")}-${value("month")}-${value("day")}`
 }
 
+function comparePreviewHotRank(
+  left: { doubanHotRank: number | null },
+  right: { doubanHotRank: number | null }
+): number {
+  return Number(left.doubanHotRank === null) - Number(right.doubanHotRank === null)
+    || (left.doubanHotRank ?? Number.MAX_SAFE_INTEGER) - (right.doubanHotRank ?? Number.MAX_SAFE_INTEGER)
+}
+
 export const previewRouter = Router()
 
 previewRouter.get("/", async (_req, res) => {
@@ -89,7 +97,9 @@ previewRouter.get("/", async (_req, res) => {
     }
   })
   const dated = previewReleases.filter((release) => release.releaseDate !== null)
-  const undated = previewReleases.filter((release) => release.releaseDate === null)
+  const undated = previewReleases
+    .filter((release) => release.releaseDate === null)
+    .sort(comparePreviewHotRank)
   const dates = [...new Set(dated.map((release) => release.releaseDate as string))]
 
   res.json({
@@ -117,7 +127,9 @@ previewRouter.get("/", async (_req, res) => {
     },
     days: dates.map((date) => ({
       date,
-      items: dated.filter((release) => release.releaseDate === date)
+      items: dated
+        .filter((release) => release.releaseDate === date)
+        .sort(comparePreviewHotRank)
     })),
     undated
   })

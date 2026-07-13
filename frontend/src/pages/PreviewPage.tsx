@@ -103,10 +103,17 @@ export function PreviewPage() {
           <h1 id="preview-title">待映 · 待播</h1>
           <p className="summary">沿时间线查看即将上映的电影与即将播出的剧集。</p>
         </div>
-        <div className="previewPulse" aria-label="前瞻数据状态">
-          <Telescope aria-hidden="true" size={22} />
-          <strong>{data.summary.total}</strong>
-          <span>部作品在路上</span>
+        <div className="previewPulseGroup" aria-label="前瞻数据状态">
+          <div className="previewPulse">
+            <Telescope aria-hidden="true" size={22} />
+            <strong>{data.summary.total}</strong>
+            <span>部作品在路上</span>
+          </div>
+          <div className="previewPulse hot" aria-label={`${data.summary.hot} 部热门前瞻`}>
+            <Flame aria-hidden="true" size={22} />
+            <strong>{data.summary.hot}</strong>
+            <span>部热门前瞻</span>
+          </div>
         </div>
       </section>
 

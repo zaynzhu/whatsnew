@@ -426,6 +426,7 @@ describe("api routes", () => {
     expect(response.body.summary.hot).toBe(1)
     expect(response.body.days).toHaveLength(1)
     expect(response.body.days[0].items).toHaveLength(itemCount)
+    expect(response.body.days[0].items[0].mediaItemId).toBe("preview-media-0")
     expect(response.body.days[0].items.find((item: any) => item.mediaItemId === "preview-media-0")).toMatchObject({
       doubanHotRank: 3,
       doubanHotKind: "movie",

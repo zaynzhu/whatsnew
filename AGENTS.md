@@ -59,7 +59,7 @@ npm run prisma:push --workspace backend
 - 无外部身份的同名作品只允许在至少两个独立来源同时给出相同媒体类型和精确首发日期时归并
 - Prime Video 只使用 About Amazon 官方月度上新文章，必须排除直播体育、音乐和无法可靠判断影视类型的条目；娱乐频道页仅用于发现最新月度文章
 - 缺失海报优先复用库内唯一的近期同类作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；严格 TMDb 身份可归并同一作品大类内的普通与专业内容类型，但必须保留 `anime`、`documentary`、`variety`、`short_drama` 专业分类并迁移全部外部 ID；外部 ID 冲突和无法拉开置信差距的歧义必须跳过
-- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。豆瓣 adapter 必须把 `doubanio.com` 的 `s_ratio_poster` 规范为同一素材的 `l_ratio_poster`，已有记录也只允许相同稳定豆瓣来源身份和相同素材路径升级。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
+- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。豆瓣 adapter 必须把 `doubanio.com` 的 `s_ratio_poster` 规范为同一素材的 `l_ratio_poster`，已有记录也只允许相同稳定豆瓣来源身份和相同素材路径升级；`/pics/subject/movie*.jpg` 与 `/pics/subject/tv*.jpg` 是通用占位图，必须按缺图入库并进入严格补图队列。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
 - 图片可用性与清晰度分开记录；`posterQuality=undersized` 表示实测宽度小于 300 或高度小于 400，只能通过现有严格 TMDb 身份规则替换，不得放宽标题匹配
 - 响应式 WebP 缓存默认上限为 512 MB，超过后每日调度按最旧条目清理至 90%；写入不足一小时的临时或孤立文件不得删除
 - 图片尺寸验证按热度优先持续消化：小时组最多 20 张，启动同步和日组最多 100 张；网络失败、损坏和尺寸未知项必须遵守既有退避窗口
@@ -69,7 +69,7 @@ npm run prisma:push --workspace backend
 - 首页、发现、日历、热度榜和前瞻等当前列表只展示至少有一个启用来源引用的作品；失效来源历史仍允许按作品 ID 查看详情
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 来源健康样本必须与 scope 语义严格对应；例如豆瓣 `popularity` 只能使用 `douban_top`，不得被 `douban_upcoming` 样本代替
-- 豆瓣 `/preview` 必须完整返回当前未来及待定档条目，不得用任意固定行数截断页面数据
+- 豆瓣 `/preview` 必须完整返回当前未来及待定档条目，不得用任意固定行数截断页面数据；前端每个日期必须完整换行展示全部条目，热门榜命中项按榜单名次优先排列并明确高亮
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 - 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`
 

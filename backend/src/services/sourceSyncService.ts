@@ -10,7 +10,10 @@ import type {
   SourceFetchBatch,
   SourceFetchResult
 } from "../domain/types.js"
-import { isDoubanPosterUpgrade } from "../utils/doubanPosterUrl.js"
+import {
+  isDoubanPlaceholderPosterUrl,
+  isDoubanPosterUpgrade
+} from "../utils/doubanPosterUrl.js"
 import { formatLocalDate } from "../utils/date.js"
 import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
@@ -155,6 +158,12 @@ async function upsertItem(
       && item.media.source === "douban"
       && isDoubanPosterUpgrade(match.posterUrl, item.media.posterUrl)
     : false
+  const clearDoubanPlaceholder = match
+    ? hasStableSourceIdentity
+      && item.media.source === "douban"
+      && isDoubanPlaceholderPosterUrl(match.posterUrl)
+      && item.media.posterUrl == null
+    : false
   let nextPosterUrl = match?.posterUrl ?? item.media.posterUrl
   const acceptTvmazePoster = match
     && item.media.source === "tvmaze"
@@ -168,6 +177,7 @@ async function upsertItem(
   )) {
     nextPosterUrl = item.media.posterUrl
   }
+  if (clearDoubanPlaceholder) nextPosterUrl = null
   const posterChanged = match?.posterUrl !== nextPosterUrl
   const nextFirstReleaseDate = match
     ? replacePlatformFirstReleaseDate
@@ -198,6 +208,7 @@ async function upsertItem(
           overview: match.overview ?? item.media.overview,
           posterUrl: nextPosterUrl,
           ...(posterChanged ? {
+            ...(clearDoubanPlaceholder ? { posterLookupAttemptedAt: null } : {}),
             posterStatus: "unverified",
             posterCheckedAt: null,
             posterFailureCount: 0,

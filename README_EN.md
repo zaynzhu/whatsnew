@@ -116,7 +116,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Original images cache under `backend/.cache/posters/`; responsive WebP variants cache separately under `backend/.cache/poster-variants/`, only shrink and never upscale a low-resolution source
 - The responsive cache defaults to 512 MB. Startup and daily maintenance evict oldest complete variants to 90% when over capacity while protecting files written within the last hour
 - The iQIYI adapter normalizes known `120×160` and `141×188` official portrait thumbnails to `579×772` before persistence. Existing rows accept that upgrade only for the same stable source identity and asset ID; direct-first loading on the heat page is only a legacy fallback
-- The Douban adapter upgrades `s_ratio_poster` to the same asset's `l_ratio_poster`; existing rows require the same stable Douban identity and equivalent asset path
+- The Douban adapter upgrades `s_ratio_poster` to the same asset's `l_ratio_poster`; existing rows require the same stable Douban identity and equivalent asset path. Generic `movie*.jpg` and `tv*.jpg` subject placeholders are treated as missing artwork and enter strict enrichment
 - Poster requests and verification persist measured pixel dimensions. Images below 300 pixels wide or 400 pixels high are marked `undersized` separately from network availability failures
 - Undersized artwork enters the same strict TMDb enrichment queue; replacement still requires a TMDb ID, unique exact title or an existing high-confidence rule, otherwise the original remains available and retries after 7 days
 - Poster health separates availability from pixel quality. The settings page and `GET /api/poster-health` expose missing and undersized retry queues plus original/variant cache integrity
@@ -233,8 +233,8 @@ The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/to
 - Daily scheduling and `sync:douban` run separate `popularity` and `upcoming` scopes with independent run and health records
 - TOP250 emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`)
 - Coming-soon feeds emit release calendar rows and preserve page order plus wish counts as the `douban_upcoming` signal
-- Movie and series `sortby=hot` feeds each preserve their official top 20 as `douban_upcoming_hot`; the preview timeline stays date-sorted and only highlights matching hot titles
-- `/preview` returns the complete current dated and undated Douban lineup without an arbitrary row cap
+- Movie and series `sortby=hot` feeds each preserve their official top 20 as `douban_upcoming_hot`; the preview timeline stays date-sorted, then promotes and highlights matching titles within each day by hot rank
+- `/preview` returns the complete current dated and undated Douban lineup without an arbitrary row cap; each day wraps every poster into a visible grid instead of hiding titles in horizontal overflow
 - Douban TOP250 and coming-soon positions do not contribute to Heat or popularity movement events
 - Sync endpoints: `m.douban.com/rexxar/api/v2/movie/coming_soon`, `m.douban.com/rexxar/api/v2/tv/coming_soon`
 - Disabled by default; enable from the settings page before manual sync. `DOUBAN_COOKIE` is optional. Do not scrape at high frequency or bypass login/captcha

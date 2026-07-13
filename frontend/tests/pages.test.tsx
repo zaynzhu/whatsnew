@@ -601,6 +601,7 @@ describe("frontend pages", () => {
     renderRoute("/preview")
 
     expect(await screen.findByRole("heading", { name: "待映 · 待播" })).toBeInTheDocument()
+    expect(screen.getByLabelText("1 部热门前瞻")).toBeInTheDocument()
     expect(screen.getByText("2026年7月")).toBeInTheDocument()
     expect(screen.getByText("电影热榜 #3")).toBeInTheDocument()
     expect(screen.getByText("22万 人想看")).toBeInTheDocument()
