@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import { enrichMissingPosters } from "../src/services/tmdbPosterEnrichmentService.js"
 import { EnvFileStore } from "../src/settings/envFileStore.js"
 import { RuntimeSettingsService } from "../src/settings/runtimeSettingsService.js"
+import { SourceHttpError } from "../src/utils/sourceHttpClient.js"
 
 function media(overrides: Partial<MediaItem>): MediaItem {
   return {
@@ -225,6 +226,66 @@ describe("TMDb poster enrichment", () => {
 
     expect(result.unmatched).toBe(1)
     expect(database.mediaItem.update).toHaveBeenCalledWith({
+      where: { id: "media-1" },
+      data: { posterLookupAttemptedAt: expect.any(Date) }
+    })
+  })
+
+  it("keeps transport failures immediately retryable and reports a safe reason", async () => {
+    const item = media({ titleDisplay: "Network Failure" })
+    const update = vi.fn()
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(),
+        upsert: vi.fn()
+      }
+    }
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: { fetchJson: vi.fn(async () => { throw new Error("fetch failed") }) } as never
+    })
+
+    expect(result).toMatchObject({
+      scanned: 1,
+      failed: 1,
+      unmatched: 0,
+      failures: [{ title: "Network Failure", reason: "TMDb 网络请求失败" }]
+    })
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it("cools down a missing direct TMDb identity after a confirmed 404", async () => {
+    const item = media({ titleDisplay: "Removed TMDb Work", tmdbId: 404 })
+    const update = vi.fn()
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(),
+        upsert: vi.fn()
+      }
+    }
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings(),
+      httpClient: {
+        fetchJson: vi.fn(async () => {
+          throw new SourceHttpError("not found", "tmdb", 404, "")
+        })
+      } as never
+    })
+
+    expect(result).toMatchObject({ scanned: 1, failed: 0, unmatched: 1, failures: [] })
+    expect(update).toHaveBeenCalledWith({
       where: { id: "media-1" },
       data: { posterLookupAttemptedAt: expect.any(Date) }
     })

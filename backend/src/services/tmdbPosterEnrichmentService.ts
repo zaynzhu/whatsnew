@@ -7,7 +7,11 @@ import {
   RuntimeSettingsService,
   runtimeSettings
 } from "../settings/runtimeSettingsService.js"
-import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
+import {
+  SourceHttpClient,
+  SourceHttpError,
+  sourceHttpClient
+} from "../utils/sourceHttpClient.js"
 
 type TmdbMediaKind = "movie" | "tv"
 
@@ -54,6 +58,10 @@ export type PosterEnrichmentResult = {
   conflicts: number
   failed: number
   samples: string[]
+  failures: Array<{
+    title: string
+    reason: string
+  }>
 }
 
 const DEFAULT_TMDB_BASE_URL = "https://api.themoviedb.org/3"
@@ -279,6 +287,19 @@ function isBearerToken(credential: string): boolean {
   return credential.startsWith("eyJ") || credential.split(".").length === 3
 }
 
+function safeFailureReason(error: unknown): string {
+  if (error instanceof SourceHttpError) return `TMDb HTTP ${error.statusCode}`
+  if (!(error instanceof Error)) return "补图处理失败"
+
+  const message = `${error.name} ${error.message} ${error.cause instanceof Error ? error.cause.message : ""}`
+    .toLowerCase()
+  if (["fetch failed", "network", "socket", "econn", "etimedout", "timeout", "请求超时"]
+    .some((fragment) => message.includes(fragment))) {
+    return "TMDb 网络请求失败"
+  }
+  return "补图处理失败"
+}
+
 export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}): Promise<PosterEnrichmentResult> {
   const database = options.database
   if (!database) throw new Error("海报补全缺少数据库连接")
@@ -325,7 +346,8 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
     unmatched: 0,
     conflicts: 0,
     failed: 0,
-    samples: []
+    samples: [],
+    failures: []
   }
 
   async function fetchTmdb<T>(path: string, params: Record<string, string> = {}): Promise<T> {
@@ -508,13 +530,24 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
 
       result.enriched += 1
       if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
-    } catch {
-      try {
-        await markAttempt(item.id)
-      } catch {
-        // 原始失败计数优先，记录重试时间失败时留待下轮再次处理
+    } catch (error) {
+      if (item.tmdbId && error instanceof SourceHttpError && error.statusCode === 404) {
+        try {
+          await markAttempt(item.id)
+          result.unmatched += 1
+          continue
+        } catch {
+          // 保存失败时保留为可重试，不能把查询结果误记为已处理
+        }
       }
+
       result.failed += 1
+      if (result.failures.length < 10) {
+        result.failures.push({
+          title: item.titleDisplay,
+          reason: safeFailureReason(error)
+        })
+      }
     }
   }
 

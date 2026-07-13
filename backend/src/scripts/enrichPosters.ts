@@ -18,6 +18,7 @@ try {
   })
   console.log(JSON.stringify(result))
 } catch {
+  console.error(JSON.stringify({ error: "海报补全启动失败" }))
   process.exitCode = 1
 } finally {
   await db.$disconnect()

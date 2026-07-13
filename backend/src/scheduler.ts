@@ -51,10 +51,16 @@ async function enrichPostersAfterSync() {
   if (!runtimeSettings.sourceRunnable("tmdb")) return
 
   try {
-    await enrichMissingPosters({
+    const result = await enrichMissingPosters({
       database: db,
       limit: AUTOMATIC_POSTER_LIMIT
     })
+    if (result.failed > 0) {
+      console.warn("Automatic poster enrichment completed with failures", {
+        failed: result.failed,
+        failures: result.failures
+      })
+    }
   } catch (error) {
     console.error("Automatic poster enrichment failed", error)
   }
