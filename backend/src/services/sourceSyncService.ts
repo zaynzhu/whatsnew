@@ -211,6 +211,7 @@ async function upsertItem(
         where: { id: match.id },
         data: {
           titleDisplay: adoptCleanPlatformTitle ? item.media.titleDisplay : match.titleDisplay,
+          titleOriginal: match.titleOriginal ?? item.media.titleOriginal,
           sourceContentType: item.media.source === "tvmaze" || !match.sourceContentType
             ? item.media.sourceContentType
             : match.sourceContentType,

@@ -29,6 +29,7 @@ export async function loadExistingMediaCandidates(prisma: PrismaClient): Promise
     releaseForm: releaseFormFromStorageValue(row.releaseForm),
     sourceContentType: row.sourceContentType,
     titleDisplay: row.titleDisplay,
+    titleOriginal: row.titleOriginal,
     titleAliases: parseJsonArray(row.titleAliases),
     overview: row.overview,
     posterUrl: row.posterUrl,

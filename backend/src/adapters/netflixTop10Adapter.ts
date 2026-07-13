@@ -74,6 +74,8 @@ type NetflixAdapterRow = NetflixTop10Row & {
   sourceUrl: string
   releaseYear: number | null
   synopsis: string | null
+  titleOriginal: string | null
+  titleAliases: string[]
 }
 
 function pageUrl(baseUrl: string, path: string): string {
@@ -131,7 +133,12 @@ function pageRowToAdapterRow(row: NetflixTop10PageRow, sourceUrl: string): Netfl
     cumulativeWeeksInTop10: row.cumulativeWeeksInTop10,
     sourceUrl,
     releaseYear: row.releaseYear,
-    synopsis: row.synopsis
+    synopsis: row.synopsis,
+    titleOriginal: row.titlePageSlug === "/wwe-raw" ? "WWE Raw" : null,
+    titleAliases: [
+      ...(row.titlePageSlug === "/wwe-raw" ? ["WWE Raw"] : []),
+      ...validSeasonTitle(titles.seasonTitle)
+    ]
   }
 }
 
@@ -168,8 +175,8 @@ function rowToAdapterItem(row: NetflixAdapterRow): AdapterItem | null {
       releaseForm: classification.releaseForm,
       sourceContentType: row.category,
       titleDisplay: row.showTitle,
-      titleOriginal: null,
-      titleAliases: validSeasonTitle(row.seasonTitle),
+      titleOriginal: row.titleOriginal,
+      titleAliases: row.titleAliases,
       overview: row.synopsis,
       posterUrl: null,
       productionCountries: [],
@@ -249,7 +256,9 @@ export function createNetflixTop10Adapter(
           ...row,
           sourceUrl: url,
           releaseYear: null,
-          synopsis: null
+          synopsis: null,
+          titleOriginal: null,
+          titleAliases: validSeasonTitle(row.seasonTitle)
         }))
       }
 

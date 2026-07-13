@@ -55,7 +55,7 @@ async function workbookBuffer(options: {
 
 function pageWithRows(
   category: keyof typeof PAGE_CATEGORY_KEYS,
-  options: { count?: number; week?: string } = {}
+  options: { count?: number; week?: string; rawAtRank?: number } = {}
 ): string {
   const count = options.count ?? 10
   const isSeries = category.startsWith("TV (")
@@ -68,8 +68,11 @@ function pageWithRows(
         : "International Series"
   const data = Object.fromEntries(Array.from({ length: count }, (_, index) => {
     const rank = index + 1
-    const displayTitle = `${prefix} ${rank}`
-    const title = isSeries ? `${displayTitle}: Season 2` : displayTitle
+    const isRaw = options.rawAtRank === rank
+    const displayTitle = isRaw ? "Raw" : `${prefix} ${rank}`
+    const title = isRaw
+      ? "Raw: 2026 - June 29, 2026"
+      : isSeries ? `${displayTitle}: Season 2` : displayTitle
     return [`item-${rank}`, {
       __typename: "PulseTop10ItemEntity",
       top10: {
@@ -88,8 +91,8 @@ function pageWithRows(
         shortSynopsis: `${displayTitle} synopsis`
       },
       displayVideo: {
-        title: displayTitle,
-        titlePageSlug: `/title-${rank}`
+        ...(isRaw ? {} : { title: displayTitle }),
+        titlePageSlug: isRaw ? "/wwe-raw" : `/title-${rank}`
       },
       artwork: {
         sdpArt: {
@@ -152,7 +155,8 @@ describe("Netflix Top 10 adapter", () => {
   it("maps four complete page categories with identity metadata", async () => {
     const httpClient = {
       fetchText: vi.fn(async (_source: string, url: string) => {
-        return pageWithRows(categoryForPageUrl(url))
+        const category = categoryForPageUrl(url)
+        return pageWithRows(category, category === "TV (English)" ? { rawAtRank: 7 } : {})
       }),
       fetchBuffer: vi.fn()
     } as unknown as SourceHttpClient
@@ -189,6 +193,11 @@ describe("Netflix Top 10 adapter", () => {
       capturedAt: new Date("2026-07-05T00:00:00.000Z")
     })
     expect(items[20].popularitySignals[0].valueLabel).toContain("9,999,999 次观看")
+    expect(items.find((item) => item.media.titleDisplay === "Raw")?.media.titleAliases).toEqual([
+      "WWE Raw",
+      "Raw: June 29, 2026"
+    ])
+    expect(items.find((item) => item.media.titleDisplay === "Raw")?.media.titleOriginal).toBe("WWE Raw")
     expect(httpClient.fetchText).toHaveBeenCalledTimes(4)
     expect(httpClient.fetchText).toHaveBeenNthCalledWith(
       4,

@@ -141,6 +141,11 @@ function releaseDate(kind: TmdbMediaKind, result: TmdbResult): string | null {
   return cleanText(kind === "movie" ? result.release_date : result.first_air_date)
 }
 
+function preciseReleaseDate(current: string | null, metadataDate: string | null): string | null {
+  if (!current || /^\d{4}$/.test(current)) return metadataDate ?? current
+  return current
+}
+
 function statusForDate(
   kind: TmdbMediaKind,
   date: string | null,
@@ -225,9 +230,10 @@ function hasConflictingExternalIds(left: MediaItem, right: MediaItem): boolean {
   })
 }
 
-function canMergeDuplicate(item: MediaItem, canonical: MediaItem): boolean {
+function canMergeDuplicate(item: MediaItem, canonical: MediaItem, metadata?: TmdbResult): boolean {
   const itemTitleSet = new Set(itemTitles(item).map(normalizedTitle).filter(Boolean))
-  const sharedTitle = itemTitles(canonical).some((title) => itemTitleSet.has(normalizedTitle(title)))
+  const sharedTitle = [...itemTitles(canonical), ...(metadata ? resultTitles(metadata) : [])]
+    .some((title) => itemTitleSet.has(normalizedTitle(title)))
   return hasSameWorkKind(item, canonical)
     && sharedTitle
     && !hasConflictingExternalIds(item, canonical)
@@ -287,7 +293,7 @@ function metadataUpdate(
     posterQuality: "adequate",
     overview: item.overview ?? cleanText(metadata.overview),
     titleOriginal: item.titleOriginal ?? cleanText(metadata.original_title ?? metadata.original_name),
-    firstReleaseDate: item.firstReleaseDate ?? date,
+    firstReleaseDate: preciseReleaseDate(item.firstReleaseDate, date),
     originalLanguage: item.originalLanguage ?? cleanText(metadata.original_language),
     productionCountries: currentCountries.length > 0
       ? item.productionCountries
@@ -607,7 +613,7 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         const canonical = await enrichmentDatabase.mediaItem.findUnique({
           where: { id: existingRef.mediaItemId }
         })
-        if (!canonical || !canMergeDuplicate(item, canonical)) {
+        if (!canonical || !canMergeDuplicate(item, canonical, metadata)) {
           await markAttempt(item.id)
           result.conflicts += 1
           continue

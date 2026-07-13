@@ -314,7 +314,10 @@ describe("TMDb poster enrichment", () => {
     expect(result).toMatchObject({ scanned: 1, enriched: 1, unmatched: 0 })
     expect(queries).toEqual(["Titanic En Espanol", "Titanic"])
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ tmdbId: 597 })
+      data: expect.objectContaining({
+        tmdbId: 597,
+        firstReleaseDate: "1997-12-18"
+      })
     }))
   })
 
@@ -707,7 +710,7 @@ describe("TMDb poster enrichment", () => {
     }))
   })
 
-  it("merges a title-only Netflix duplicate into an existing TMDb title", async () => {
+  it("merges an English Netflix title into the localized item for the same TMDb identity", async () => {
     const duplicate = media({
       id: "netflix-copy",
       titleDisplay: "Little Brother",
@@ -717,7 +720,9 @@ describe("TMDb poster enrichment", () => {
     })
     const canonical = media({
       id: "canonical",
-      titleDisplay: "Little Brother",
+      titleDisplay: "小兄弟",
+      titleOriginal: "弟弟",
+      titleAliases: "[\"弟弟\"]",
       posterUrl: "https://image.tmdb.test/w500/little.jpg",
       tmdbId: 1397385,
       firstReleaseDate: "2026-06-26",

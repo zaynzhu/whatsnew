@@ -795,6 +795,7 @@ describe("runSourceSync", () => {
             source: "status_transition",
             sourceId: "stable-status-1",
             status,
+            titleOriginal: status === "released" ? "Original Status Title" : null,
             firstReleaseDate: null,
             tmdbId: null,
             tvmazeId: null,
@@ -811,7 +812,10 @@ describe("runSourceSync", () => {
     await runSourceSync(prisma, adapterForStatus("upcoming"))
     await runSourceSync(prisma, adapterForStatus("released"))
 
-    await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({ status: "released" })
+    await expect(prisma.mediaItem.findFirstOrThrow()).resolves.toMatchObject({
+      status: "released",
+      titleOriginal: "Original Status Title"
+    })
   })
 
   it("同一国内待播来源身份再次同步时更新来源自有日期", async () => {

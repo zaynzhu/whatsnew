@@ -92,6 +92,7 @@ export interface ExistingMediaCandidate {
   releaseForm: ReleaseForm
   sourceContentType?: string | null
   titleDisplay: string
+  titleOriginal?: string | null
   titleAliases: string[]
   overview: string | null
   posterUrl: string | null
