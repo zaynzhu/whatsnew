@@ -16,3 +16,5 @@ frontend/.vite/
 backend/.cache/
 .superpowers/
 .worktrees/
+.playwright-mcp/
+/current-dashboard.jpeg
