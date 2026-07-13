@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
   runSourceSync: vi.fn(async () => ({ status: "success" })),
   reconcileMediaStatuses: vi.fn(async () => ({ scanned: 0, matched: 0, updated: 0 })),
   reconcileReleaseStatuses: vi.fn(async () => ({ scanned: 0, matched: 0, updated: 0 })),
-  reconcileDuplicateTmdbIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
+  reconcileDuplicateStableIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   reconcileUniqueTitleIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   reconcileSharedDateTitles: vi.fn(async () => ({ groups: 0, merged: 0 })),
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
@@ -139,7 +139,7 @@ vi.mock("../src/services/releaseStatusReconciliationService.js", () => ({
 }))
 
 vi.mock("../src/services/duplicateIdentityService.js", () => ({
-  reconcileDuplicateTmdbIdentities: mocks.reconcileDuplicateTmdbIdentities,
+  reconcileDuplicateStableIdentities: mocks.reconcileDuplicateStableIdentities,
   reconcileUniqueTitleIdentities: mocks.reconcileUniqueTitleIdentities,
   reconcileSharedDateTitles: mocks.reconcileSharedDateTitles
 }))
@@ -199,7 +199,7 @@ describe("scheduler", () => {
       database: mocks.db,
       apply: true
     })
-    expect(mocks.reconcileDuplicateTmdbIdentities).toHaveBeenCalledWith({
+    expect(mocks.reconcileDuplicateStableIdentities).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
     })
@@ -359,7 +359,7 @@ describe("scheduler", () => {
         database: mocks.db,
         apply: true
       })
-      expect(mocks.reconcileDuplicateTmdbIdentities).toHaveBeenCalledWith({
+      expect(mocks.reconcileDuplicateStableIdentities).toHaveBeenCalledWith({
         database: mocks.db,
         apply: true
       })

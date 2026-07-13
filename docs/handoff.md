@@ -39,6 +39,8 @@ This file is the short operational handoff for the current branch.
 - Current dashboard, discovery, calendar, trending and Douban preview queries now require an active source reference while direct media detail remains available for history. Main-database validation on 2026-07-13 retained all 6 inactive history-only works, returned none from title searches or dashboard candidates, and returned HTTP 200 for direct detail.
 - Exact past premiere dates now also resolve a work lifecycle from `unknown` to `released`. Main-database reconciliation on 2026-07-13 corrected `Iyanu` and `Faster with Newbern and Cotten`; the follow-up dry run found zero contradictions, while all 24 remaining active `unknown` works were intentionally preserved because none has a release date.
 - Stable external-ID matching and TMDb reconciliation now use movie/series work kinds instead of exact content types. Main-database reconciliation on 2026-07-13 merged 7 conflict-free generic/specialized duplicates (`Big Brother`, `完美世界`, `尼古喵喵`, `无职转生～到了异世界就拿出真本事～`, `仙逆`, `汪汪队立大功`, `Lock Upp`), retained animation/variety classifications and all source relations, and left zero duplicate TMDb work identities on the follow-up dry run.
+- Scheduled reconciliation now covers every stable TMDb, TVmaze, IMDb, Trakt and TheTVDB identity rather than TMDb alone. Main-database reconciliation on 2026-07-13 merged the remaining conflict-free `On Patrol: First Shift` TVmaze/TheTVDB pair, retained its documentary classification, both source references and both release feeds, and left zero safe stable-identity groups on the follow-up dry run.
+- Poster maintenance on 2026-07-13 enriched and verified `The Grim Lover`, then strictly rejected an ambiguous replacement for `House of the Dragon: The House That Dragons Built`. The final active-catalog audit reported 1,615 works, 1,467 healthy posters, zero unverified/degraded/broken images, 148 missing and 4 undersized posters; every remaining lookup is in the seven-day cooldown and both caches have zero corrupt or orphaned entries.
 
 ## Source Coverage
 
@@ -82,7 +84,7 @@ This file is the short operational handoff for the current branch.
 
 ## Next Priorities
 
-1. Recheck retry-eligible missing and undersized titles after the seven-day window without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet, while unmatched low-resolution platform artwork should remain in place until a trustworthy replacement appears.
+1. Recheck the current 148 missing and 4 undersized titles after their seven-day window opens without relaxing identity matching; many future Trakt records have valid TMDb IDs but no upstream poster yet, while unmatched low-resolution platform artwork should remain in place until a trustworthy replacement appears.
 
 ## Validation Baseline
 

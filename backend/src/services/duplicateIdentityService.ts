@@ -68,12 +68,9 @@ function relationScore(item: MediaItem & { _count: { sourceRefs: number; release
   return item._count.sourceRefs * 4 + item._count.releases * 2 + item._count.popularitySignals
 }
 
-function hasIdentityConflict(left: MediaItem, right: MediaItem): boolean {
+function hasIdentityConflict(items: MediaItem[]): boolean {
   return IDENTITY_FIELDS.some((field) => (
-    field !== "tmdbId"
-    && left[field] != null
-    && right[field] != null
-    && left[field] !== right[field]
+    new Set(items.map((item) => item[field]).filter((value) => value != null)).size > 1
   ))
 }
 
@@ -170,23 +167,64 @@ async function mergeDuplicate(
   })
 }
 
-export async function reconcileDuplicateTmdbIdentities(
+function stableIdentityComponents(items: ReconciliationMediaItem[]): ReconciliationMediaItem[][] {
+  const parents = new Map(items.map((item) => [item.id, item.id]))
+  const identityOwners = new Map<string, string>()
+
+  function find(itemId: string): string {
+    const parent = parents.get(itemId) ?? itemId
+    if (parent === itemId) return itemId
+    const root = find(parent)
+    parents.set(itemId, root)
+    return root
+  }
+
+  function union(leftId: string, rightId: string): void {
+    const leftRoot = find(leftId)
+    const rightRoot = find(rightId)
+    if (leftRoot !== rightRoot) parents.set(rightRoot, leftRoot)
+  }
+
+  for (const item of items) {
+    const workKind = mediaWorkKind(item)
+    for (const field of IDENTITY_FIELDS) {
+      const value = item[field]
+      if (value == null) continue
+      const key = `${workKind}:${field}:${value}`
+      const ownerId = identityOwners.get(key)
+      if (ownerId) union(item.id, ownerId)
+      else identityOwners.set(key, item.id)
+    }
+  }
+
+  const components = new Map<string, ReconciliationMediaItem[]>()
+  for (const item of items) {
+    const root = find(item.id)
+    const component = components.get(root) ?? []
+    component.push(item)
+    components.set(root, component)
+  }
+  return [...components.values()].filter((component) => component.length > 1)
+}
+
+export async function reconcileDuplicateStableIdentities(
   options: ReconciliationOptions
 ): Promise<DuplicateIdentityResult> {
   const items = await options.database.mediaItem.findMany({
-    where: { tmdbId: { not: null } },
+    where: {
+      OR: [
+        { tmdbId: { not: null } },
+        { tvmazeId: { not: null } },
+        { imdbId: { not: null } },
+        { traktId: { not: null } },
+        { tvdbId: { not: null } }
+      ]
+    },
     include: { _count: { select: { sourceRefs: true, releases: true, popularitySignals: true } } },
     orderBy: { createdAt: "asc" },
     take: Math.max(2, Math.min(options.limit ?? 5000, 10000))
   })
-  const grouped = new Map<string, typeof items>()
-  for (const item of items) {
-    const key = `${mediaWorkKind(item)}:${item.tmdbId}`
-    const group = grouped.get(key) ?? []
-    group.push(item)
-    grouped.set(key, group)
-  }
-  const duplicateGroups = [...grouped.values()].filter((group) => group.length > 1)
+  const duplicateGroups = stableIdentityComponents(items)
   const result: DuplicateIdentityResult = {
     groups: duplicateGroups.length,
     merged: 0,
@@ -203,12 +241,12 @@ export async function reconcileDuplicateTmdbIdentities(
     ))
     let canonical = sorted[0]
     const duplicates = sorted.slice(1)
-    if (duplicates.some((duplicate) => hasIdentityConflict(canonical, duplicate))) {
+    if (hasIdentityConflict(group)) {
       result.conflicts += 1
       continue
     }
     if (result.samples.length < 20) {
-      result.samples.push(`${canonical.titleDisplay} (${canonical.tmdbId}) x${group.length}`)
+      result.samples.push(`${canonical.titleDisplay} x${group.length}`)
     }
     if (!options.apply) continue
 

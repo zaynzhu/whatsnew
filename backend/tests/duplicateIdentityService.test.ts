@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import {
-  reconcileDuplicateTmdbIdentities,
+  reconcileDuplicateStableIdentities,
   reconcileSharedDateTitles,
   reconcileUniqueTitleIdentities
 } from "../src/services/duplicateIdentityService.js"
@@ -10,7 +10,7 @@ beforeEach(async () => {
   await resetTestDatabase()
 })
 
-describe("reconcileDuplicateTmdbIdentities", () => {
+describe("reconcileDuplicateStableIdentities", () => {
   it("previews without modifying duplicate TMDb identities", async () => {
     await testPrisma.mediaItem.createMany({
       data: [
@@ -19,7 +19,7 @@ describe("reconcileDuplicateTmdbIdentities", () => {
       ]
     })
 
-    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma })
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma })
 
     expect(result).toMatchObject({ groups: 1, merged: 0, conflicts: 0 })
     expect(await testPrisma.mediaItem.count()).toBe(2)
@@ -60,7 +60,7 @@ describe("reconcileDuplicateTmdbIdentities", () => {
       ]
     })
 
-    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
     const merged = await testPrisma.mediaItem.findUniqueOrThrow({
       where: { id: canonical.id },
       include: { sourceRefs: true, releases: true }
@@ -82,7 +82,7 @@ describe("reconcileDuplicateTmdbIdentities", () => {
       ]
     })
 
-    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
 
     expect(result).toMatchObject({ groups: 1, merged: 0, conflicts: 1 })
     expect(await testPrisma.mediaItem.count()).toBe(2)
@@ -118,7 +118,7 @@ describe("reconcileDuplicateTmdbIdentities", () => {
       ]
     })
 
-    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
     const merged = await testPrisma.mediaItem.findUniqueOrThrow({
       where: { id: anime.id },
       include: { sourceRefs: true }
@@ -143,10 +143,84 @@ describe("reconcileDuplicateTmdbIdentities", () => {
       ]
     })
 
-    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
 
     expect(result).toMatchObject({ groups: 0, merged: 0, conflicts: 0 })
     expect(await testPrisma.mediaItem.count()).toBe(2)
+  })
+
+  it("merges duplicate works connected by a non-TMDb stable identity", async () => {
+    const variety = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "variety",
+        releaseForm: "variety_season",
+        titleDisplay: "On Patrol: First Shift",
+        tvmazeId: 63525,
+        tvdbId: 423300
+      }
+    })
+    const documentary = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "documentary",
+        releaseForm: "documentary_series",
+        titleDisplay: "On Patrol: First Shift",
+        tmdbId: 206386,
+        imdbId: "tt22060992",
+        tvdbId: 423300
+      }
+    })
+    await testPrisma.mediaSourceRef.createMany({
+      data: [
+        { mediaItemId: variety.id, source: "tvmaze", sourceId: "tvmaze-63525" },
+        { mediaItemId: documentary.id, source: "thetvdb", sourceId: "thetvdb:series:423300" }
+      ]
+    })
+
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
+    const merged = await testPrisma.mediaItem.findUniqueOrThrow({
+      where: { id: documentary.id },
+      include: { sourceRefs: true }
+    })
+
+    expect(result).toMatchObject({ groups: 1, merged: 1, conflicts: 0 })
+    expect(merged).toMatchObject({
+      mediaType: "documentary",
+      releaseForm: "documentary_series",
+      tmdbId: 206386,
+      tvmazeId: 63525,
+      imdbId: "tt22060992",
+      tvdbId: 423300
+    })
+    expect(merged.sourceRefs).toHaveLength(2)
+  })
+
+  it("merges one connected component only once when rows share multiple stable identities", async () => {
+    await testPrisma.mediaItem.createMany({
+      data: [
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "First", imdbId: "tt100", tvdbId: 100 },
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "Second", imdbId: "tt100", tvdbId: 100 }
+      ]
+    })
+
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
+
+    expect(result).toMatchObject({ groups: 1, merged: 1, conflicts: 0 })
+    expect(await testPrisma.mediaItem.count()).toBe(1)
+  })
+
+  it("rejects a connected component when non-canonical rows contain conflicting identities", async () => {
+    await testPrisma.mediaItem.createMany({
+      data: [
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "Anchor", imdbId: "tt100" },
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "First", imdbId: "tt100", tmdbId: 1 },
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "Second", imdbId: "tt100", tmdbId: 2 }
+      ]
+    })
+
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
+
+    expect(result).toMatchObject({ groups: 1, merged: 0, conflicts: 1 })
+    expect(await testPrisma.mediaItem.count()).toBe(3)
   })
 })
 

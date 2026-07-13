@@ -49,6 +49,7 @@ npm run prisma:push --workspace backend
 - 平台页面的语言和地区不得直接推断为作品原始语言或制片国家；缺少作品级字段时保持未知
 - `MediaItem.status` 表示作品生命周期，不表示某个平台的可看状态；精确首发日在未来时必须为 `upcoming`，首发日已到且仍为 `upcoming` 或 `unknown` 时保守回退为 `released`；无精确日期的 `unknown` 不得猜测，平台待播与上架语义继续保留在 `Release`
 - 有精确日期的 `Release.releaseStatus` 必须随日期推进：未来为 `upcoming`，当天通常为 `airing_today`，过去为 `available`；来源明确给出当天已上线时保留 `available`，`delayed` 与 `ended` 不按日期覆盖
+- 定时数据质量维护必须覆盖 TMDb、TVmaze、IMDb、Trakt 与 TheTVDB 全部稳定外部 ID；同一作品大类内任一 ID 可建立归并关系，但连通组内任一外部 ID 冲突时必须整组跳过
 - 无稳定外部 ID 的同名作品自动归并仍必须同时满足媒体类型一致、年份兼容且只有一个外部身份锚点；多个候选身份必须保留分离
 - 无外部身份的同名作品只允许在至少两个独立来源同时给出相同媒体类型和精确首发日期时归并
 - Prime Video 只使用 About Amazon 官方月度上新文章，必须排除直播体育、音乐和无法可靠判断影视类型的条目；娱乐频道页仅用于发现最新月度文章

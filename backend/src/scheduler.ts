@@ -3,7 +3,7 @@ import { getEnabledAdapters } from "./adapters/adapterRegistry.js"
 import { db } from "./config/db.js"
 import { env } from "./config/env.js"
 import {
-  reconcileDuplicateTmdbIdentities,
+  reconcileDuplicateStableIdentities,
   reconcileSharedDateTitles,
   reconcileUniqueTitleIdentities
 } from "./services/duplicateIdentityService.js"
@@ -32,7 +32,7 @@ async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
     await reconcileMediaStatuses({ database: db, apply: true })
     await reconcileReleaseStatuses({ database: db, apply: true })
-    await reconcileDuplicateTmdbIdentities({ database: db, apply: true })
+    await reconcileDuplicateStableIdentities({ database: db, apply: true })
     await reconcileUniqueTitleIdentities({ database: db, apply: true })
     await reconcileSharedDateTitles({ database: db, apply: true })
     if (cleanPlatformOrphans) {
