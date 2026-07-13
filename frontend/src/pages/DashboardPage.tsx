@@ -66,6 +66,7 @@ export function DashboardPage() {
               fallbackLabel={heroItem.titleDisplay}
               priority
               proxyFirst
+              sizes="100vw"
             />
           </div>
         ) : null}
@@ -98,6 +99,7 @@ export function DashboardPage() {
                   fallbackLabel={heroItem.titleDisplay}
                   priority
                   proxyFirst
+                  sizes="(max-width: 760px) 88vw, 42vw"
                 />
               </div>
               <div className="heroPosterCaption">

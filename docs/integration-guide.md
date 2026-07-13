@@ -48,18 +48,20 @@ Returns the media item plus releases, source refs, current popularity signals an
 
 ```bash
 curl -sS -D - -o poster.bin http://127.0.0.1:19993/api/media/<mediaItemId>/poster
+curl -sS -D - -o poster.webp 'http://127.0.0.1:19993/api/media/<mediaItemId>/poster?width=320'
 ```
 
-The backend fetches the stored remote poster through the configured outbound proxy, validates that the response is an image, caches it by URL hash and returns the original bytes and `Content-Type`.
+Without a query parameter, the backend fetches the stored remote poster through the configured outbound proxy, validates that the response is an image, caches it by URL hash and returns the original bytes and `Content-Type`. `width` accepts `160`, `320`, `640` or `960`; it returns a WebP derivative and never enlarges a smaller source image.
 
 | Response | Meaning |
 |---|---|
 | `200` | Image body. `X-Poster-Cache` is `hit` or `miss`. |
 | `404 media_not_found` | The media item does not exist. |
 | `404 poster_not_found` | The media item has no stored poster URL. |
+| `400 invalid_poster_width` | `width` is not one of `160`, `320`, `640` or `960`. |
 | `502 poster_unavailable` | The remote image could not be fetched or did not pass validation. |
 
-Responses are browser-cacheable for one day with a seven-day `stale-while-revalidate` window. `X-Poster-Cache` is `hit`, `miss` or `stale`; stale means an expired disk copy was served because refresh failed. The route does not guarantee a transcoded image format.
+Responses are browser-cacheable for one day with a seven-day `stale-while-revalidate` window. `X-Poster-Cache` is `hit`, `miss` or `stale`; stale means an expired original disk copy was served because refresh failed. Width requests also return `X-Poster-Variant-Cache: hit|miss|fallback` and `X-Poster-Width`; `fallback` means transformation failed and the original format was returned.
 
 `GET /api/poster-health` returns title coverage, `unverified / healthy / degraded / broken` availability counts, `unknown / adequate / undersized` quality counts, disk-cache integrity and high-priority broken, degraded, missing and undersized samples. Quality samples include measured width and height. The endpoint is read-only and performs no external requests.
 

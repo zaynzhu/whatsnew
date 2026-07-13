@@ -9,6 +9,7 @@ type MediaPosterProps = {
   fallbackLabel: string
   priority?: boolean
   proxyFirst?: boolean
+  sizes?: string
 }
 
 export function MediaPoster({
@@ -17,7 +18,8 @@ export function MediaPoster({
   title,
   fallbackLabel,
   priority = false,
-  proxyFirst = true
+  proxyFirst = true,
+  sizes = "(max-width: 760px) 50vw, 20vw"
 }: MediaPosterProps) {
   const primaryMode: PosterMode = proxyFirst ? "proxy" : "direct"
   const secondaryMode: PosterMode = proxyFirst ? "direct" : "proxy"
@@ -29,11 +31,17 @@ export function MediaPoster({
 
   if (!posterUrl || mode === "failed") return <span>{fallbackLabel}</span>
 
-  const src = mode === "proxy" ? `/api/media/${mediaId}/poster` : posterUrl
+  const proxyBaseUrl = `/api/media/${mediaId}/poster`
+  const src = mode === "proxy" ? `${proxyBaseUrl}?width=640` : posterUrl
+  const responsiveSources = mode === "proxy"
+    ? [320, 640, 960].map((width) => `${proxyBaseUrl}?width=${width} ${width}w`).join(", ")
+    : undefined
 
   return (
     <img
       src={src}
+      srcSet={responsiveSources}
+      sizes={responsiveSources ? sizes : undefined}
       alt={title}
       loading={priority ? "eager" : "lazy"}
       {...(priority ? { fetchpriority: "high" } : {})}

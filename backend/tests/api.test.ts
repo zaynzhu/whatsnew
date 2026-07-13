@@ -156,6 +156,63 @@ describe("api routes", () => {
     })
   })
 
+  it("returns a requested responsive poster variant", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "streaming_movie",
+        titleDisplay: "Variant Poster",
+        posterUrl: "https://img.example.test/variant.jpg",
+        status: "released"
+      }
+    })
+    const posterService = {
+      getPoster: vi.fn(async () => ({
+        body: Buffer.from("original"),
+        contentType: "image/jpeg",
+        width: 800,
+        height: 1200,
+        cacheHit: true,
+        cacheStatus: "hit" as const
+      }))
+    }
+    const variantService = {
+      getVariant: vi.fn(async () => ({
+        body: Buffer.from("variant"),
+        contentType: "image/webp",
+        width: 320,
+        height: 480,
+        cacheStatus: "miss" as const
+      }))
+    }
+
+    const response = await request(createApp({
+      mediaRouter: createMediaRouter({ database: prisma, posterService, variantService })
+    })).get(`/api/media/${media.id}/poster?width=320`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers["content-type"]).toContain("image/webp")
+    expect(response.headers["x-poster-cache"]).toBe("hit")
+    expect(response.headers["x-poster-variant-cache"]).toBe("miss")
+    expect(response.headers["x-poster-width"]).toBe("320")
+    expect(response.body.toString()).toBe("variant")
+    expect(variantService.getVariant).toHaveBeenCalledWith(
+      "https://img.example.test/variant.jpg",
+      expect.objectContaining({ body: Buffer.from("original") }),
+      320
+    )
+  })
+
+  it("rejects unsupported responsive poster widths", async () => {
+    const response = await request(createApp()).get("/api/media/any-id/poster?width=500")
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({
+      error: "invalid_poster_width",
+      allowedWidths: [160, 320, 640, 960]
+    })
+  })
+
   it("marks repeatedly unavailable posters as broken across retry windows", async () => {
     const media = await prisma.mediaItem.create({
       data: {

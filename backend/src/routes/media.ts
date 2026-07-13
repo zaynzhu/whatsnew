@@ -9,10 +9,17 @@ import {
   type PosterHealthRecord
 } from "../services/posterHealthStateService.js"
 import { posterImageService, type PosterImageService } from "../services/posterImageService.js"
+import {
+  POSTER_VARIANT_WIDTHS,
+  posterVariantService,
+  type PosterVariantService,
+  type PosterVariantWidth
+} from "../services/posterVariantService.js"
 
 type MediaRouterDependencies = {
   database?: PrismaClient
   posterService?: Pick<PosterImageService, "getPoster">
+  variantService?: Pick<PosterVariantService, "getVariant">
 }
 
 const historyQuerySchema = z.object({
@@ -22,11 +29,17 @@ const historyQuerySchema = z.object({
 })
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const posterQuerySchema = z.object({
+  width: z.coerce.number().int().refine(
+    (value): value is PosterVariantWidth => POSTER_VARIANT_WIDTHS.includes(value as PosterVariantWidth)
+  ).optional()
+})
 
 export function createMediaRouter(dependencies: MediaRouterDependencies = {}): Router {
   const router = Router()
   const database = dependencies.database ?? db
   const posters = dependencies.posterService ?? posterImageService
+  const variants = dependencies.variantService ?? posterVariantService
 
   router.get("/", async (req, res) => {
     const { mediaType, releaseForm, status, sort = "heat", limit = "50" } = req.query
@@ -96,6 +109,12 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
   })
 
   router.get("/:id/poster", async (req, res) => {
+    const parsed = posterQuerySchema.safeParse(req.query)
+    if (!parsed.success) {
+      res.status(400).json({ error: "invalid_poster_width", allowedWidths: POSTER_VARIANT_WIDTHS })
+      return
+    }
+
     const item = await database.mediaItem.findUnique({
       where: { id: req.params.id },
       select: {
@@ -121,16 +140,23 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
 
     try {
       const image = await posters.getPoster(item.posterUrl)
-      res.setHeader("Content-Type", image.contentType)
+      const output = parsed.data.width
+        ? await variants.getVariant(item.posterUrl, image, parsed.data.width)
+        : image
+      res.setHeader("Content-Type", output.contentType)
       res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
       res.setHeader("X-Poster-Cache", image.cacheStatus)
+      if (parsed.data.width) {
+        res.setHeader("X-Poster-Variant-Cache", output.cacheStatus)
+        if (output.width) res.setHeader("X-Poster-Width", String(output.width))
+      }
       if (image.cacheStatus === "stale") {
         await markPosterDegraded(database, item as PosterHealthRecord, "stale_cache_fallback", new Date(), image)
           .catch(() => {})
       } else {
         await markPosterHealthy(database, item as PosterHealthRecord, new Date(), image).catch(() => {})
       }
-      res.send(image.body)
+      res.send(output.body)
     } catch {
       await markPosterDegraded(database, item as PosterHealthRecord, "upstream_unavailable").catch(() => {})
       res.status(502).json({ error: "poster_unavailable" })

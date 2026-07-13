@@ -145,15 +145,17 @@ Startup and daily batches also verify up to 20 high-priority poster URLs. Verifi
 
 ## Poster Cache
 
-Frontend poster requests use `GET /api/media/:id/poster`. The backend stores the upstream image body and a small JSON metadata file under `backend/.cache/posters/`; this directory is ignored by Git and can be removed safely when the services are stopped. The next request downloads the image again.
+Frontend poster requests use responsive `GET /api/media/:id/poster?width=320|640|960` URLs. The backend stores the upstream image body and metadata under `backend/.cache/posters/`, then stores bounded WebP derivatives under `backend/.cache/poster-variants/`. Both directories are ignored by Git and can be removed safely when the services are stopped. The next request rebuilds the missing cache entry.
 
 ```bash
 find backend/.cache/posters -type f | wc -l
 du -sh backend/.cache/posters
-curl -sS -D - -o /dev/null http://127.0.0.1:19993/api/media/<mediaItemId>/poster
+find backend/.cache/poster-variants -type f | wc -l
+du -sh backend/.cache/poster-variants
+curl -sS -D - -o /dev/null 'http://127.0.0.1:19993/api/media/<mediaItemId>/poster?width=320'
 ```
 
-Inspect `X-Poster-Cache: hit|miss`, `Content-Type` and the HTTP status. The service validates and caches the upstream response but does not force a common image format.
+Inspect `X-Poster-Cache`, `X-Poster-Variant-Cache`, `X-Poster-Width`, `Content-Type` and the HTTP status. A normal width response is WebP; `X-Poster-Variant-Cache: fallback` indicates that the original bytes were returned after a conversion failure.
 
 ```bash
 npm run audit:posters --workspace backend

@@ -79,6 +79,7 @@ export function MediaDetailPage() {
             posterUrl={data.posterUrl}
             title={data.titleDisplay}
             fallbackLabel={data.mediaType}
+            sizes="164px"
           />
         </div>
       </section>
