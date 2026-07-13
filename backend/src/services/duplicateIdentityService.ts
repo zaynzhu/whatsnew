@@ -21,6 +21,12 @@ export type UniqueTitleIdentityResult = {
   samples: string[]
 }
 
+export type SharedDateTitleResult = {
+  groups: number
+  merged: number
+  samples: string[]
+}
+
 const IDENTITY_FIELDS = ["tmdbId", "tvmazeId", "imdbId", "traktId", "tvdbId"] as const
 const TITLE_ALIASES_STORAGE_LIMIT = 191
 const UNKNOWN_LANGUAGE_SOURCES = new Set([
@@ -39,6 +45,10 @@ type ReconciliationMediaItem = MediaItem & {
     releases: number
     popularitySignals: number
   }
+}
+
+type TitleReconciliationMediaItem = ReconciliationMediaItem & {
+  sourceRefs: Array<{ source: string; isActive: boolean }>
 }
 
 function identityScore(item: MediaItem): number {
@@ -214,16 +224,14 @@ function normalizedLanguage(value: string | null): string | null {
   return value?.trim().toLowerCase().replace(/_/g, "-").split("-")[0] ?? null
 }
 
-function hasOnlyUnknownLanguageSources(item: ReconciliationMediaItem & {
-  sourceRefs: Array<{ source: string; isActive: boolean }>
-}): boolean {
+function hasOnlyUnknownLanguageSources(item: TitleReconciliationMediaItem): boolean {
   const activeSources = item.sourceRefs.filter((ref) => ref.isActive).map((ref) => ref.source)
   return activeSources.length > 0 && activeSources.every((source) => UNKNOWN_LANGUAGE_SOURCES.has(source))
 }
 
 function languagesCompatible(
   canonical: ReconciliationMediaItem,
-  duplicate: ReconciliationMediaItem & { sourceRefs: Array<{ source: string; isActive: boolean }> }
+  duplicate: TitleReconciliationMediaItem
 ): boolean {
   if (hasOnlyUnknownLanguageSources(duplicate)) return true
   const canonicalLanguage = normalizedLanguage(canonical.originalLanguage)
@@ -279,6 +287,72 @@ export async function reconcileUniqueTitleIdentities(
     result.groups += 1
     if (result.samples.length < 20) {
       result.samples.push(`${canonical.titleDisplay} x${duplicates.length + 1}`)
+    }
+    if (!options.apply) continue
+
+    for (const duplicate of duplicates) {
+      canonical = await mergeDuplicate(options.database, canonical, duplicate)
+      result.merged += 1
+    }
+  }
+
+  return result
+}
+
+function activeSources(item: TitleReconciliationMediaItem): string[] {
+  return item.sourceRefs.filter((ref) => ref.isActive).map((ref) => ref.source)
+}
+
+export async function reconcileSharedDateTitles(
+  options: ReconciliationOptions
+): Promise<SharedDateTitleResult> {
+  const items = await options.database.mediaItem.findMany({
+    where: {
+      firstReleaseDate: { not: null },
+      tmdbId: null,
+      tvmazeId: null,
+      imdbId: null,
+      traktId: null,
+      tvdbId: null
+    },
+    include: {
+      sourceRefs: { select: { source: true, isActive: true } },
+      _count: { select: { sourceRefs: true, releases: true, popularitySignals: true } }
+    },
+    orderBy: { createdAt: "asc" },
+    take: Math.max(2, Math.min(options.limit ?? 10000, 10000))
+  })
+  const grouped = new Map<string, typeof items>()
+  for (const item of items) {
+    const title = normalizeTitle(item.titleDisplay)
+    if (!title || !item.firstReleaseDate) continue
+    const key = `${item.mediaType}:${title}:${item.firstReleaseDate}`
+    const group = grouped.get(key) ?? []
+    group.push(item)
+    grouped.set(key, group)
+  }
+
+  const result: SharedDateTitleResult = {
+    groups: 0,
+    merged: 0,
+    samples: []
+  }
+
+  for (const group of grouped.values()) {
+    if (group.length < 2) continue
+    const sourceFamilies = new Set(group.flatMap(activeSources))
+    if (sourceFamilies.size < 2) continue
+    const sorted = [...group].sort((left, right) => (
+      relationScore(right) - relationScore(left)
+      || left.createdAt.getTime() - right.createdAt.getTime()
+    ))
+    let canonical: ReconciliationMediaItem = sorted[0]
+    const duplicates = sorted.slice(1).filter((duplicate) => languagesCompatible(canonical, duplicate))
+    if (duplicates.length === 0) continue
+
+    result.groups += 1
+    if (result.samples.length < 20) {
+      result.samples.push(`${canonical.titleDisplay} (${canonical.firstReleaseDate}) x${duplicates.length + 1}`)
     }
     if (!options.apply) continue
 

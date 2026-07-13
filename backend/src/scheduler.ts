@@ -4,6 +4,7 @@ import { db } from "./config/db.js"
 import { env } from "./config/env.js"
 import {
   reconcileDuplicateTmdbIdentities,
+  reconcileSharedDateTitles,
   reconcileUniqueTitleIdentities
 } from "./services/duplicateIdentityService.js"
 import { cleanupOrphanedMedia } from "./services/orphanedMediaCleanupService.js"
@@ -29,6 +30,7 @@ async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
     await reconcileDuplicateTmdbIdentities({ database: db, apply: true })
     await reconcileUniqueTitleIdentities({ database: db, apply: true })
+    await reconcileSharedDateTitles({ database: db, apply: true })
     if (cleanPlatformOrphans) {
       await cleanupOrphanedMedia({
         database: db,

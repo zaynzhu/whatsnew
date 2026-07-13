@@ -168,6 +168,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 
 - 平台完整快照同步后，已不在最新快照中的来源关联会自动停用
 - 小时任务会合并无冲突的重复 TMDb 身份，并把“同类型、同名、发行年份兼容且只有一个外部身份锚点”的来源孤立记录并入该作品；存在多个身份候选时保持分离
+- 对完全没有外部 ID 的记录，只有两个以上独立来源同时给出相同作品类型、规范化标题和精确首发日期时才自动归并
 - 启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
 - 两项维护均可先预览再执行：`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`
 

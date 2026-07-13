@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import {
   reconcileDuplicateTmdbIdentities,
+  reconcileSharedDateTitles,
   reconcileUniqueTitleIdentities
 } from "../src/services/duplicateIdentityService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
@@ -165,6 +166,70 @@ describe("reconcileUniqueTitleIdentities", () => {
     const result = await reconcileUniqueTitleIdentities({ database: testPrisma, apply: true })
 
     expect(result).toMatchObject({ groups: 0, merged: 0, ambiguous: 0 })
+    expect(await testPrisma.mediaItem.count()).toBe(2)
+  })
+})
+
+describe("reconcileSharedDateTitles", () => {
+  it("merges source-only records when independent sources agree on exact title, type and date", async () => {
+    const douban = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "documentary",
+        releaseForm: "documentary_series",
+        titleDisplay: "南宋大贤王十朋",
+        firstReleaseDate: "2026-08-06",
+        heatScore: 10
+      }
+    })
+    const iqiyi = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "documentary",
+        releaseForm: "documentary_series",
+        titleDisplay: "南宋大贤王十朋",
+        firstReleaseDate: "2026-08-06",
+        posterUrl: "https://image.test/wang-shipeng.jpg",
+        heatScore: 20
+      }
+    })
+    await testPrisma.mediaSourceRef.createMany({
+      data: [
+        { mediaItemId: douban.id, source: "douban", sourceId: "douban-38520951" },
+        { mediaItemId: iqiyi.id, source: "iqiyi", sourceId: "iqiyi-2978140980432001" }
+      ]
+    })
+
+    const result = await reconcileSharedDateTitles({ database: testPrisma, apply: true })
+    const merged = await testPrisma.mediaItem.findFirstOrThrow({
+      include: { sourceRefs: true }
+    })
+
+    expect(result).toMatchObject({ groups: 1, merged: 1 })
+    expect(await testPrisma.mediaItem.count()).toBe(1)
+    expect(merged.posterUrl).toBe("https://image.test/wang-shipeng.jpg")
+    expect(merged.heatScore).toBe(20)
+    expect(merged.sourceRefs).toHaveLength(2)
+  })
+
+  it("does not merge duplicate rows supported by only one source family", async () => {
+    const items = await Promise.all(["first", "second"].map((sourceId) => testPrisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "streaming_movie",
+        titleDisplay: "同日同名",
+        firstReleaseDate: "2026-08-06"
+      }
+    })))
+    await testPrisma.mediaSourceRef.createMany({
+      data: items.map((item, index) => ({
+        mediaItemId: item.id,
+        source: "youku",
+        sourceId: `youku-${index}`
+      }))
+    })
+
+    const result = await reconcileSharedDateTitles({ database: testPrisma, apply: true })
+
+    expect(result).toMatchObject({ groups: 0, merged: 0 })
     expect(await testPrisma.mediaItem.count()).toBe(2)
   })
 })
