@@ -38,6 +38,7 @@ This file is the short operational handoff for the current branch.
 - TVmaze now deduplicates overlapping country-schedule and web-schedule results by stable episode ID before grouping releases. A real main-database sync on 2026-07-13 completed with 229 items, retained fresh/passed source health and reduced exact duplicate release groups from 2 to 0.
 - Current dashboard, discovery, calendar, trending and Douban preview queries now require an active source reference while direct media detail remains available for history. Main-database validation on 2026-07-13 retained all 6 inactive history-only works, returned none from title searches or dashboard candidates, and returned HTTP 200 for direct detail.
 - Exact past premiere dates now also resolve a work lifecycle from `unknown` to `released`. Main-database reconciliation on 2026-07-13 corrected `Iyanu` and `Faster with Newbern and Cotten`; the follow-up dry run found zero contradictions, while all 24 remaining active `unknown` works were intentionally preserved because none has a release date.
+- Stable external-ID matching and TMDb reconciliation now use movie/series work kinds instead of exact content types. Main-database reconciliation on 2026-07-13 merged 7 conflict-free generic/specialized duplicates (`Big Brother`, `完美世界`, `尼古喵喵`, `无职转生～到了异世界就拿出真本事～`, `仙逆`, `汪汪队立大功`, `Lock Upp`), retained animation/variety classifications and all source relations, and left zero duplicate TMDb work identities on the follow-up dry run.
 
 ## Source Coverage
 

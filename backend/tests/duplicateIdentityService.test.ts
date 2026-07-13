@@ -87,6 +87,67 @@ describe("reconcileDuplicateTmdbIdentities", () => {
     expect(result).toMatchObject({ groups: 1, merged: 0, conflicts: 1 })
     expect(await testPrisma.mediaItem.count()).toBe(2)
   })
+
+  it("merges specialized and generic content types within one series identity", async () => {
+    const anime = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "anime",
+        releaseForm: "animated_series",
+        titleDisplay: "尼古喵喵",
+        tmdbId: 312949,
+        imdbId: "tt39551330",
+        tvdbId: 473423,
+        posterUrl: "https://image.test/chainsmoker-cat.jpg"
+      }
+    })
+    const series = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        titleDisplay: "Chainsmoker Cat",
+        tmdbId: 312949,
+        imdbId: "tt39551330",
+        traktId: 315787,
+        tvdbId: 473423
+      }
+    })
+    await testPrisma.mediaSourceRef.createMany({
+      data: [
+        { mediaItemId: anime.id, source: "tmdb", sourceId: "tmdb-tv-312949" },
+        { mediaItemId: series.id, source: "trakt", sourceId: "trakt:show:315787" }
+      ]
+    })
+
+    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+    const merged = await testPrisma.mediaItem.findUniqueOrThrow({
+      where: { id: anime.id },
+      include: { sourceRefs: true }
+    })
+
+    expect(result).toMatchObject({ groups: 1, merged: 1, conflicts: 0 })
+    expect(merged).toMatchObject({
+      mediaType: "anime",
+      releaseForm: "animated_series",
+      traktId: 315787,
+      posterUrl: "https://image.test/chainsmoker-cat.jpg"
+    })
+    expect(JSON.parse(merged.titleAliases)).toContain("Chainsmoker Cat")
+    expect(merged.sourceRefs).toHaveLength(2)
+  })
+
+  it("keeps movie and series TMDb namespaces separate", async () => {
+    await testPrisma.mediaItem.createMany({
+      data: [
+        { mediaType: "movie", releaseForm: "streaming_movie", titleDisplay: "Movie", tmdbId: 100 },
+        { mediaType: "series", releaseForm: "tv_series", titleDisplay: "Series", tmdbId: 100 }
+      ]
+    })
+
+    const result = await reconcileDuplicateTmdbIdentities({ database: testPrisma, apply: true })
+
+    expect(result).toMatchObject({ groups: 0, merged: 0, conflicts: 0 })
+    expect(await testPrisma.mediaItem.count()).toBe(2)
+  })
 })
 
 describe("reconcileUniqueTitleIdentities", () => {

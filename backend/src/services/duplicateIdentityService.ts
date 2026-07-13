@@ -1,4 +1,5 @@
 import type { MediaItem, PrismaClient } from "@prisma/client"
+import { mediaWorkKind } from "../domain/mediaWorkKind.js"
 import { normalizeTitle, parseJsonArray, toJsonArray } from "../domain/normalizer.js"
 
 type ReconciliationOptions = {
@@ -53,6 +54,10 @@ type TitleReconciliationMediaItem = ReconciliationMediaItem & {
 
 function identityScore(item: MediaItem): number {
   return IDENTITY_FIELDS.reduce((score, field) => score + Number(item[field] != null), 0)
+}
+
+function classificationScore(item: MediaItem): number {
+  return Number(!["movie", "series"].includes(item.mediaType))
 }
 
 function hasExternalIdentity(item: MediaItem): boolean {
@@ -176,7 +181,7 @@ export async function reconcileDuplicateTmdbIdentities(
   })
   const grouped = new Map<string, typeof items>()
   for (const item of items) {
-    const key = `${item.mediaType}:${item.tmdbId}`
+    const key = `${mediaWorkKind(item)}:${item.tmdbId}`
     const group = grouped.get(key) ?? []
     group.push(item)
     grouped.set(key, group)
@@ -191,7 +196,8 @@ export async function reconcileDuplicateTmdbIdentities(
 
   for (const group of duplicateGroups) {
     const sorted = [...group].sort((left, right) => (
-      identityScore(right) - identityScore(left)
+      classificationScore(right) - classificationScore(left)
+      || identityScore(right) - identityScore(left)
       || relationScore(right) - relationScore(left)
       || left.createdAt.getTime() - right.createdAt.getTime()
     ))

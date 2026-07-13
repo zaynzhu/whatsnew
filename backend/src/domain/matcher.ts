@@ -1,5 +1,6 @@
 import { normalizeTitle } from "./normalizer.js"
 import type { ExistingMediaCandidate, NormalizedMediaInput } from "./types.js"
+import { hasSameWorkKind } from "./mediaWorkKind.js"
 
 function year(date: string | null): string | null {
   return date?.slice(0, 4) ?? null
@@ -39,14 +40,14 @@ function hasExternalIdentity(candidate: ExistingMediaCandidate): boolean {
 
 export function findBestMatch(input: NormalizedMediaInput, candidates: ExistingMediaCandidate[]): ExistingMediaCandidate | null {
   const byExternalId = candidates.find((candidate) => {
-    const sameMediaType = candidate.mediaType === input.mediaType
+    const sameWorkKind = hasSameWorkKind(input, candidate)
 
     return (
-      (input.tmdbId != null && candidate.tmdbId === input.tmdbId && sameMediaType) ||
-      (input.tvmazeId != null && candidate.tvmazeId === input.tvmazeId) ||
-      (input.imdbId != null && candidate.imdbId === input.imdbId) ||
-      (input.traktId != null && candidate.traktId === input.traktId && sameMediaType) ||
-      (input.tvdbId != null && candidate.tvdbId === input.tvdbId && sameMediaType)
+      (input.tmdbId != null && candidate.tmdbId === input.tmdbId && sameWorkKind) ||
+      (input.tvmazeId != null && candidate.tvmazeId === input.tvmazeId && sameWorkKind) ||
+      (input.imdbId != null && candidate.imdbId === input.imdbId && sameWorkKind) ||
+      (input.traktId != null && candidate.traktId === input.traktId && sameWorkKind) ||
+      (input.tvdbId != null && candidate.tvdbId === input.tvdbId && sameWorkKind)
     )
   })
   if (byExternalId) return byExternalId

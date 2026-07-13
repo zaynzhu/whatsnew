@@ -14,7 +14,11 @@ import { isDoubanPosterUpgrade } from "../utils/doubanPosterUrl.js"
 import { formatLocalDate } from "../utils/date.js"
 import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
-import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
+import {
+  loadExistingMediaCandidates,
+  mediaTypeFromStorageValue,
+  releaseFormFromStorageValue
+} from "./mediaCandidateService.js"
 import { PopularitySnapshotService } from "./popularitySnapshotService.js"
 
 const POPULARITY_HISTORY_DAYS = 90
@@ -269,6 +273,7 @@ async function upsertItem(
     candidates.push({
       id: mediaItem.id,
       mediaType: mediaTypeFromStorageValue(mediaItem.mediaType),
+      releaseForm: releaseFormFromStorageValue(mediaItem.releaseForm),
       sourceContentType: mediaItem.sourceContentType,
       titleDisplay: mediaItem.titleDisplay,
       titleAliases,

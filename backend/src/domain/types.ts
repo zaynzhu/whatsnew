@@ -88,6 +88,7 @@ export interface SourceAdapter<Result extends SourceFetchResult = AdapterItem[]>
 export interface ExistingMediaCandidate {
   id: string
   mediaType: MediaType
+  releaseForm: ReleaseForm
   sourceContentType?: string | null
   titleDisplay: string
   titleAliases: string[]

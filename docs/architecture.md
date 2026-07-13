@@ -31,12 +31,12 @@ Current catalog surfaces require at least one active `MediaSourceRef`: dashboard
 
 1. An adapter fetches and normalizes one source into `AdapterItem` rows.
 2. `runSourceSync()` creates a `SourceSyncRun` with `running`.
-3. Items are matched by stable source refs and external IDs before title matching.
+3. Items are matched by stable source refs and external IDs before title matching. External IDs require the same work kind: theatrical, streaming, animated and documentary films share the movie namespace; regular, animated, documentary, variety and short-form series share the series namespace. This permits specialized content classifications to reconcile with generic upstream types without ever merging a movie into a series.
 4. Canonical work status is constrained by an exact `firstReleaseDate`: a future premiere is `upcoming`, while a reached premiere cannot remain `upcoming` or `unknown`. Undated works retain `unknown`; platform availability remains a source-attributed `Release` rather than overwriting the work lifecycle. Exact-dated release rows also advance from `upcoming` to `airing_today` and `available`; explicit same-day availability, delayed and ended states are preserved.
 5. Releases and popularity signals are upserted with original source attribution.
 6. Complete snapshots can retire missing releases or mark missing popularity signals historical.
 7. The sync run is finished as `success`, `warning` or `failed`.
-8. After initial, hourly and daily adapter batches, data-quality maintenance repairs legacy work and release date/status contradictions before duplicate reconciliation; TMDb poster enrichment then processes up to 40 eligible missing-poster titles when TMDb is runnable.
+8. After initial, hourly and daily adapter batches, data-quality maintenance repairs legacy work and release date/status contradictions before duplicate reconciliation. TMDb duplicate reconciliation groups by work kind rather than exact content type and keeps specialized classifications over generic `movie` / `series`; TMDb poster enrichment then processes up to 40 eligible missing-poster titles when TMDb is runnable.
 
 `SchedulerController` registers one hourly-group task and one daily-group task in `Asia/Shanghai`. `SCHEDULER_HOURLY_INTERVAL_HOURS` accepts `1, 2, 3, 4, 6, 12`; `SCHEDULER_DAILY_TIME` accepts `HH:mm`. A settings update stops the old future tasks and registers the new cron expressions without restarting the process or re-running startup sync. The settings response computes both next-run timestamps. The China sandbox disables scheduled and startup sync regardless of these values.
 

@@ -49,6 +49,7 @@ describe("normalizePlatform", () => {
 
 describe("findBestMatch", () => {
   const candidateMetadata = {
+    releaseForm: "tv_series" as const,
     overview: null,
     posterUrl: null,
     productionCountries: "[]",
@@ -87,12 +88,20 @@ describe("findBestMatch", () => {
     expect(findBestMatch(input, candidates)?.id).toBe("a")
   })
 
-  it("does not match TMDb ids across different media types", () => {
+  it("does not match TMDb ids across movie and series work kinds", () => {
     const candidates: ExistingMediaCandidate[] = [
-      { ...candidateMetadata, id: "movie", mediaType: "movie", titleDisplay: "Different Movie", titleAliases: [], firstReleaseDate: "2026-04-01", originalLanguage: "en", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+      { ...candidateMetadata, id: "movie", mediaType: "movie", releaseForm: "streaming_movie", titleDisplay: "Different Movie", titleAliases: [], firstReleaseDate: "2026-04-01", originalLanguage: "en", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
     ]
 
     expect(findBestMatch(input, candidates)).toBeNull()
+  })
+
+  it("matches stable ids across content types within the same series work kind", () => {
+    const candidates: ExistingMediaCandidate[] = [
+      { ...candidateMetadata, id: "anime", mediaType: "anime", releaseForm: "animated_series", titleDisplay: "尼古喵喵", titleAliases: [], firstReleaseDate: "2026-07-03", originalLanguage: "ja", tmdbId: 100, tvmazeId: null, imdbId: null, traktId: null }
+    ]
+
+    expect(findBestMatch(input, candidates)?.id).toBe("anime")
   })
 
   it("matches TVDB ids for the same media type", () => {

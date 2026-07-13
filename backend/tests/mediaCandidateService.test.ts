@@ -8,6 +8,7 @@ describe("loadExistingMediaCandidates", () => {
         findMany: vi.fn(async () => [{
           id: "media-1",
           mediaType: "movie",
+          releaseForm: "streaming_movie",
           sourceContentType: "movie",
           titleDisplay: "Midnight File",
           titleAliases: "[\"Midnight Archive\"]",
@@ -30,6 +31,7 @@ describe("loadExistingMediaCandidates", () => {
     await expect(loadExistingMediaCandidates(prisma as never)).resolves.toEqual([{
       id: "media-1",
       mediaType: "movie",
+      releaseForm: "streaming_movie",
       sourceContentType: "movie",
       titleDisplay: "Midnight File",
       titleAliases: ["Midnight Archive"],

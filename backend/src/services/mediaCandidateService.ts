@@ -1,5 +1,10 @@
 import type { PrismaClient } from "@prisma/client"
-import { MEDIA_TYPES, type MediaType } from "@whatsnew/shared/media"
+import {
+  MEDIA_TYPES,
+  RELEASE_FORMS,
+  type MediaType,
+  type ReleaseForm
+} from "@whatsnew/shared/media"
 import { parseJsonArray } from "../domain/normalizer.js"
 import type { ExistingMediaCandidate } from "../domain/types.js"
 
@@ -9,12 +14,19 @@ export function mediaTypeFromStorageValue(value: string): MediaType {
   return "series"
 }
 
+export function releaseFormFromStorageValue(value: string): ReleaseForm {
+  if (RELEASE_FORMS.includes(value as ReleaseForm)) return value as ReleaseForm
+
+  return "tv_series"
+}
+
 export async function loadExistingMediaCandidates(prisma: PrismaClient): Promise<ExistingMediaCandidate[]> {
   const rows = await prisma.mediaItem.findMany()
 
   return rows.map((row) => ({
     id: row.id,
     mediaType: mediaTypeFromStorageValue(row.mediaType),
+    releaseForm: releaseFormFromStorageValue(row.releaseForm),
     sourceContentType: row.sourceContentType,
     titleDisplay: row.titleDisplay,
     titleAliases: parseJsonArray(row.titleAliases),

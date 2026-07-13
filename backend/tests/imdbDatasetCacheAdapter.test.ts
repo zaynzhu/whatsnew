@@ -12,6 +12,7 @@ function candidate(overrides: Partial<ExistingMediaCandidate> = {}): ExistingMed
   return {
     id: "media-1",
     mediaType: "movie",
+    releaseForm: "streaming_movie",
     titleDisplay: "Midnight File",
     titleAliases: [],
     overview: null,
