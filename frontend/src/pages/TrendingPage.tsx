@@ -90,6 +90,13 @@ function signalMetric(signal: PopularitySignal): string {
   return signal.valueLabel ?? (signal.value != null ? compactNumber(signal.value) : signal.window)
 }
 
+export function trendingPosterUrl(signal: Pick<PopularitySignal, "source">, posterUrl: string | null): string | null {
+  if (signal.source !== "iqiyi_reserve" || !posterUrl) return posterUrl
+  if (!/^https?:\/\/[^/]*iqiyipic\.com\//i.test(posterUrl)) return posterUrl
+
+  return posterUrl.replace(/_\d{2,4}_\d{2,4}(?=\.(?:jpe?g|webp|png)(?:[?#]|$))/i, "_579_772")
+}
+
 export function TrendingPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const movement = searchParams.get("movement") ?? ""
@@ -228,6 +235,7 @@ export function TrendingPage() {
         ) : works.length > 0 ? (
           works.map(({ mediaItem, signals }, index) => {
             const primarySignal = signals[0]
+            const posterUrl = trendingPosterUrl(primarySignal, mediaItem.posterUrl)
 
             return (
               <article className={`trendingCard ${sourceTone(primarySignal.source)}`} key={mediaItem.id}>
@@ -235,10 +243,11 @@ export function TrendingPage() {
                   <div className="trendingPoster">
                     <MediaPoster
                       mediaId={mediaItem.id}
-                      posterUrl={mediaItem.posterUrl}
+                      posterUrl={posterUrl}
                       title={mediaItem.titleDisplay}
                       fallbackLabel={mediaItem.titleDisplay}
                       priority={index < 5}
+                      proxyFirst={primarySignal.source !== "iqiyi_reserve"}
                     />
                     <span className="trendingMediaType">
                       {mediaTypeLabel(mediaItem.mediaType)}

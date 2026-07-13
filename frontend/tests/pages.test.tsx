@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "../src/App"
+import { trendingPosterUrl } from "../src/pages/TrendingPage"
 
 const mediaItem = {
   id: "media-1",
@@ -618,6 +619,14 @@ describe("frontend pages", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/trending?source=iqiyi_reserve&platform=%E7%88%B1%E5%A5%87%E8%89%BA"
     )
+  })
+
+  it("仅为热度榜爱奇艺预约升级海报清晰度", () => {
+    const posterUrl = "https://pic8.iqiyipic.com/image/example_141_188.jpg"
+
+    expect(trendingPosterUrl({ ...signal, source: "iqiyi_reserve" }, posterUrl))
+      .toBe("https://pic8.iqiyipic.com/image/example_579_772.jpg")
+    expect(trendingPosterUrl(signal, posterUrl)).toBe(posterUrl)
   })
 
   it("renders positive negative and new rank movement", async () => {
