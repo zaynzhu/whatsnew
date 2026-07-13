@@ -33,6 +33,8 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 6. The sync run is finished as `success`, `warning` or `failed`.
 7. After startup, hourly and daily adapter batches, TMDb poster enrichment processes up to 40 eligible missing-poster titles when TMDb is runnable.
 
+The scheduler is currently code-defined rather than user-configurable: hourly scopes start at minute `0`, while daily scopes start at `09:15` in `Asia/Shanghai`. The China sandbox disables both scheduled and startup sync.
+
 At backend startup, `recoverInterruptedSourceRuns()` marks unfinished `running` rows as `failed` with `同步进程中断，已自动收尾；请重新触发同步`. This prevents stale status after dev-server restarts or process exits.
 
 External reads use the shared `SourceHttpClient`. The production client preserves the two-second per-origin rate limit and makes up to two attempts for idempotent requests after network errors, timeouts, HTTP 408, HTTP 429 or HTTP 5xx. Non-idempotent methods and ordinary HTTP 4xx responses are never retried automatically.
@@ -53,6 +55,8 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 12. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
 13. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Broken posters wait seven days before verification retries and are eligible for TMDb replacement.
 
+The heat page has one scoped exception: `iqiyi_reserve` poster URLs from `newOnlinePCW` are upgraded from the source's `141×188` thumbnail size to `579×772` and loaded direct-first. This does not change stored URLs or the poster behavior of other pages.
+
 ## Source Registry
 
 `backend/src/settings/sourceCatalog.ts` is the source-of-truth catalog. `backend/src/adapters/adapterRegistry.ts` maps implemented adapters to schedule groups.
@@ -61,12 +65,14 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 |---|---|
 | Global metadata | TVmaze, TMDb, Trakt, TheTVDB |
 | International platforms | Netflix, Hulu, Disney+, Apple TV+ |
-| China platforms | Youku, iQIYI, MangoTV, Bilibili, Douban |
+| China platforms | Youku, iQIYI, Bilibili, Douban |
 | Local enrichment | IMDb datasets cache, manual only |
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.
 
 Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure.
+
+Youku uses the signed MTop `kuflix_node_page` reservation node for paginated movie and series upcoming lists. iQIYI uses the complete `newOnlinePCW` upcoming page. MangoTV is blocked because the former channel-homepage modules did not provide a trustworthy upcoming/reservation contract.
 
 ## Identity And Release Semantics
 

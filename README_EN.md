@@ -16,7 +16,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 </div>
 
 > [!TIP]
-> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku and iQIYI, keeping per-source popularity history scoped by `title + source + platform + region + window`. Designed for self-hosting on a home LAN or private NAS.
+> WhatsNew aggregates signals from TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Max, Youku, iQIYI and more, keeping per-source popularity history scoped by `title + source + platform + region + window`. Designed for self-hosting on a home LAN or private NAS.
 
 ---
 
@@ -77,13 +77,14 @@ npm run sync:trakt --workspace backend
 npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
-npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
 npm run sync:douban --workspace backend
 npm run dev:backend
 npm run dev:frontend
 ```
+
+Never evaluate domestic adapters directly against the main database. Use `npm run sandbox:prepare`, then `npm run sandbox:sync -- youku` or another accepted domestic source. Run the isolated services with `npm run sandbox:backend` and `npm run sandbox:frontend`, then open `http://127.0.0.1:19995/`.
 
 The frontend defaults to port `19992`, the backend to `19993`. After launch, visit `http://127.0.0.1:19992`.
 
@@ -97,9 +98,10 @@ Once both services are running, manage global proxies, source enable state, per-
 - Sensitive values are never re-filled into inputs or returned in plain text via the API; the page only shows masks
 - Global proxies support `HTTP_PROXY` and `HTTPS_PROXY` separately
 - Each source supports `inherit` (follow global), `direct` (no proxy) and `custom` (custom proxy)
-- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Youku, iQIYI, MangoTV, Bilibili, Douban; Max is currently WBD-restricted and IMDb is manual local-datasets enrichment
+- Sources currently integrated and syncable: TVmaze, TMDb, Trakt, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Youku, iQIYI, Bilibili and Douban; Max and MangoTV are currently blocked, while IMDb is manual local-datasets enrichment
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
+- Hourly scopes run at minute `0`; daily scopes run at `09:15` in `Asia/Shanghai`. These are code-defined schedules, not settings-page fields
 
 ## 🖼️ Poster Acquisition And Delivery
 
@@ -108,6 +110,7 @@ Once both services are running, manage global proxies, source enable state, per-
 - Safe duplicates move source refs, popularity and related rows transactionally; external-ID conflicts, artwork-free results and candidates without a clear confidence lead are never force-linked and retry after 7 days
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
 - Every frontend poster requests `GET /api/media/:id/poster` by default; the backend caches the upstream response under `backend/.cache/posters/`, while the frontend falls back to the original URL if the proxy fails
+- The iQIYI reservation cards on the heat page are the only scoped exception: that page upgrades `141×188` source thumbnails to `579×772` and loads them direct-first; all other pages keep the shared proxy flow
 - The proxy preserves the upstream response bytes and `Content-Type`; it does not guarantee a common transcoded format
 
 > [!WARNING]
@@ -174,14 +177,16 @@ TheTVDB supports only the free project API Key and never falls back to any paid 
 - Anywhere TheTVDB-provided data is shown on a page, the TheTVDB source attribution is displayed
 - Manual sync: `npm run sync:thetvdb --workspace backend`
 
+### Youku And iQIYI Reservations
+
+- Youku reads paginated movie and series upcoming reservations from the signed `mtop.youku.columbus.gateway.new.execute` node, preserving reservation counts, upcoming status and source links; it no longer reads a channel homepage
+- iQIYI reads the complete `https://www.iqiyi.com/newOnlinePCW` upcoming list and preserves reservation counts; offline entries without a date remain upcoming
+- Both belong to the hourly group and must pass in the China sandbox before main-database sync. Disabling a source does not delete persisted snapshots
+- Manual sync: `npm run sync:youku --workspace backend`, `npm run sync:iqiyi --workspace backend`
+
 ### MangoTV
 
-The MangoTV source reads `__NUXT__` embedded data from the TV channel page (`https://www.mgtv.com/tv/`) and syncs the "Hot Dramas" and "New Dramas" modules.
-
-- "Hot Dramas" is a complete ranking written as popularity signals; entries missing from the next sync become historical
-- "New Dramas" is a platform catalog written as dateless releases; the page provides no specific launch dates
-- Reservation and follow-along calendars are not included in this version, as the page exposes no structured date data
-- Manual sync: `npm run sync:mango-tv --workspace backend`
+MangoTV is blocked because the former channel-homepage modules do not provide a trustworthy upcoming/reservation contract. The research adapter and catalog entry remain, but the source is not scheduled and must not be restored as production data from the old homepage flow.
 
 ### Bilibili
 
@@ -208,7 +213,7 @@ The Douban source reads the movie TOP250 chart API (`movie.douban.com/j/chart/to
 
 - TOP250 emits only media and a rating popularity signal (`sourceCategory: chinese_reputation`)
 - Mobile modules emit release calendar rows and record the module order as the `douban_upcoming` interest signal
-- Sync endpoints: `m.douban.com/rexxar/api/v2/movie/modules`, `m.douban.com/rexxar/api/v2/tv/modules`
+- Sync endpoints: `m.douban.com/rexxar/api/v2/movie/coming_soon`, `m.douban.com/rexxar/api/v2/tv/coming_soon`
 - Disabled by default; enable from the settings page before manual sync. `DOUBAN_COOKIE` is optional. Do not scrape at high frequency or bypass login/captcha
 - Manual sync: `npm run sync:douban --workspace backend`
 

@@ -77,7 +77,6 @@ npm run sync:trakt --workspace backend
 npm run sync:netflix --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
-npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
 npm run sync:douban --workspace backend
@@ -99,9 +98,10 @@ Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启
 - 敏感值不会回填到输入框或通过 API 返回明文，页面只显示掩码
 - 全局代理分别支持 `HTTP_PROXY` 和 `HTTPS_PROXY`
 - 单个数据源支持 `inherit`（跟随全局）、`direct`（直连）和 `custom`（自定义代理）
-- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Apple TV+、优酷、爱奇艺、芒果TV、哔哩哔哩和豆瓣；Max 当前受 WBD 访问限制，IMDb 使用本地 datasets 手动导入
+- 已接入并可同步的数据源为 TVmaze、TMDb、Trakt、TheTVDB、Netflix、Hulu、Disney+、Apple TV+、优酷、爱奇艺、哔哩哔哩和豆瓣；Max 与芒果TV 当前受限，IMDb 使用本地 datasets 手动导入
 - 规划中、接入受限和商业接口的数据源只作为目录展示，不能启用或同步
 - 数据源页和设置页每 5 秒刷新一次状态；后端启动时会把进程中断遗留的 `running` 同步记录收尾为 `failed`
+- 小时组固定每小时整点执行，日组固定按上海时区每天 `09:15` 执行；这是后端调度代码，不是当前设置页可编辑项
 
 ## 🖼️ 海报获取与显示
 
@@ -111,6 +111,7 @@ Hulu、Disney+、Apple TV+、豆瓣和 TheTVDB 默认关闭，可在设置页启
 - 手动批量处理：`npm run enrich:posters --workspace backend -- --limit=120`，单次上限为 500
 - 显式人工复核后可忽略 7 天窗口重试：`npm run enrich:posters --workspace backend -- --limit=20 --force`；匹配规则不会因此放宽
 - 前端所有海报默认请求 `GET /api/media/:id/poster`；后端按图片 URL 缓存上游返回内容到 `backend/.cache/posters/`，并在代理失败时由前端回退原始地址
+- 热度榜的爱奇艺预约卡片是唯一页面级例外：爱奇艺待播页只给出 `141×188` 缩略图，该页将尺寸地址提升到 `579×772` 并优先直连，其他页面仍沿用统一代理方案
 - 图片缓存会校验元数据与字节、合并同 URL 并发请求并原子写入；30 天后刷新失败时继续返回旧缓存，`X-Poster-Cache` 标记为 `stale`
 - 每日和启动同步会按热度验证 20 张待确认图片；作品持久化记录 `unverified / healthy / degraded / broken`，跨退避窗口重复失败后才判定损坏
 - 图片健康可在设置页查看，也可运行 `npm run audit:posters --workspace backend`；手动验证命令为 `npm run verify:posters --workspace backend -- --limit=100`
@@ -180,14 +181,16 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 - 只要页面展示了 TheTVDB 提供的数据，就会显示 TheTVDB 来源归属
 - 手动同步：`npm run sync:thetvdb --workspace backend`
 
+### 优酷与爱奇艺预约
+
+- 优酷通过 `mtop.youku.columbus.gateway.new.execute` 的独立待播节点分页读取电影和剧集，保存预约人数、待播状态、作品链接与来源排名，不再使用频道首页
+- 爱奇艺读取 `https://www.iqiyi.com/newOnlinePCW` 的完整待播列表，保存预约人数；未上线且没有明确日期的条目仍按待播处理
+- 两个来源均属于小时组，进入主库前必须先在国内源沙盒验收；关闭来源不会删除已经采集的快照
+- 手动同步：`npm run sync:youku --workspace backend`、`npm run sync:iqiyi --workspace backend`
+
 ### 芒果TV
 
-芒果TV 来源读取电视剧频道页（`https://www.mgtv.com/tv/`）的 `__NUXT__` 内嵌数据，同步"热播剧集"和"新剧速递"两个模块。
-
-- "热播剧集"作为完整热度榜写入 popularity signal，下一次同步不在榜的信号会转为历史
-- "新剧速递"作为平台上新目录写入无日期 release，页面未提供具体上线日期
-- 首版不接入预约和追更日历，因为页面未提供结构化日期数据
-- 手动同步：`npm run sync:mango-tv --workspace backend`
+芒果TV 旧频道首页数据无法稳定表达真实待播预约，当前已标记为 blocked。保留研究代码和目录项，但不进入调度，也不要把旧首页结果作为产品数据恢复。
 
 ### 哔哩哔哩
 

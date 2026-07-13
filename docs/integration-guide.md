@@ -84,8 +84,8 @@ curl -s "http://127.0.0.1:19993/api/trending?movement=rising&source=trakt_trendi
 | Query | Meaning |
 |---|---|
 | `movement` | `new`, `rising`, `falling`, `stable`. |
-| `source` | Source-specific signal, for example `trakt_trending` or `netflix_top10`. |
-| `platform` | Platform label such as `Netflix`, `Hulu`, `Trakt`. |
+| `source` | Source-specific signal, for example `trakt_trending`, `netflix_top10`, `youku_reserve` or `iqiyi_reserve`. |
+| `platform` | Stored signal platform label such as `Netflix`, `Trakt`, `优酷` or `爱奇艺`; use the Chinese values for domestic reservation sources. |
 | `region` | Region code or `GLOBAL`. |
 | `mediaType` | Media type filter. |
 | `releaseForm` | Release form filter. |
@@ -184,6 +184,8 @@ curl -s -X PUT http://127.0.0.1:19993/api/settings \
 ```
 
 Settings are persisted to `backend/.env` and become effective immediately. Sensitive values are masked on read.
+
+Scheduler times are not part of the settings API. Hourly scopes currently run at minute `0`; daily scopes run at `09:15` in `Asia/Shanghai`. `SCHEDULER_ENABLED=false` disables registration at process startup, as used by the China sandbox.
 
 Proxy test:
 

@@ -51,7 +51,6 @@ Run one source at a time. The command hard-fails unless both `APP_ENVIRONMENT=ch
 ```bash
 npm run sandbox:sync -- youku
 npm run sandbox:sync -- iqiyi
-npm run sandbox:sync -- mango_tv
 npm run sandbox:sync -- bilibili
 npm run sandbox:sync -- douban
 ```
@@ -79,6 +78,7 @@ Open `http://127.0.0.1:19995/`. The backend health response and frontend header 
 | `TRAKT_CLIENT_ID` | Required for Trakt public sync. |
 | `THETVDB_API_KEY` | Required for TheTVDB when enabled. |
 | `IMDB_DATASET_CACHE_DIR` | Local cache directory for IMDb datasets. |
+| `SCHEDULER_ENABLED` | `true` registers the fixed hourly and daily cron jobs; `false` disables them. |
 | `SYNC_ON_START` | `true` runs enabled adapters once on backend startup; `false` disables it. Boolean strings are parsed explicitly. |
 
 Every active source also has:
@@ -103,7 +103,6 @@ npm run sync:disney-plus --workspace backend
 npm run sync:max --workspace backend
 npm run sync:youku --workspace backend
 npm run sync:iqiyi --workspace backend
-npm run sync:mango-tv --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
 npm run sync:douban --workspace backend
@@ -125,12 +124,16 @@ TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENA
 
 | Group | Cron | Sources |
 |---|---|---|
-| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI, MangoTV |
+| Hourly | `0 * * * *` | TVmaze, TMDb, Trakt popularity, Youku, iQIYI |
 | Daily | `15 9 * * *` Asia/Shanghai | Trakt calendar, TheTVDB, Netflix, Hulu, Disney+, Apple TV+, Bilibili, Douban |
 
 Only sources that are enabled, implemented and credential-complete are scheduled.
 
+These cron expressions are currently fixed in `backend/src/scheduler.ts`; the settings page cannot edit them. The China sandbox writes `SCHEDULER_ENABLED=false`, so enabling a source there still does not create automatic refreshes.
+
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
+
+MangoTV is also blocked. Its former channel-homepage modules did not provide a stable upcoming/reservation contract; do not run `sync:mango-tv` as a production source.
 
 All normal source reads use the shared HTTP client with a two-second minimum interval per origin. Safe `GET`, `HEAD` and `OPTIONS` requests make at most two attempts when the first attempt fails because of a network error, timeout, HTTP 408, HTTP 429 or HTTP 5xx. Ordinary HTTP 4xx responses and non-idempotent requests are not retried automatically.
 

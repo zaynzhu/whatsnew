@@ -42,10 +42,13 @@ npm run prisma:push --workspace backend
 - TheTVDB 只允许免费 project API Key，不接入或回退到付费能力
 - Trakt 日历表示发行或播出排期，不等同于流媒体已上架
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
+- 国内来源先在 `whatsnew_china_sandbox` 验收；沙盒强制关闭调度和全部来源，禁止把沙盒业务数据复制回主库
+- 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；芒果TV 当前为 blocked，不得按旧频道首页方案恢复
 - 缺失海报优先复用库内唯一的近期同类型作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；外部 ID 冲突和无法拉开置信差距的歧义必须跳过
-- 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；不要绕过后端代理直接散落远端图片请求
+- 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；唯一现有例外是热度榜的 `iqiyi_reserve`，它把爱奇艺 `141×188` 缩略图改为 `579×772` 后 direct-first，其他页面不得复用这个页面级特例
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
+- 调度时间目前写死在 `backend/src/scheduler.ts`：小时组每小时整点，日组按上海时区每天 `09:15`；设置页尚不能修改调度时间
 
 ## 安全红线
 

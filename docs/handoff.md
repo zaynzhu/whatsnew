@@ -20,8 +20,11 @@ This file is the short operational handoff for the current branch.
 - Frontend artwork is proxy-first through `/api/media/:id/poster`, with an on-demand disk cache under `backend/.cache/posters/`.
 - Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Cache refresh can serve stale bytes during transient upstream failures.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
+- `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
+- The heat page groups duplicate works, filters reservation signals with stored Chinese platform values, and uses poster-led compact cards. Only iQIYI reservation cards upgrade `141×188` source thumbnails to `579×772` direct-first images.
+- Domestic-source evaluation uses the isolated `whatsnew_china_sandbox`; its scheduler, startup sync and every source switch are disabled by construction.
 
-## Syncable Sources
+## Source Coverage
 
 | Source | Scope |
 |---|---|
@@ -34,11 +37,11 @@ This file is the short operational handoff for the current branch.
 | Disney+ | Official New to Disney+ article. |
 | Max | Parser retained, but source is blocked while WBD Pressroom requires login or returns 403. |
 | Apple TV+ | Official Press RSS feed (news_signal, filtered to film/TV). |
-| Youku | China platform catalog/rank page. |
-| iQIYI | China platform new-online page. |
-| MangoTV | China TV channel hot drama ranking and new drama catalog. |
+| Youku | Signed MTop movie/series upcoming reservation pages (`youku_reserve`). |
+| iQIYI | Complete `newOnlinePCW` upcoming reservation page (`iqiyi_reserve`). |
+| MangoTV | Blocked; the former channel-homepage modules are not accepted as upcoming/reservation data. |
 | Bilibili | China pgc bangumi/guochuang/documentary rankings (3-day composite). |
-| Douban | China movie TOP250 reputation rating signal (top 20, static). |
+| Douban | Movie TOP250 signal plus paginated mobile movie/TV coming-soon timelines. |
 | IMDb | Manual local datasets enrichment only. |
 
 ## Known Constraints
@@ -55,6 +58,13 @@ This file is the short operational handoff for the current branch.
 - Poster proxy responses keep the upstream image bytes and content type; no common output format is guaranteed.
 - Startup and daily maintenance verify 20 high-priority posters. Manual operators can audit, verify or force a strict enrichment retry with the documented npm commands.
 - `backend/.env` contains secrets and must not be committed.
+- Scheduler cron is fixed in `backend/src/scheduler.ts`: hourly at minute `0`, daily at `09:15` Asia/Shanghai. The settings page does not configure it yet.
+
+## Next Priorities
+
+1. Promote the accepted Youku and iQIYI adapters by syncing them fresh in the main database; never copy sandbox rows.
+2. Add a small scheduler settings surface for hourly cadence, daily time and next-run visibility while keeping the sandbox forcibly disabled.
+3. Continue cross-source identity cleanup and the second poster-quality phase, especially undersized-image detection and presentation-sized delivery.
 
 ## Validation Baseline
 
