@@ -41,11 +41,12 @@ function media(overrides: Partial<MediaItem>): MediaItem {
   }
 }
 
-function settings(): RuntimeSettingsService {
+function settings(overrides: Record<string, string> = {}): RuntimeSettingsService {
   return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-poster-enrichment-env"), {
     TMDB_API_KEY: "tmdb-key",
     TMDB_BASE_URL: "https://api.tmdb.test/3",
-    TMDB_IMAGE_BASE_URL: "https://image.tmdb.test/w500"
+    TMDB_IMAGE_BASE_URL: "https://image.tmdb.test/w500",
+    ...overrides
   })
 }
 
@@ -196,6 +197,166 @@ describe("TMDb poster enrichment", () => {
         posterHeight: null,
         posterQuality: "unknown"
       })
+    }))
+  })
+
+  it("uses an exact IMDb identity for the OMDb poster fallback", async () => {
+    const item = media({
+      id: "imdb-fallback",
+      titleDisplay: "The House That Dragons Built",
+      imdbId: "tt26761151",
+      posterUrl: "https://img.test/undersized.jpg",
+      posterQuality: "undersized"
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      }
+    }
+    const fetchJson = vi.fn(async (source: string, rawUrl: string) => {
+      const url = new URL(rawUrl)
+      expect(source).toBe("imdb")
+      expect(url.searchParams.get("i")).toBe("tt26761151")
+      return {
+        Response: "True",
+        imdbID: "tt26761151",
+        Poster: "https://m.media-amazon.com/images/M/poster._V1_SX300.jpg"
+      }
+    })
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings({
+        OMDB_API_KEY: "omdb-key",
+        OMDB_BASE_URL: "https://www.omdbapi.test"
+      }),
+      httpClient: { fetchJson } as never,
+      imageService: {
+        getPoster: vi.fn(async () => ({
+          body: Buffer.from("poster"),
+          contentType: "image/jpeg",
+          width: 600,
+          height: 900,
+          cacheHit: false,
+          cacheStatus: "miss" as const
+        }))
+      },
+      now: () => new Date("2026-07-14T00:00:00.000Z")
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, unmatched: 0, failed: 0 })
+    expect(fetchJson).toHaveBeenCalledOnce()
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "imdb-fallback" },
+      data: expect.objectContaining({
+        posterUrl: "https://m.media-amazon.com/images/M/poster._V1_SX300.jpg",
+        posterStatus: "healthy",
+        posterWidth: 600,
+        posterHeight: 900,
+        posterQuality: "adequate"
+      })
+    })
+  })
+
+  it("rejects horizontal OMDb artwork and continues with TMDb", async () => {
+    const item = media({
+      id: "horizontal-omdb",
+      titleDisplay: "Documentary Series",
+      imdbId: "tt1234567",
+      tmdbId: 303,
+      posterUrl: "https://img.test/undersized.jpg",
+      posterQuality: "undersized"
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => null),
+        upsert: vi.fn(async () => ({}))
+      }
+    }
+    const fetchJson = vi.fn(async (source: string) => source === "imdb"
+      ? {
+          Response: "True",
+          imdbID: "tt1234567",
+          Poster: "https://m.media-amazon.com/images/M/horizontal.jpg"
+        }
+      : {
+          id: 303,
+          title: "Documentary Series",
+          poster_path: "/portrait.jpg"
+        })
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings({ OMDB_API_KEY: "omdb-key" }),
+      httpClient: { fetchJson } as never,
+      imageService: {
+        getPoster: vi.fn(async () => ({
+          body: Buffer.from("artwork"),
+          contentType: "image/jpeg",
+          width: 600,
+          height: 338,
+          cacheHit: false,
+          cacheStatus: "miss" as const
+        }))
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 1, failed: 0 })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        posterUrl: "https://image.tmdb.test/w500/portrait.jpg",
+        posterStatus: "unverified"
+      })
+    }))
+  })
+
+  it("keeps the existing poster when the OMDb image is unavailable", async () => {
+    const item = media({
+      id: "dead-omdb",
+      imdbId: "tt7654321",
+      posterUrl: "https://img.test/existing.jpg",
+      posterQuality: "undersized"
+    })
+    const update = vi.fn(async ({ data }) => ({ ...item, ...data }))
+    const database = {
+      mediaItem: {
+        findMany: vi.fn(async ({ where } = {}) => where?.posterUrl ? [] : [item]),
+        update
+      },
+      mediaSourceRef: {
+        findUnique: vi.fn(async () => null),
+        upsert: vi.fn(async () => ({}))
+      }
+    }
+    const fetchJson = vi.fn(async (source: string) => source === "imdb"
+      ? {
+          Response: "True",
+          imdbID: "tt7654321",
+          Poster: "https://m.media-amazon.com/images/M/dead.jpg"
+        }
+      : { results: [] })
+
+    const result = await enrichMissingPosters({
+      database: database as never,
+      settings: settings({ OMDB_API_KEY: "omdb-key" }),
+      httpClient: { fetchJson } as never,
+      imageService: {
+        getPoster: vi.fn(async () => {
+          throw new Error("HTTP 404")
+        })
+      }
+    })
+
+    expect(result).toMatchObject({ scanned: 1, enriched: 0, unmatched: 1, failed: 0 })
+    expect(update).not.toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ posterUrl: expect.any(String) })
     }))
   })
 

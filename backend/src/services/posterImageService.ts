@@ -55,6 +55,7 @@ const POSTER_SOURCE_HOSTS = [
   ["image.tmdb.org", "tmdb"],
   ["static.tvmaze.com", "tvmaze"],
   ["artworks.thetvdb.com", "thetvdb"],
+  ["media-amazon.com", "imdb"],
   ["doubanio.com", "douban"],
   ["iqiyipic.com", "iqiyi"],
   ["ykimg.com", "youku"],

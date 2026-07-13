@@ -7,6 +7,8 @@ import {
   RuntimeSettingsService,
   runtimeSettings
 } from "../settings/runtimeSettingsService.js"
+import { posterQuality } from "./posterHealthStateService.js"
+import { posterImageService, type PosterImage, type PosterImageService } from "./posterImageService.js"
 import {
   SourceHttpClient,
   SourceHttpError,
@@ -35,6 +37,12 @@ type TmdbSearchResponse = {
   results: TmdbResult[]
 }
 
+type OmdbResponse = {
+  Response?: string
+  imdbID?: string
+  Poster?: string
+}
+
 type EnrichmentDatabase = Pick<
   PrismaClient,
   "mediaItem" | "mediaSourceRef" | "release" | "popularitySignal" | "changeEvent" | "$transaction"
@@ -45,6 +53,7 @@ type PosterEnrichmentOptions = {
   database?: EnrichmentDatabase
   settings?: RuntimeSettingsService
   httpClient?: Pick<SourceHttpClient, "fetchJson">
+  imageService?: Pick<PosterImageService, "getPoster">
   today?: () => string
   now?: () => Date
   force?: boolean
@@ -66,7 +75,9 @@ export type PosterEnrichmentResult = {
 
 const DEFAULT_TMDB_BASE_URL = "https://api.themoviedb.org/3"
 const DEFAULT_TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
+const DEFAULT_OMDB_BASE_URL = "https://www.omdbapi.com"
 const TMDB_TIMEOUT_MS = 30000
+const OMDB_TIMEOUT_MS = 30000
 const POSTER_RETRY_DAYS = 3
 const DAY_MS = 24 * 60 * 60 * 1000
 const NETFLIX_RECENT_RELEASE_DAYS = 550
@@ -283,6 +294,42 @@ function metadataUpdate(
   }
 }
 
+function verifiedPosterUpdate(
+  posterUrl: string,
+  image: Pick<PosterImage, "width" | "height">,
+  now: Date
+): Prisma.MediaItemUncheckedUpdateInput {
+  return {
+    posterUrl,
+    posterLookupAttemptedAt: now,
+    posterStatus: "healthy",
+    posterCheckedAt: now,
+    posterFailureCount: 0,
+    posterFailureReason: null,
+    posterWidth: image.width,
+    posterHeight: image.height,
+    posterQuality: "adequate"
+  }
+}
+
+function isUsablePoster(image: PosterImage): boolean {
+  if (image.cacheStatus === "stale" || image.width == null || image.height == null) return false
+  return posterQuality(image) === "adequate"
+    && image.height / image.width >= 1.2
+}
+
+function omdbPoster(response: OmdbResponse, imdbId: string): string | null {
+  if (response.Response !== "True" || response.imdbID !== imdbId || !response.Poster || response.Poster === "N/A") {
+    return null
+  }
+  try {
+    const url = new URL(response.Poster)
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
 function isBearerToken(credential: string): boolean {
   return credential.startsWith("eyJ") || credential.split(".").length === 3
 }
@@ -306,13 +353,17 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
   const enrichmentDatabase: EnrichmentDatabase = database
   const settings = options.settings ?? runtimeSettings
   const httpClient = options.httpClient ?? sourceHttpClient
+  const imageService = options.imageService ?? posterImageService
   const currentSettings = settings.view()
   const apiKey = currentSettings.get("TMDB_API_KEY")
   if (!apiKey) throw new Error("TMDb 凭据未配置")
 
   const baseUrl = (currentSettings.get("TMDB_BASE_URL") || DEFAULT_TMDB_BASE_URL).replace(/\/$/, "")
   const imageBaseUrl = currentSettings.get("TMDB_IMAGE_BASE_URL") || DEFAULT_TMDB_IMAGE_BASE_URL
+  const omdbApiKey = currentSettings.get("OMDB_API_KEY")
+  const omdbBaseUrl = currentSettings.get("OMDB_BASE_URL") || DEFAULT_OMDB_BASE_URL
   const settingsOverride = captureSourceProxySettings(currentSettings, "tmdb")
+  const omdbSettingsOverride = captureSourceProxySettings(currentSettings, "imdb")
   const now = (options.now ?? (() => new Date()))()
   const today = (options.today ?? (() => formatLocalDate(now)))()
   const retryBefore = new Date(now.getTime() - POSTER_RETRY_DAYS * DAY_MS)
@@ -366,11 +417,43 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
     })
   }
 
+  async function fetchOmdb(imdbId: string): Promise<OmdbResponse> {
+    const url = new URL(omdbBaseUrl)
+    url.searchParams.set("apikey", omdbApiKey)
+    url.searchParams.set("i", imdbId)
+    url.searchParams.set("plot", "short")
+    return httpClient.fetchJson<OmdbResponse>("imdb", url.toString(), {
+      timeoutMs: OMDB_TIMEOUT_MS,
+      settingsOverride: omdbSettingsOverride,
+      sensitiveValues: [omdbApiKey]
+    })
+  }
+
   async function markAttempt(itemId: string): Promise<void> {
     await enrichmentDatabase.mediaItem.update({
       where: { id: itemId },
       data: { posterLookupAttemptedAt: now }
     })
+  }
+
+  async function enrichFromOmdb(item: MediaItem): Promise<boolean> {
+    if (!item.imdbId || !omdbApiKey) return false
+    try {
+      const posterUrl = omdbPoster(await fetchOmdb(item.imdbId), item.imdbId)
+      if (!posterUrl) return false
+      const image = await imageService.getPoster(posterUrl)
+      if (!isUsablePoster(image)) return false
+
+      const updated = await enrichmentDatabase.mediaItem.update({
+        where: { id: item.id },
+        data: verifiedPosterUpdate(posterUrl, image, now)
+      })
+      result.enriched += 1
+      if (result.samples.length < 10) result.samples.push(updated.titleDisplay)
+      return true
+    } catch {
+      return false
+    }
   }
 
   async function mergeDuplicate(
@@ -469,6 +552,11 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
         continue
       }
 
+      if ((item.posterQuality === "undersized" || item.posterStatus === "broken")
+        && await enrichFromOmdb(item)) {
+        continue
+      }
+
       let metadata: TmdbResult | null = null
       if (item.tmdbId) {
         metadata = await fetchTmdb<TmdbResult>(`/${kind}/${item.tmdbId}`)
@@ -484,6 +572,8 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
           if (metadata) break
         }
       }
+
+      if (!metadata?.poster_path && await enrichFromOmdb(item)) continue
 
       if (!metadata?.poster_path) {
         await markAttempt(item.id)

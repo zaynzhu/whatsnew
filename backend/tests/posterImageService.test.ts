@@ -79,6 +79,7 @@ describe("PosterImageService", () => {
     const settings = new RuntimeSettingsService(new EnvFileStore("/tmp/unused-poster-proxy-env"), {
       HTTPS_PROXY: "http://global-proxy.test:7890",
       SOURCE_DOUBAN_PROXY_MODE: "direct",
+      SOURCE_IMDB_PROXY_MODE: "direct",
       SOURCE_TMDB_PROXY_MODE: "inherit"
     })
     const dispatcher = {} as Dispatcher
@@ -98,10 +99,12 @@ describe("PosterImageService", () => {
     })
 
     await service.getPoster("https://img3.doubanio.com/view/photo/l_ratio_poster/public/p1.jpg")
-    await service.getPoster("https://image.tmdb.org/t/p/w500/p2.jpg")
+    await service.getPoster("https://m.media-amazon.com/images/M/p2.jpg")
+    await service.getPoster("https://image.tmdb.org/t/p/w500/p3.jpg")
 
     expect(transport.mock.calls[0]?.[1]?.dispatcher).toBeUndefined()
-    expect(transport.mock.calls[1]?.[1]?.dispatcher).toBe(dispatcher)
+    expect(transport.mock.calls[1]?.[1]?.dispatcher).toBeUndefined()
+    expect(transport.mock.calls[2]?.[1]?.dispatcher).toBe(dispatcher)
     expect(createDispatcher).toHaveBeenCalledOnce()
     expect(createDispatcher).toHaveBeenCalledWith("http://global-proxy.test:7890")
   })
