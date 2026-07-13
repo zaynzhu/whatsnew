@@ -166,11 +166,12 @@ function valueLabel(row: NetflixTop10Row): string {
 function rowToAdapterItem(row: NetflixAdapterRow): AdapterItem | null {
   const classification = CATEGORY_TYPES[row.category]
   if (!classification) return null
+  const sourceId = `netflix:${row.category}:${row.showTitle}:${row.seasonTitle ?? ""}`
 
   return {
     media: {
       source: "netflix",
-      sourceId: `netflix:${row.category}:${row.showTitle}:${row.seasonTitle ?? ""}`,
+      sourceId,
       mediaType: classification.mediaType,
       releaseForm: classification.releaseForm,
       sourceContentType: row.category,
@@ -198,6 +199,8 @@ function rowToAdapterItem(row: NetflixAdapterRow): AdapterItem | null {
       region: "GLOBAL",
       window: "week",
       rankingScope: classification.rankingScope,
+      rankingEntryKey: sourceId,
+      rankingEntryLabel: row.seasonTitle,
       rank: row.weeklyRank,
       rankDelta: null,
       value: row.weeklyViews,

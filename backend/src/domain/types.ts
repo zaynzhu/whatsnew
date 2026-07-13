@@ -50,6 +50,8 @@ export interface PopularitySignalInput {
   region: string | null
   window: string
   rankingScope?: string
+  rankingEntryKey?: string
+  rankingEntryLabel?: string | null
   rank: number | null
   rankDelta: number | null
   value: number | null

@@ -107,6 +107,8 @@ model PopularitySignal {
   region          String?
   window          String
   rankingScope    String   @default("overall")
+  rankingEntryKey String   @default("work")
+  rankingEntryLabel String?
   rank            Int?
   previousRank    Int?
   rankDelta       Int?

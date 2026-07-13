@@ -64,6 +64,10 @@ _Avoid_: unified ranking, global score
 A stable identity for one independent chart inside a source. Trakt uses separate movie and series scopes; Netflix uses four language/type scopes. It prevents several legitimate number-one entries from being presented as one shared chart.
 _Avoid_: category label, global rank
 
+**Ranking Entry**:
+A source-stable row inside one ranking scope. It lets different seasons or editions of the same work retain independent ranks while the product still groups them under one `MediaItem`.
+_Avoid_: duplicate work, ranking scope
+
 **Auxiliary Heat**:
 A list-sorting value derived from a title's strongest current dynamic source rank. It is not a cross-source real chart. Douban coming-soon date-group positions, separate movie/series `sortby=hot` preview ranks and TOP250 reputation ranks remain visible source signals but contribute no Heat and create no popularity movement events.
 _Avoid_: comprehensive heat, objective popularity, global rank

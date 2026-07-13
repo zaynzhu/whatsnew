@@ -117,6 +117,7 @@ const newSignal = {
   rank: 8,
   previousRank: null,
   rankDelta: null,
+  rankingEntryLabel: "第 2 季",
   valueLabel: "88 list_count"
 }
 
@@ -521,11 +522,12 @@ describe("frontend pages", () => {
     expect(screen.getByText("TMDb 电影趋势", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getAllByRole("img", { name: "星际回声" })).toHaveLength(1)
     expect(screen.getByText("4 个榜单")).toBeInTheDocument()
+    expect(screen.getByText(/第 2 季/)).toBeInTheDocument()
     expect(screen.getByLabelText("热度 91")).toHaveTextContent("Heat91")
     expect(screen.getByText("第 4 名")).toBeInTheDocument()
     expect(screen.getByText("1.2k watches")).toBeInTheDocument()
     expect(screen.getByText("Trakt 期待榜", { selector: ".rankSource span" })).toBeInTheDocument()
-    expect(screen.getByText("电影榜 · 88 list_count")).toBeInTheDocument()
+    expect(screen.getByText("电影榜 · 第 2 季 · 88 list_count")).toBeInTheDocument()
     expect(screen.getByText("预约破50万")).toBeInTheDocument()
     expect(screen.getByText("腾讯视频预约", { selector: ".rankSource span" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "打开 Trakt 趋势榜 来源" })).toHaveAttribute(

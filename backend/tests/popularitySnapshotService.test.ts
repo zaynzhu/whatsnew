@@ -115,6 +115,41 @@ describe("PopularitySnapshotService", () => {
     ])
   })
 
+  it("keeps separate season entries current inside one chart scope", async () => {
+    const capturedAt = new Date("2026-06-21T00:00:00Z")
+
+    await service.persistSignal(input({
+      source: "netflix_top10",
+      platform: "Netflix",
+      rankingScope: "tv_english",
+      rankingEntryKey: "avatar-season-1",
+      rankingEntryLabel: "Avatar: Season 1",
+      rank: 5
+    }, capturedAt))
+    await service.persistSignal(input({
+      source: "netflix_top10",
+      platform: "Netflix",
+      rankingScope: "tv_english",
+      rankingEntryKey: "avatar-season-2",
+      rankingEntryLabel: "Avatar: Season 2",
+      rank: 3
+    }, capturedAt))
+
+    const signals = await testPrisma.popularitySignal.findMany({
+      where: { isCurrent: true },
+      orderBy: { rank: "asc" }
+    })
+    expect(signals).toHaveLength(2)
+    expect(signals.map((signal) => ({
+      key: signal.rankingEntryKey,
+      label: signal.rankingEntryLabel,
+      rank: signal.rank
+    }))).toEqual([
+      { key: "avatar-season-2", label: "Avatar: Season 2", rank: 3 },
+      { key: "avatar-season-1", label: "Avatar: Season 1", rank: 5 }
+    ])
+  })
+
   it("recomputes heat from every current source", async () => {
     const capturedAt = new Date("2026-06-21T00:00:00Z")
 

@@ -321,7 +321,9 @@ export function TrendingPage() {
                     <strong className="trendingPrimaryMetric">{signalMetric(primarySignal)}</strong>
                     <span className="rankSource trendingPrimarySource">
                       <SourceLink source={primarySignal.source} sourceUrl={primarySignal.sourceUrl} prefix={null} />
-                      {primaryScopeLabel ? <small>{primaryScopeLabel}</small> : null}
+                      {primaryScopeLabel || primarySignal.rankingEntryLabel ? (
+                        <small>{[primaryScopeLabel, primarySignal.rankingEntryLabel].filter(Boolean).join(" · ")}</small>
+                      ) : null}
                     </span>
                   </div>
                   <div className="trendingSignalList">
@@ -329,7 +331,11 @@ export function TrendingPage() {
                       <div className="trendingSignalRow" key={signal.id}>
                         <span className="rankSource">
                           <SourceLink source={signal.source} sourceUrl={signal.sourceUrl} prefix={null} />
-                          <small>{[rankingScopeLabel(signal.rankingScope), signalMetric(signal)].filter(Boolean).join(" · ")}</small>
+                          <small>{[
+                            rankingScopeLabel(signal.rankingScope),
+                            signal.rankingEntryLabel,
+                            signalMetric(signal)
+                          ].filter(Boolean).join(" · ")}</small>
                         </span>
                         <span className="trendingSignalRank">
                           <strong>#{signal.rank ?? "-"}</strong>

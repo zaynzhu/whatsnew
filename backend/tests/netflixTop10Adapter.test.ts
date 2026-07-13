@@ -187,6 +187,8 @@ describe("Netflix Top 10 adapter", () => {
       region: "GLOBAL",
       window: "week",
       rankingScope: "tv_english",
+      rankingEntryKey: "netflix:TV (English):English Series 1:English Series 1: Season 2",
+      rankingEntryLabel: "English Series 1: Season 2",
       rank: 1,
       value: 9_999_999,
       sourceUrl: "https://www.netflix.com/tudum/top10/tv",

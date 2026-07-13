@@ -128,6 +128,8 @@ export type PopularitySignal = {
   region: string | null
   window: string
   rankingScope: string
+  rankingEntryKey?: string
+  rankingEntryLabel?: string | null
   rank: number | null
   previousRank: number | null
   rankDelta: number | null
