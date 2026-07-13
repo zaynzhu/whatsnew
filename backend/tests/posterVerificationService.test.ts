@@ -77,8 +77,23 @@ describe("verifyPosterImages", () => {
       healthy: 1,
       degraded: 1,
       failed: 1,
+      adequate: 1,
+      undersized: 1,
+      unknown: 0,
       samples: ["Healthy Poster", "Stale Poster", "Failed Poster"]
     })
+    expect(database.mediaItem.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      take: 3,
+      orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          { posterStatus: "unverified" },
+          expect.objectContaining({ posterStatus: "degraded" }),
+          expect.objectContaining({ posterStatus: "broken" }),
+          expect.objectContaining({ posterQuality: "unknown" })
+        ])
+      })
+    }))
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "healthy" },
       data: expect.objectContaining({

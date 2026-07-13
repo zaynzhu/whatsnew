@@ -141,7 +141,7 @@ All normal source reads use the shared HTTP client with a two-second minimum int
 
 When TMDb is runnable, startup, hourly and daily adapter batches finish by processing up to 40 eligible missing-poster titles. Failed or ambiguous lookups wait 7 days before retry. The manual command accepts `--limit=1..500` and prioritizes higher-heat titles.
 
-Startup and daily batches also verify up to 20 high-priority poster URLs. Verification uses the same proxy, per-origin rate limiter and disk cache as browser requests.
+Hourly batches verify up to 20 high-priority poster URLs; startup sync and daily batches verify up to 100. Verification uses the same proxy, per-origin rate limiter and disk cache as browser requests. With the default hourly interval, the backlog progresses continuously instead of waiting only for the daily run.
 
 ## Poster Cache
 
@@ -166,7 +166,7 @@ npm run prune:poster-variants --workspace backend -- --apply
 curl -s http://127.0.0.1:19993/api/poster-health
 ```
 
-`audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
+`audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Its result separates `adequate`, `undersized` and `unknown` measurements from network outcomes. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. Degraded images wait one day and broken images seven days before automatic verification retries. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
 `GET /api/poster-health` reports original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
 

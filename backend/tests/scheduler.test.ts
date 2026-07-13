@@ -169,7 +169,10 @@ describe("scheduler", () => {
       apply: true
     })
     expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
-    expect(mocks.verifyPosterImages).not.toHaveBeenCalled()
+    expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 20
+    })
     expect(mocks.prunePosterVariantCache).not.toHaveBeenCalled()
 
     mocks.runSourceSync.mockClear()
@@ -220,7 +223,7 @@ describe("scheduler", () => {
     })
     expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
       database: mocks.db,
-      limit: 20
+      limit: 100
     })
     expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
 
@@ -302,7 +305,7 @@ describe("scheduler", () => {
       })
       expect(mocks.verifyPosterImages).toHaveBeenCalledWith({
         database: mocks.db,
-        limit: 20
+        limit: 100
       })
       expect(mocks.prunePosterVariantCache).toHaveBeenCalledWith({ apply: true })
     })

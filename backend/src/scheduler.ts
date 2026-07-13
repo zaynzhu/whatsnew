@@ -16,7 +16,8 @@ import {
 } from "./settings/schedulerSettings.js"
 
 const AUTOMATIC_POSTER_LIMIT = 40
-const AUTOMATIC_POSTER_VERIFICATION_LIMIT = 20
+const HOURLY_POSTER_VERIFICATION_LIMIT = 20
+const DAILY_POSTER_VERIFICATION_LIMIT = 100
 const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max"]
 const scheduledTasks: Array<{ stop(): void }> = []
 let schedulerStarted = false
@@ -49,11 +50,11 @@ async function enrichPostersAfterSync() {
   }
 }
 
-async function verifyPostersAfterSync() {
+async function verifyPostersAfterSync(limit: number) {
   try {
     await verifyPosterImages({
       database: db,
-      limit: AUTOMATIC_POSTER_VERIFICATION_LIMIT
+      limit
     })
   } catch (error) {
     console.error("Automatic poster verification failed", error)
@@ -74,7 +75,7 @@ export async function runInitialSync() {
   }
   await maintainDataQuality(true)
   await enrichPostersAfterSync()
-  await verifyPostersAfterSync()
+  await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)
   await prunePosterVariants()
 }
 
@@ -92,6 +93,7 @@ function scheduleRecurringJobs() {
     }
     await maintainDataQuality(false)
     await enrichPostersAfterSync()
+    await verifyPostersAfterSync(HOURLY_POSTER_VERIFICATION_LIMIT)
   }, { timezone: SCHEDULER_TIMEZONE }))
 
   scheduledTasks.push(cron.schedule(config.dailyCron, async () => {
@@ -100,7 +102,7 @@ function scheduleRecurringJobs() {
     }
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
-    await verifyPostersAfterSync()
+    await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)
     await prunePosterVariants()
   }, { timezone: SCHEDULER_TIMEZONE }))
 }

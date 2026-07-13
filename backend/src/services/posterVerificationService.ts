@@ -1,6 +1,10 @@
 import type { PrismaClient } from "@prisma/client"
 import { posterImageService, type PosterImageService } from "./posterImageService.js"
-import { markPosterDegraded, markPosterHealthy } from "./posterHealthStateService.js"
+import {
+  markPosterDegraded,
+  markPosterHealthy,
+  posterQuality
+} from "./posterHealthStateService.js"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DEGRADED_RETRY_DAYS = 1
@@ -20,6 +24,9 @@ export type PosterVerificationResult = {
   healthy: number
   degraded: number
   failed: number
+  adequate: number
+  undersized: number
+  unknown: number
   samples: string[]
 }
 
@@ -69,6 +76,9 @@ export async function verifyPosterImages(
     healthy: 0,
     degraded: 0,
     failed: 0,
+    adequate: 0,
+    undersized: 0,
+    unknown: 0,
     samples: []
   }
 
@@ -83,6 +93,7 @@ export async function verifyPosterImages(
         await markPosterHealthy(options.database, item, now, image)
         result.healthy += 1
       }
+      result[posterQuality(image)] += 1
     } catch {
       await markPosterDegraded(options.database, item, "upstream_unavailable", now)
       result.failed += 1
