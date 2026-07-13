@@ -77,7 +77,7 @@ An internal presentation priority that combines Content Attention Weight, curren
 _Avoid_: comprehensive heat, global ranking, popularity score
 
 **Poster Enrichment**:
-A metadata pass that first reuses one safe recent local title, then fills missing artwork and baseline fields using a TMDb ID, unique normalized exact-title match or high-confidence recent Netflix candidate. Safe duplicates merge transactionally; unresolved ambiguity retries after a cooldown.
+A metadata pass that first classifies source-generic artwork as missing, then reuses one safe recent local title or fills artwork and baseline fields using a TMDb ID, unique normalized exact-title match or high-confidence recent Netflix candidate. Safe duplicates merge transactionally; unresolved ambiguity retries after a cooldown.
 _Avoid_: image scraping, fuzzy poster matching, one-time backfill
 
 **Poster Proxy**:

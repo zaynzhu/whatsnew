@@ -180,7 +180,7 @@ curl -s http://127.0.0.1:19993/api/poster-health
 
 `GET /api/poster-health` reports missing-poster retry state under `lookup`, undersized-poster replacement state under `replacement`, original cache integrity under `cache` and responsive WebP integrity under `cache.variants`. Database counts and automatic poster maintenance include only titles with at least one active source reference; inactive history remains stored but does not consume a retry slot. A `cooldown` count means a strict TMDb attempt ran within the last seven days; it does not mean a match was accepted. `retryEligible` becomes available after that window. Non-zero `orphanedFiles` indicates an interrupted pair write; non-zero `corruptEntries` indicates invalid metadata or an empty body.
 
-Douban ingestion normalizes official `s_ratio_poster` URLs to the same asset's `l_ratio_poster` path. Re-syncing the Douban `popularity` scope upgrades an existing small image only when the stable Douban source identity and normalized asset URL are identical; verification then re-measures the replacement. Do not manually rewrite unrelated Douban URLs or relax identity matching.
+Douban ingestion normalizes official `s_ratio_poster` URLs to the same asset's `l_ratio_poster` path. Re-syncing upgrades an existing small image only when the stable Douban source identity and normalized asset URL are identical. Generic `/pics/subject/movie*.jpg` and `/pics/subject/tv*.jpg` assets are cleared to missing and re-enter strict enrichment with a fresh lookup state. Do not manually rewrite unrelated Douban URLs or relax identity matching.
 
 The first prune command is a dry run. Add `--apply` to remove stale corrupt/orphaned files and enforce the default 512 MB limit. When capacity is exceeded, the oldest complete variants are removed until usage reaches 90% of the limit. Use `--max-mb=1024` to override the command limit temporarily; accepted values are 64 through 10240 MB. Startup sync and the daily scheduled batch apply the default limit automatically, while files written within the last hour are protected.
 
@@ -211,12 +211,13 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | TheTVDB asks for paid access | Do not implement paid fallback. Only free project API Key is allowed. |
 | A past premiere still shows `即将上线` | Run `reconcile:media-statuses` as a dry run, inspect transitions, then apply it. Platform availability dates remain separate release rows. |
 | A past release row still shows `即将上线` or `今日播出` | Run `reconcile:release-statuses` as a dry run, inspect transitions, then apply it. Explicit delayed and ended rows are preserved. |
-| A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles wait 7 days and intentionally keep the placeholder. |
+| A title stays without artwork | Confirm TMDb is enabled and credential-complete, then run `enrich:posters`. Strict unmatched or conflicting titles remain without artwork and wait 7 days; do not restore a source-generic placeholder. |
 | Poster endpoint returns `502` | Check global proxy connectivity and the remote image host. Remove that URL's cache only after confirming the stored response is invalid. |
 | Poster health shows `degraded` | An expired cache copy is still usable or the first upstream attempt failed. Let the cooldown expire before retrying. |
 | Poster health shows `broken` | The URL failed across separate retry windows. Run strict enrichment or wait for a source to provide a different URL. |
 | Poster health shows `undersized` | The image is available but measured below 300×400. Run strict enrichment; unmatched titles intentionally keep the original image until a trustworthy replacement exists. |
 | Current Douban TOP250 artwork is undersized | Re-sync the Douban `popularity` scope, then run `verify:posters`. Official `s_ratio_poster` paths should become `l_ratio_poster` for the same asset. |
+| A Douban card shows the generic movie/TV subject image | Re-sync Douban. The adapter should clear that URL to missing, reset the lookup state and queue strict enrichment. |
 
 Useful status commands:
 

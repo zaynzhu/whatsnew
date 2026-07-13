@@ -53,6 +53,8 @@ curl -sS -D - -o poster.webp 'http://127.0.0.1:19993/api/media/<mediaItemId>/pos
 
 Without a query parameter, the backend fetches the stored remote poster through the configured outbound proxy, validates that the response is an image, caches it by URL hash and returns the original bytes and `Content-Type`. `width` accepts `160`, `320`, `640` or `960`; it returns a WebP derivative and never enlarges a smaller source image.
 
+Known source-generic artwork is not exposed as a real poster. For example, Douban `/pics/subject/movie*.jpg` and `/pics/subject/tv*.jpg` assets are stored as missing artwork, so this route returns `404 poster_not_found` until strict enrichment finds an unambiguous replacement.
+
 | Response | Meaning |
 |---|---|
 | `200` | Image body. `X-Poster-Cache` is `hit` or `miss`. |
