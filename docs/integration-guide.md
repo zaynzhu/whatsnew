@@ -61,7 +61,7 @@ The backend fetches the stored remote poster through the configured outbound pro
 
 Responses are browser-cacheable for one day with a seven-day `stale-while-revalidate` window. `X-Poster-Cache` is `hit`, `miss` or `stale`; stale means an expired disk copy was served because refresh failed. The route does not guarantee a transcoded image format.
 
-`GET /api/poster-health` returns title coverage, `unverified / healthy / degraded / broken` counts, disk-cache integrity and high-priority broken, degraded and missing samples. It is read-only and performs no external requests.
+`GET /api/poster-health` returns title coverage, `unverified / healthy / degraded / broken` availability counts, `unknown / adequate / undersized` quality counts, disk-cache integrity and high-priority broken, degraded, missing and undersized samples. Quality samples include measured width and height. The endpoint is read-only and performs no external requests.
 
 ## Popularity History
 

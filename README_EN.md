@@ -111,6 +111,8 @@ Once both services are running, manage global proxies, source enable state, per-
 - Manual batch command: `npm run enrich:posters --workspace backend -- --limit=120`, capped at 500 per run
 - Every frontend poster requests `GET /api/media/:id/poster` by default; the backend caches the upstream response under `backend/.cache/posters/`, while the frontend falls back to the original URL if the proxy fails
 - The iQIYI reservation cards on the heat page are the only scoped exception: that page upgrades `141×188` source thumbnails to `579×772` and loads them direct-first; all other pages keep the shared proxy flow
+- Poster requests and verification persist measured pixel dimensions. Images below 300 pixels wide or 400 pixels high are marked `undersized` separately from network availability failures
+- Undersized artwork enters the same strict TMDb enrichment queue; replacement still requires a TMDb ID, unique exact title or an existing high-confidence rule, otherwise the original remains available and retries after 7 days
 - The proxy preserves the upstream response bytes and `Content-Type`; it does not guarantee a common transcoded format
 
 > [!WARNING]

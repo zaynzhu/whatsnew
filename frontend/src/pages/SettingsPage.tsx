@@ -564,6 +564,16 @@ export function SettingsPage() {
                 </strong>
               </div>
               <div>
+                <span>尺寸已检测</span>
+                <strong>{posterHealth.quality.adequate + posterHealth.quality.undersized}</strong>
+              </div>
+              <div>
+                <span>低清</span>
+                <strong className={posterHealth.quality.undersized > 0 ? "warningText" : "successText"}>
+                  {posterHealth.quality.undersized}
+                </strong>
+              </div>
+              <div>
                 <span>缓存</span>
                 <strong>{posterHealth.cache.entries} 张</strong>
               </div>
@@ -579,6 +589,10 @@ export function SettingsPage() {
               <span className={posterHealth.statuses.degraded > 0 ? "warning" : ""}>
                 已降级 {posterHealth.statuses.degraded}
               </span>
+              <span className={posterHealth.quality.undersized > 0 ? "warning" : ""}>
+                低清 {posterHealth.quality.undersized}
+              </span>
+              <span>尺寸待检测 {posterHealth.quality.unknown}</span>
               <span className={posterHealth.cache.corruptEntries > 0 ? "error" : ""}>
                 缓存损坏 {posterHealth.cache.corruptEntries}
               </span>
@@ -592,6 +606,22 @@ export function SettingsPage() {
                     <Link to={`/media/${item.id}`} key={item.id}>
                       <span>{item.title}</span>
                       <small>Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"}</small>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {posterHealth.samples.undersized.length > 0 ? (
+              <div className="posterHealthSamples">
+                <strong>高优先级低清图片</strong>
+                <div>
+                  {posterHealth.samples.undersized.slice(0, 6).map((item) => (
+                    <Link to={`/media/${item.id}`} key={item.id}>
+                      <span>{item.title}</span>
+                      <small>
+                        {item.width ?? "?"}×{item.height ?? "?"} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"}
+                      </small>
                     </Link>
                   ))}
                 </div>

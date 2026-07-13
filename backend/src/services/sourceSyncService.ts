@@ -148,7 +148,10 @@ async function upsertItem(
             posterStatus: "unverified",
             posterCheckedAt: null,
             posterFailureCount: 0,
-            posterFailureReason: null
+            posterFailureReason: null,
+            posterWidth: null,
+            posterHeight: null,
+            posterQuality: "unknown"
           } : {}),
           productionCountries: toJsonArray(uniqueValues([
             ...parseJsonArray(match.productionCountries),

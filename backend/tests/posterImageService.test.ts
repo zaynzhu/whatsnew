@@ -14,6 +14,30 @@ afterEach(async () => {
 })
 
 describe("PosterImageService", () => {
+  it("measures image dimensions and restores them from disk cache", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const body = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAAA7MdV8AAAAFElEQVR42mNkYGD4z8DAwMAAAAcABP0C/QsAAAAASUVORK5CYII=",
+      "base64"
+    )
+    const transport = vi.fn(async () => new Response(body, {
+      status: 200,
+      headers: { "content-type": "image/png" }
+    }))
+    const service = new PosterImageService({ cacheDir: tempDir, transport, minIntervalMs: 0 })
+
+    await expect(service.getPoster("https://img.test/measured.png")).resolves.toMatchObject({
+      width: 1,
+      height: 2,
+      cacheStatus: "miss"
+    })
+    await expect(service.getPoster("https://img.test/measured.png")).resolves.toMatchObject({
+      width: 1,
+      height: 2,
+      cacheStatus: "hit"
+    })
+  })
+
   it("fetches image bytes with origin referer and reuses disk cache", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
     const transport = vi.fn(async (_url: string, _options?: UndiciRequestInit) => {

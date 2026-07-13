@@ -16,7 +16,7 @@ WhatsNew is a private LAN/NAS dashboard for tracking film and TV releases, broad
 
 | Model | Purpose |
 |---|---|
-| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry time and persistent poster health. |
+| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry time, availability health, measured poster dimensions and `posterQuality`. |
 | `MediaSourceRef` | Stable identity link from a source item to a `MediaItem`. Unique by `source + sourceId`. |
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
 | `PopularitySignal` | Source-specific ranking or metric snapshots. Current rows power `/api/trending`; historical rows power detail charts. |
@@ -48,12 +48,13 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 5. If the chosen TMDb identity already belongs to a safe same-title record, source refs, releases, popularity signals and events move transactionally to that canonical record. Unsafe identity conflicts and unresolved ambiguity are skipped.
 6. Successful matches fill the poster URL and missing baseline metadata without overwriting existing values.
 7. Every attempt writes `posterLookupAttemptedAt`; unsuccessful records become eligible again after 7 days so they do not block new titles.
-8. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, applies the configured proxy and per-origin rate limit, then caches the upstream bytes and metadata by URL hash.
+8. `MediaPoster` requests the backend proxy first. `PosterImageService` validates HTTP(S) URLs and image responses, measures supported image dimensions with `image-size`, applies the configured proxy and per-origin rate limit, then caches upstream bytes and metadata by URL hash.
 9. The backend preserves the upstream `Content-Type`; format conversion is not part of the pipeline. The frontend falls back to the original URL only when the proxy request fails.
 10. Disk entries are validated on read and written through temporary files. Concurrent cold requests for one URL share one upstream fetch.
 11. Cache entries refresh after 30 days. A failed refresh serves the previous bytes as `stale`; uncached failures use a one-minute in-memory cooldown.
 12. `posterStatus` progresses through `unverified`, `healthy`, `degraded` and `broken`. A transient failure only degrades the record; a second upstream failure outside the cooldown marks it broken.
-13. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Broken posters wait seven days before verification retries and are eligible for TMDb replacement.
+13. Daily and startup maintenance verifies up to 20 high-heat eligible posters. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability.
+14. Broken and undersized posters enter the strict TMDb enrichment queue. Identity requirements are unchanged; an unmatched low-resolution image remains usable and retries only after the seven-day cooldown.
 
 The heat page has one scoped exception: `iqiyi_reserve` poster URLs from `newOnlinePCW` are upgraded from the source's `141×188` thumbnail size to `579×772` and loaded direct-first. This does not change stored URLs or the poster behavior of other pages.
 

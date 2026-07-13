@@ -20,6 +20,9 @@ function media(overrides: Partial<MediaItem>): MediaItem {
     posterCheckedAt: null,
     posterFailureCount: 0,
     posterFailureReason: null,
+    posterWidth: null,
+    posterHeight: null,
+    posterQuality: "unknown",
     productionCountries: "[]",
     originalLanguage: null,
     genres: "[]",
@@ -65,7 +68,8 @@ describe("TMDb poster enrichment", () => {
           OR: [
             { posterUrl: null },
             { posterUrl: "" },
-            { posterStatus: "broken" }
+            { posterStatus: "broken" },
+            { posterQuality: "undersized" }
           ]
         }]
       }
@@ -75,7 +79,16 @@ describe("TMDb poster enrichment", () => {
   it("enriches direct TMDb IDs and unique exact title matches", async () => {
     const items = [
       media({ id: "direct", titleDisplay: "Direct Movie", tmdbId: 101 }),
-      media({ id: "search", titleDisplay: "Husbands in Action" })
+      media({ id: "search", titleDisplay: "Husbands in Action" }),
+      media({
+        id: "lowres",
+        titleDisplay: "Low Resolution Movie",
+        tmdbId: 303,
+        posterUrl: "https://img.test/lowres.jpg",
+        posterWidth: 141,
+        posterHeight: 188,
+        posterQuality: "undersized"
+      })
     ]
     const update = vi.fn(async ({ where, data }) => ({
       ...items.find((item) => item.id === where.id),
@@ -103,6 +116,15 @@ describe("TMDb poster enrichment", () => {
           original_language: "en"
         }
       }
+      if (url.pathname.endsWith("/movie/303")) {
+        return {
+          id: 303,
+          title: "Low Resolution Movie",
+          poster_path: "/lowres-replacement.jpg",
+          release_date: "2026-06-15",
+          original_language: "en"
+        }
+      }
       return {
         results: [{
           id: 202,
@@ -124,7 +146,7 @@ describe("TMDb poster enrichment", () => {
       now: () => new Date("2026-07-10T00:00:00.000Z")
     })
 
-    expect(result).toMatchObject({ scanned: 2, enriched: 2, merged: 0, unmatched: 0, conflicts: 0, failed: 0 })
+    expect(result).toMatchObject({ scanned: 3, enriched: 3, merged: 0, unmatched: 0, conflicts: 0, failed: 0 })
     expect(database.mediaItem.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         AND: [
@@ -132,7 +154,8 @@ describe("TMDb poster enrichment", () => {
             OR: [
               { posterUrl: null },
               { posterUrl: "" },
-              { posterStatus: "broken" }
+              { posterStatus: "broken" },
+              { posterQuality: "undersized" }
             ]
           },
           {
@@ -158,6 +181,15 @@ describe("TMDb poster enrichment", () => {
       data: expect.objectContaining({
         posterUrl: "https://image.tmdb.test/w500/husbands.jpg",
         tmdbId: 202
+      })
+    }))
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "lowres" },
+      data: expect.objectContaining({
+        posterUrl: "https://image.tmdb.test/w500/lowres-replacement.jpg",
+        posterWidth: null,
+        posterHeight: null,
+        posterQuality: "unknown"
       })
     }))
   })

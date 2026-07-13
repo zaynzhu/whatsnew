@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import { join } from "node:path"
+import { imageSize } from "image-size"
 import {
   ProxyAgent,
   fetch as undiciFetch,
@@ -14,6 +15,8 @@ import { RateLimiter } from "../utils/rateLimiter.js"
 export type PosterImage = {
   body: Buffer
   contentType: string
+  width: number | null
+  height: number | null
   cacheHit: boolean
   cacheStatus: "hit" | "miss" | "stale"
 }
@@ -22,6 +25,8 @@ type PosterMetadata = {
   url: string
   contentType: string
   cachedAt: string
+  width?: number | null
+  height?: number | null
 }
 
 type PosterTransport = (url: string, options?: UndiciRequestInit) => Promise<Response>
@@ -75,6 +80,18 @@ function assertImageResponse(contentType: string | null, size: number): string {
   const normalized = contentType?.split(";")[0]?.trim().toLowerCase() ?? ""
   if (!normalized.startsWith("image/")) throw new Error(`图片响应类型无效: ${contentType ?? "unknown"}`)
   return normalized
+}
+
+function dimensions(body: Buffer): { width: number | null, height: number | null } {
+  try {
+    const result = imageSize(body)
+    return {
+      width: Number.isInteger(result.width) ? result.width : null,
+      height: Number.isInteger(result.height) ? result.height : null
+    }
+  } catch {
+    return { width: null, height: null }
+  }
 }
 
 export class PosterImageService {
@@ -161,9 +178,14 @@ export class PosterImageService {
       const cachedAt = Date.parse(metadata.cachedAt)
       if (!Number.isFinite(cachedAt)) return null
 
+      const measured = Number.isInteger(metadata.width) && Number.isInteger(metadata.height)
+        ? { width: metadata.width ?? null, height: metadata.height ?? null }
+        : dimensions(body)
+
       return {
         body,
         contentType,
+        ...measured,
         cacheHit: true,
         cacheStatus: "hit",
         expired: Date.now() - cachedAt > this.cacheMaxAgeMs
@@ -197,21 +219,28 @@ export class PosterImageService {
         const body = Buffer.from(await response.arrayBuffer())
         if (body.length > this.maxBytes) throw new Error(`图片过大: ${body.length} bytes`)
         const contentType = assertImageResponse(response.headers.get("content-type"), body.length)
+        const measured = dimensions(body)
 
-        await this.writeCached(url, contentType, body)
-        return { body, contentType, cacheHit: false, cacheStatus: "miss" }
+        await this.writeCached(url, contentType, body, measured)
+        return { body, contentType, ...measured, cacheHit: false, cacheStatus: "miss" }
       } finally {
         clearTimeout(timer)
       }
     })
   }
 
-  private async writeCached(url: string, contentType: string, body: Buffer): Promise<void> {
+  private async writeCached(
+    url: string,
+    contentType: string,
+    body: Buffer,
+    measured: { width: number | null, height: number | null }
+  ): Promise<void> {
     const key = cacheKey(url)
     const metadata: PosterMetadata = {
       url,
       contentType,
-      cachedAt: new Date().toISOString()
+      cachedAt: new Date().toISOString(),
+      ...measured
     }
     await mkdir(this.cacheDir, { recursive: true })
     const suffix = `${process.pid}-${Date.now()}`

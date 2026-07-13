@@ -43,6 +43,10 @@ export async function verifyPosterImages(
         {
           posterStatus: "broken",
           OR: [{ posterCheckedAt: null }, { posterCheckedAt: { lt: brokenBefore } }]
+        },
+        {
+          posterQuality: "unknown",
+          OR: [{ posterCheckedAt: null }, { posterCheckedAt: { lt: degradedBefore } }]
         }
       ]
     },
@@ -54,7 +58,10 @@ export async function verifyPosterImages(
       posterUrl: true,
       posterStatus: true,
       posterCheckedAt: true,
-      posterFailureCount: true
+      posterFailureCount: true,
+      posterWidth: true,
+      posterHeight: true,
+      posterQuality: true
     }
   })
   const result: PosterVerificationResult = {
@@ -70,10 +77,10 @@ export async function verifyPosterImages(
     try {
       const image = await imageService.getPoster(item.posterUrl)
       if (image.cacheStatus === "stale") {
-        await markPosterDegraded(options.database, item, "stale_cache_fallback", now)
+        await markPosterDegraded(options.database, item, "stale_cache_fallback", now, image)
         result.degraded += 1
       } else {
-        await markPosterHealthy(options.database, item, now)
+        await markPosterHealthy(options.database, item, now, image)
         result.healthy += 1
       }
     } catch {

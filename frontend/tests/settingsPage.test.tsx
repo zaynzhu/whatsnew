@@ -218,6 +218,7 @@ const posterHealthResponse: PosterHealthResponse = {
   missing: 150,
   coveragePercent: 82.5,
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
+  quality: { unknown: 630, adequate: 70, undersized: 7 },
   cache: { entries: 209, bytes: 73_886_357, orphanedFiles: 0, corruptEntries: 0 },
   samples: {
     broken: [],
@@ -226,7 +227,17 @@ const posterHealthResponse: PosterHealthResponse = {
       id: "media-missing",
       title: "Agent Kim Reactivated",
       heatScore: 98,
-      sources: ["netflix"]
+      sources: ["netflix"],
+      width: null,
+      height: null
+    }],
+    undersized: [{
+      id: "media-low-resolution",
+      title: "Low Resolution Poster",
+      heatScore: 91,
+      sources: ["iqiyi"],
+      width: 141,
+      height: 188
     }]
   }
 }
@@ -288,6 +299,11 @@ describe("SettingsPage", () => {
     expect(screen.getByText("82.5%")).toBeInTheDocument()
     expect(screen.getByText("707 / 857")).toBeInTheDocument()
     expect(screen.getByText("209 张")).toBeInTheDocument()
+    expect(screen.getByText("低清 7")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(
+      "href",
+      "/media/media-low-resolution"
+    )
     expect(screen.getByRole("link", { name: /Agent Kim Reactivated/ })).toHaveAttribute(
       "href",
       "/media/media-missing"

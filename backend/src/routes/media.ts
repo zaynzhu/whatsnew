@@ -103,7 +103,10 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
         posterUrl: true,
         posterStatus: true,
         posterCheckedAt: true,
-        posterFailureCount: true
+        posterFailureCount: true,
+        posterWidth: true,
+        posterHeight: true,
+        posterQuality: true
       }
     })
 
@@ -122,9 +125,10 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
       res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
       res.setHeader("X-Poster-Cache", image.cacheStatus)
       if (image.cacheStatus === "stale") {
-        await markPosterDegraded(database, item as PosterHealthRecord, "stale_cache_fallback").catch(() => {})
+        await markPosterDegraded(database, item as PosterHealthRecord, "stale_cache_fallback", new Date(), image)
+          .catch(() => {})
       } else {
-        await markPosterHealthy(database, item as PosterHealthRecord).catch(() => {})
+        await markPosterHealthy(database, item as PosterHealthRecord, new Date(), image).catch(() => {})
       }
       res.send(image.body)
     } catch {

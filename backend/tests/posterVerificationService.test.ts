@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest"
 import { verifyPosterImages } from "../src/services/posterVerificationService.js"
+import { posterQuality } from "../src/services/posterHealthStateService.js"
 
 describe("verifyPosterImages", () => {
+  it("classifies genuinely small posters without flagging usable landscape art", () => {
+    expect(posterQuality({ width: 141, height: 188 })).toBe("undersized")
+    expect(posterQuality({ width: 540, height: 432 })).toBe("adequate")
+    expect(posterQuality({ width: null, height: null })).toBe("unknown")
+  })
+
   it("records healthy, stale and unavailable poster outcomes", async () => {
     const now = new Date("2026-07-11T00:00:00.000Z")
     const items = [
@@ -11,7 +18,10 @@ describe("verifyPosterImages", () => {
         posterUrl: "https://img.test/healthy.jpg",
         posterStatus: "unverified",
         posterCheckedAt: null,
-        posterFailureCount: 0
+        posterFailureCount: 0,
+        posterWidth: null,
+        posterHeight: null,
+        posterQuality: "unknown"
       },
       {
         id: "stale",
@@ -19,7 +29,10 @@ describe("verifyPosterImages", () => {
         posterUrl: "https://img.test/stale.jpg",
         posterStatus: "degraded",
         posterCheckedAt: new Date("2026-07-09T00:00:00.000Z"),
-        posterFailureCount: 1
+        posterFailureCount: 1,
+        posterWidth: null,
+        posterHeight: null,
+        posterQuality: "unknown"
       },
       {
         id: "failed",
@@ -27,7 +40,10 @@ describe("verifyPosterImages", () => {
         posterUrl: "https://img.test/failed.jpg",
         posterStatus: "degraded",
         posterCheckedAt: new Date("2026-07-09T00:00:00.000Z"),
-        posterFailureCount: 1
+        posterFailureCount: 1,
+        posterWidth: null,
+        posterHeight: null,
+        posterQuality: "unknown"
       }
     ]
     const update = vi.fn(async () => ({}))
@@ -42,6 +58,8 @@ describe("verifyPosterImages", () => {
       return {
         body: Buffer.from("image"),
         contentType: "image/jpeg",
+        width: url.includes("healthy") ? 240 : 640,
+        height: url.includes("healthy") ? 360 : 960,
         cacheHit: url.includes("stale"),
         cacheStatus: url.includes("stale") ? "stale" as const : "miss" as const
       }
@@ -63,7 +81,13 @@ describe("verifyPosterImages", () => {
     })
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "healthy" },
-      data: expect.objectContaining({ posterStatus: "healthy", posterCheckedAt: now })
+      data: expect.objectContaining({
+        posterStatus: "healthy",
+        posterCheckedAt: now,
+        posterWidth: 240,
+        posterHeight: 360,
+        posterQuality: "undersized"
+      })
     }))
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "stale" },

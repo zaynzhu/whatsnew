@@ -2496,6 +2496,10 @@ h1 {
   color: var(--red);
 }
 
+.warningText {
+  color: var(--amber);
+}
+
 .connectionResults {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2751,7 +2755,7 @@ h1 {
 
 .posterHealthGrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }

@@ -34,6 +34,8 @@ export type PosterHealthSample = {
   title: string
   heatScore: number
   sources: string[]
+  width: number | null
+  height: number | null
 }
 
 export type PosterHealthResponse = {
@@ -47,6 +49,11 @@ export type PosterHealthResponse = {
     degraded: number
     broken: number
   }
+  quality: {
+    unknown: number
+    adequate: number
+    undersized: number
+  }
   cache: {
     entries: number
     bytes: number
@@ -57,6 +64,7 @@ export type PosterHealthResponse = {
     broken: PosterHealthSample[]
     degraded: PosterHealthSample[]
     missing: PosterHealthSample[]
+    undersized: PosterHealthSample[]
   }
 }
 

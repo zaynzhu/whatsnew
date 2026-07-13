@@ -29,11 +29,15 @@ describe("PosterHealthService", () => {
       id: "media-1",
       titleDisplay: "Missing Poster",
       heatScore: 98,
+      posterWidth: 240,
+      posterHeight: 360,
       sourceRefs: [{ source: "netflix" }]
     }
     const count = vi.fn(async ({ where }: any = {}) => {
       if (!where) return 10
       if (where.OR) return 2
+      const qualityCounts: Record<string, number> = { unknown: 4, adequate: 3, undersized: 1 }
+      if (where.posterQuality) return qualityCounts[String(where.posterQuality)] ?? 0
       const statusCounts: Record<string, number> = { unverified: 5, healthy: 3, degraded: 1, broken: 1 }
       return statusCounts[String(where.posterStatus)] ?? 0
     })
@@ -49,11 +53,13 @@ describe("PosterHealthService", () => {
       missing: 2,
       coveragePercent: 80,
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
+      quality: { unknown: 4, adequate: 3, undersized: 1 },
       cache: { entries: 2, bytes: 5, orphanedFiles: 1, corruptEntries: 1 },
       samples: {
-        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"] }],
-        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"] }],
-        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"] }]
+        broken: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
+        degraded: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
+        missing: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }],
+        undersized: [{ id: "media-1", title: "Missing Poster", heatScore: 98, sources: ["netflix"], width: 240, height: 360 }]
       }
     })
   })

@@ -19,6 +19,7 @@ This file is the short operational handoff for the current branch.
 - Missing artwork is continuously enriched through strict TMDb matching after startup, hourly and daily sync batches; unsuccessful attempts retry after 7 days.
 - Frontend artwork is proxy-first through `/api/media/:id/poster`, with an on-demand disk cache under `backend/.cache/posters/`.
 - Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Cache refresh can serve stale bytes during transient upstream failures.
+- Poster quality is tracked separately from availability. Requests and verification persist dimensions; images below 300×400 are listed as undersized and enter strict TMDb replacement without relaxing identity matching.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
 - The heat page groups duplicate works, filters reservation signals with stored Chinese platform values, and uses poster-led compact cards. Only iQIYI reservation cards upgrade `141×188` source thumbnails to `579×772` direct-first images.
@@ -63,7 +64,7 @@ This file is the short operational handoff for the current branch.
 ## Next Priorities
 
 1. Promote the accepted Youku and iQIYI adapters by syncing them fresh in the main database; never copy sandbox rows.
-2. Continue cross-source identity cleanup and the second poster-quality phase, especially undersized-image detection and presentation-sized delivery.
+2. Continue cross-source identity cleanup and presentation-sized image delivery; undersized detection and strict replacement are already active.
 
 ## Validation Baseline
 

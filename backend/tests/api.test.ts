@@ -130,6 +130,8 @@ describe("api routes", () => {
       getPoster: vi.fn(async () => ({
         body: Buffer.from("poster-bytes"),
         contentType: "image/png",
+        width: 640,
+        height: 960,
         cacheHit: true,
         cacheStatus: "hit" as const
       }))
@@ -201,6 +203,8 @@ describe("api routes", () => {
       getPoster: vi.fn(async () => ({
         body: Buffer.from("stale-poster"),
         contentType: "image/jpeg",
+        width: 640,
+        height: 960,
         cacheHit: true,
         cacheStatus: "stale" as const
       }))

@@ -22,6 +22,9 @@ model MediaItem {
   posterCheckedAt         DateTime?
   posterFailureCount      Int       @default(0)
   posterFailureReason     String?   @db.VarChar(255)
+  posterWidth             Int?
+  posterHeight            Int?
+  posterQuality           String    @default("unknown")
   productionCountries     String    @default("[]")
   originalLanguage        String?
   genres                  String    @default("[]")
@@ -50,6 +53,7 @@ model MediaItem {
   @@index([imdbId])
   @@index([posterLookupAttemptedAt])
   @@index([posterStatus])
+  @@index([posterQuality])
 }
 
 model MediaSourceRef {

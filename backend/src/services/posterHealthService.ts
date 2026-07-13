@@ -8,6 +8,8 @@ export type PosterHealthSample = {
   title: string
   heatScore: number
   sources: string[]
+  width: number | null
+  height: number | null
 }
 
 export type PosterHealthResponse = {
@@ -21,6 +23,11 @@ export type PosterHealthResponse = {
     degraded: number
     broken: number
   }
+  quality: {
+    unknown: number
+    adequate: number
+    undersized: number
+  }
   cache: {
     entries: number
     bytes: number
@@ -31,6 +38,7 @@ export type PosterHealthResponse = {
     broken: PosterHealthSample[]
     degraded: PosterHealthSample[]
     missing: PosterHealthSample[]
+    undersized: PosterHealthSample[]
   }
 }
 
@@ -91,12 +99,16 @@ function sample(row: {
   titleDisplay: string
   heatScore: number
   sourceRefs: Array<{ source: string }>
+  posterWidth: number | null
+  posterHeight: number | null
 }): PosterHealthSample {
   return {
     id: row.id,
     title: row.titleDisplay,
     heatScore: row.heatScore,
-    sources: [...new Set(row.sourceRefs.map((sourceRef) => sourceRef.source))]
+    sources: [...new Set(row.sourceRefs.map((sourceRef) => sourceRef.source))],
+    width: row.posterWidth,
+    height: row.posterHeight
   }
 }
 
@@ -110,6 +122,8 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         id: true,
         titleDisplay: true,
         heatScore: true,
+        posterWidth: true,
+        posterHeight: true,
         sourceRefs: {
           where: { isActive: true },
           select: { source: true }
@@ -126,9 +140,13 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         healthy,
         degraded,
         broken,
+        qualityUnknown,
+        qualityAdequate,
+        qualityUndersized,
         brokenSamples,
         degradedSamples,
         missingSamples,
+        undersizedSamples,
         cache
       ] = await Promise.all([
         database.mediaItem.count(),
@@ -137,6 +155,9 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "healthy" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "degraded" } }),
         database.mediaItem.count({ where: { ...withPosterWhere, posterStatus: "broken" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "unknown" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "adequate" } }),
+        database.mediaItem.count({ where: { ...withPosterWhere, posterQuality: "undersized" } }),
         database.mediaItem.findMany({
           where: { posterStatus: "broken" },
           orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
@@ -155,6 +176,12 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
           take: 8,
           select: sampleSelect
         }),
+        database.mediaItem.findMany({
+          where: { ...withPosterWhere, posterQuality: "undersized" },
+          orderBy: [{ heatScore: "desc" }, { updatedAt: "desc" }],
+          take: 8,
+          select: sampleSelect
+        }),
         cacheHealth(cacheDir)
       ])
       const withPoster = total - missing
@@ -165,11 +192,17 @@ export function createPosterHealthService(options: PosterHealthServiceOptions) {
         missing,
         coveragePercent: total > 0 ? Math.round(withPoster / total * 1000) / 10 : 0,
         statuses: { unverified, healthy, degraded, broken },
+        quality: {
+          unknown: qualityUnknown,
+          adequate: qualityAdequate,
+          undersized: qualityUndersized
+        },
         cache,
         samples: {
           broken: brokenSamples.map(sample),
           degraded: degradedSamples.map(sample),
-          missing: missingSamples.map(sample)
+          missing: missingSamples.map(sample),
+          undersized: undersizedSamples.map(sample)
         }
       }
     }

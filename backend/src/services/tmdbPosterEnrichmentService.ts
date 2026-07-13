@@ -235,6 +235,9 @@ function metadataUpdate(
     posterCheckedAt: null,
     posterFailureCount: 0,
     posterFailureReason: null,
+    posterWidth: null,
+    posterHeight: null,
+    posterQuality: "unknown",
     overview: item.overview ?? cleanText(metadata.overview),
     titleOriginal: item.titleOriginal ?? cleanText(metadata.original_title ?? metadata.original_name),
     firstReleaseDate: item.firstReleaseDate ?? date,
@@ -274,7 +277,8 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
           OR: [
             { posterUrl: null },
             { posterUrl: "" },
-            { posterStatus: "broken" }
+            { posterStatus: "broken" },
+            { posterQuality: "undersized" }
           ]
         },
         ...(!options.force ? [{

@@ -46,6 +46,7 @@ npm run prisma:push --workspace backend
 - 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；芒果TV 当前为 blocked，不得按旧频道首页方案恢复
 - 缺失海报优先复用库内唯一的近期同类型作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；外部 ID 冲突和无法拉开置信差距的歧义必须跳过
 - 前端影视图片默认通过 `MediaPoster` 请求 `/api/media/:id/poster`；唯一现有例外是热度榜的 `iqiyi_reserve`，它把爱奇艺 `141×188` 缩略图改为 `579×772` 后 direct-first，其他页面不得复用这个页面级特例
+- 图片可用性与清晰度分开记录；`posterQuality=undersized` 表示实测宽度小于 300 或高度小于 400，只能通过现有严格 TMDb 身份规则替换，不得放宽标题匹配
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 - 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`

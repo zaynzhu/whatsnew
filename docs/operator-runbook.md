@@ -162,7 +162,7 @@ npm run enrich:posters --workspace backend -- --limit=20 --force
 curl -s http://127.0.0.1:19993/api/poster-health
 ```
 
-`audit:posters` is read-only. `verify:posters` performs real image requests and updates health states. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
+`audit:posters` is read-only. `verify:posters` performs real image requests, records pixel dimensions and updates availability plus quality states. Width below 300 or height below 400 is `undersized`; this remains separate from `degraded` or `broken`. Strict enrichment also considers undersized records. `--force` only bypasses the seven-day enrichment retry window; it does not relax identity matching.
 
 ## Source Health
 
@@ -191,6 +191,7 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | Poster endpoint returns `502` | Check global proxy connectivity and the remote image host. Remove that URL's cache only after confirming the stored response is invalid. |
 | Poster health shows `degraded` | An expired cache copy is still usable or the first upstream attempt failed. Let the cooldown expire before retrying. |
 | Poster health shows `broken` | The URL failed across separate retry windows. Run strict enrichment or wait for a source to provide a different URL. |
+| Poster health shows `undersized` | The image is available but measured below 300×400. Run strict enrichment; unmatched titles intentionally keep the original image until a trustworthy replacement exists. |
 
 Useful status commands:
 
