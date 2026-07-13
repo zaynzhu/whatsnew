@@ -135,6 +135,51 @@ describe("reconcileDuplicateStableIdentities", () => {
     expect(merged.sourceRefs).toHaveLength(2)
   })
 
+  it("keeps the larger poster when both duplicate images are healthy and adequate", async () => {
+    const documentary = await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "documentary",
+        releaseForm: "documentary_series",
+        titleDisplay: "On Patrol: First Shift",
+        posterUrl: "https://image.test/smaller.jpg",
+        posterStatus: "healthy",
+        posterWidth: 680,
+        posterHeight: 1000,
+        posterQuality: "adequate",
+        tmdbId: 206386,
+        imdbId: "tt22060992",
+        tvdbId: 423300
+      }
+    })
+    await testPrisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        titleDisplay: "On Patrol: First Shift",
+        posterUrl: "https://image.test/larger.jpg",
+        posterStatus: "healthy",
+        posterWidth: 1175,
+        posterHeight: 1763,
+        posterQuality: "adequate",
+        tvmazeId: 63525,
+        tvdbId: 423300
+      }
+    })
+
+    const result = await reconcileDuplicateStableIdentities({ database: testPrisma, apply: true })
+    const merged = await testPrisma.mediaItem.findUniqueOrThrow({ where: { id: documentary.id } })
+
+    expect(result).toMatchObject({ groups: 1, merged: 1, conflicts: 0 })
+    expect(merged).toMatchObject({
+      mediaType: "documentary",
+      posterUrl: "https://image.test/larger.jpg",
+      posterStatus: "healthy",
+      posterWidth: 1175,
+      posterHeight: 1763,
+      posterQuality: "adequate"
+    })
+  })
+
   it("keeps movie and series TMDb namespaces separate", async () => {
     await testPrisma.mediaItem.createMany({
       data: [

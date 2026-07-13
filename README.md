@@ -173,6 +173,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
 - 每条排期也会随精确日期自动推进：未来为即将上线，当天为今日播出，过去为已上线；来源明确标记当天已上线以及延期、完结状态会保留
 - 小时任务会按 TMDb、TVmaze、IMDb、Trakt 与 TheTVDB 稳定 ID 合并无冲突的重复身份，并把“同类型、同名、发行年份兼容且只有一个外部身份锚点”的来源孤立记录并入该作品；存在外部 ID 冲突或多个身份候选时保持分离
 - 稳定 ID 身份按电影/剧集作品大类匹配，因此动画剧与普通剧来源可以归入同一作品并保留动画分类，但电影与剧集即使数字 ID 碰巧相同也保持分离
+- 重复身份两侧都有海报时会先保留健康度更可靠的图片；状态与清晰度相同则选择实测像素面积更大的版本，并同步迁移尺寸和健康字段
 - 对完全没有外部 ID 的记录，只有两个以上独立来源同时给出相同作品类型、规范化标题和精确首发日期时才自动归并
 - 启动与日任务还会清理严格判定的无排期、无热度、全来源失效的平台孤立作品
 - 状态、重复身份和平台孤立项维护都可先预览再执行：`npm run reconcile:media-statuses --workspace backend`、`npm run reconcile:release-statuses --workspace backend`、`npm run reconcile:duplicate-identities --workspace backend`、`npm run cleanup:platform-orphans --workspace backend`，确认后追加 `-- --apply`

@@ -83,6 +83,40 @@ function compactAliases(values: string[]): string[] {
   return aliases
 }
 
+function posterScore(item: MediaItem): [number, number, number] {
+  if (!item.posterUrl?.trim()) return [0, 0, 0]
+  const statusScore = {
+    healthy: 4,
+    degraded: 3,
+    unverified: 2,
+    broken: 1
+  }[item.posterStatus] ?? 1
+  const qualityScore = {
+    adequate: 3,
+    unknown: 2,
+    undersized: 1
+  }[item.posterQuality] ?? 1
+  const area = (item.posterWidth ?? 0) * (item.posterHeight ?? 0)
+  return [statusScore, qualityScore, area]
+}
+
+function preferredPoster(left: MediaItem, right: MediaItem): MediaItem {
+  const leftScore = posterScore(left)
+  const rightScore = posterScore(right)
+  for (let index = 0; index < leftScore.length; index += 1) {
+    if (leftScore[index] !== rightScore[index]) {
+      return leftScore[index] > rightScore[index] ? left : right
+    }
+  }
+  return left
+}
+
+function latestDate(left: Date | null, right: Date | null): Date | null {
+  if (!left) return right
+  if (!right) return left
+  return left > right ? left : right
+}
+
 function releaseKey(release: {
   source: string
   platform: string
@@ -144,15 +178,37 @@ async function mergeDuplicate(
       duplicate.titleDisplay,
       ...parseJsonArray(duplicate.titleAliases)
     ].filter((title) => title !== canonical.titleDisplay))
+    const poster = preferredPoster(canonical, duplicate)
+    const canonicalCountries = parseJsonArray(canonical.productionCountries)
+    const genres = [...new Set([
+      ...parseJsonArray(canonical.genres),
+      ...parseJsonArray(duplicate.genres)
+    ])]
     const merged = await transaction.mediaItem.update({
       where: { id: canonical.id },
       data: {
         titleOriginal: canonical.titleOriginal ?? duplicate.titleOriginal,
         titleAliases: toJsonArray(titleAliases),
         overview: canonical.overview ?? duplicate.overview,
-        posterUrl: canonical.posterUrl ?? duplicate.posterUrl,
+        posterUrl: poster.posterUrl,
+        posterLookupAttemptedAt: latestDate(
+          canonical.posterLookupAttemptedAt,
+          duplicate.posterLookupAttemptedAt
+        ),
+        posterStatus: poster.posterStatus,
+        posterCheckedAt: poster.posterCheckedAt,
+        posterFailureCount: poster.posterFailureCount,
+        posterFailureReason: poster.posterFailureReason,
+        posterWidth: poster.posterWidth,
+        posterHeight: poster.posterHeight,
+        posterQuality: poster.posterQuality,
+        productionCountries: canonicalCountries.length > 0
+          ? canonical.productionCountries
+          : duplicate.productionCountries,
+        genres: toJsonArray(genres),
         firstReleaseDate: canonical.firstReleaseDate ?? duplicate.firstReleaseDate,
         originalLanguage: canonical.originalLanguage ?? duplicate.originalLanguage,
+        status: canonical.status === "unknown" ? duplicate.status : canonical.status,
         heatScore: Math.max(canonical.heatScore, duplicate.heatScore),
         tmdbId: canonical.tmdbId ?? duplicate.tmdbId,
         tvmazeId: canonical.tvmazeId ?? duplicate.tvmazeId,
