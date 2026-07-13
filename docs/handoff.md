@@ -36,6 +36,7 @@ This file is the short operational handoff for the current branch.
 - Canonical work status is now guarded by exact first-release dates during every sync and scheduled maintenance. Main-database reconciliation on 2026-07-13 corrected 215 contradictions (`213 upcoming -> released`, `2 released -> upcoming`). Real Trakt, iQIYI and Youku resyncs all succeeded afterward, and the final dry run reported zero remaining contradictions.
 - Exact-dated release rows now advance on every sync and scheduled maintenance while preserving explicit same-day availability, delayed and ended states. Main-database reconciliation on 2026-07-13 corrected 87 stale rows (`58 airing_today -> available`, `14 upcoming -> available`, `15 upcoming -> airing_today`); the follow-up dry run reported zero remaining contradictions.
 - TVmaze now deduplicates overlapping country-schedule and web-schedule results by stable episode ID before grouping releases. A real main-database sync on 2026-07-13 completed with 229 items, retained fresh/passed source health and reduced exact duplicate release groups from 2 to 0.
+- Current dashboard, discovery, calendar, trending and Douban preview queries now require an active source reference while direct media detail remains available for history. Main-database validation on 2026-07-13 retained all 6 inactive history-only works, returned none from title searches or dashboard candidates, and returned HTTP 200 for direct detail.
 
 ## Source Coverage
 

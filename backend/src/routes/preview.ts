@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { doubanUpcomingAdapter } from "../adapters/doubanAdapter.js"
 import { db } from "../config/db.js"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { isSourceSyncInFlight, runSourceSync } from "../services/sourceSyncService.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { redactStoredError } from "../settings/settingsRedaction.js"
@@ -25,6 +26,7 @@ previewRouter.get("/", async (_req, res) => {
       where: {
         source: "douban",
         releasePattern: { in: ["theatrical_coming_soon", "tv_coming_soon"] },
+        mediaItem: ACTIVE_MEDIA_WHERE,
         OR: [{ releaseDate: null }, { releaseDate: { gte: today } }]
       },
       include: { mediaItem: true },

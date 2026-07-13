@@ -125,6 +125,67 @@ describe("api routes", () => {
     expect(bySource.body.items.map((item: any) => item.titleDisplay)).toContain("星际回声")
   })
 
+  it("keeps inactive history out of current views while preserving direct detail", async () => {
+    const today = new Date()
+    const releaseDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-")
+    const archived = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "theatrical_movie",
+        titleDisplay: "Archived Ghost",
+        status: "released",
+        heatScore: 100,
+        sourceRefs: {
+          create: { source: "douban", sourceId: "archived-ghost", isActive: false }
+        },
+        releases: {
+          create: {
+            platform: "Douban",
+            region: "CN",
+            releaseDate,
+            releasePattern: "theatrical_coming_soon",
+            releaseStatus: "available",
+            source: "douban"
+          }
+        },
+        popularitySignals: {
+          create: {
+            source: "archive_signal",
+            sourceCategory: "historical",
+            window: "daily",
+            rank: 1,
+            isCurrent: true
+          }
+        }
+      }
+    })
+    const app = createApp()
+
+    const [media, dashboard, calendar, trending, preview, detail] = await Promise.all([
+      request(app).get("/api/media?q=Archived%20Ghost"),
+      request(app).get("/api/dashboard"),
+      request(app).get(`/api/calendar?from=${releaseDate}&to=${releaseDate}`),
+      request(app).get("/api/trending?source=archive_signal"),
+      request(app).get("/api/preview"),
+      request(app).get(`/api/media/${archived.id}`)
+    ])
+
+    expect(media.body.items).toEqual([])
+    expect(dashboard.body.today.map((item: any) => item.mediaItemId)).not.toContain(archived.id)
+    expect(dashboard.body.week.map((item: any) => item.mediaItemId)).not.toContain(archived.id)
+    expect(dashboard.body.trending.map((item: any) => item.id)).not.toContain(archived.id)
+    expect(dashboard.body.featured.map((item: any) => item.id)).not.toContain(archived.id)
+    expect(calendar.body.items.map((item: any) => item.mediaItemId)).not.toContain(archived.id)
+    expect(trending.body.items).toEqual([])
+    expect(preview.body.days.flatMap((day: any) => day.items).map((item: any) => item.mediaItemId)).not.toContain(archived.id)
+    expect(detail.status).toBe(200)
+    expect(detail.body.id).toBe(archived.id)
+  })
+
   it("proxies stored media posters through the backend", async () => {
     const media = await prisma.mediaItem.create({
       data: {
@@ -322,6 +383,14 @@ describe("api routes", () => {
         status: "upcoming"
       }))
     })
+    await prisma.mediaSourceRef.createMany({
+      data: Array.from({ length: itemCount }, (_, index) => ({
+        mediaItemId: `preview-media-${index}`,
+        source: "douban",
+        sourceId: `preview-${index}`,
+        isActive: true
+      }))
+    })
     await prisma.release.createMany({
       data: Array.from({ length: itemCount }, (_, index) => ({
         id: `preview-release-${index}`,
@@ -352,7 +421,10 @@ describe("api routes", () => {
         titleDisplay: "Daily Series",
         titleAliases: "[]",
         productionCountries: "[]",
-        genres: "[]"
+        genres: "[]",
+        sourceRefs: {
+          create: { source: "test", sourceId: "daily-series", isActive: true }
+        }
       }
     })
     await prisma.release.createMany({

@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { db } from "../config/db.js"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { getUpcomingDateWindow } from "../utils/date.js"
 
 export const calendarRouter = Router()
@@ -15,6 +16,7 @@ calendarRouter.get("/", async (req, res) => {
     platform: typeof platform === "string" ? platform : undefined,
     region: typeof region === "string" ? region : undefined,
     mediaItem: {
+      ...ACTIVE_MEDIA_WHERE,
       mediaType: typeof mediaType === "string" ? mediaType : undefined,
       releaseForm: typeof releaseForm === "string" ? releaseForm : undefined
     }

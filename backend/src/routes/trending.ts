@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client"
 import { Router } from "express"
 import { z } from "zod"
 import { db } from "../config/db.js"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 
 export const trendingRouter = Router()
 
@@ -50,6 +51,7 @@ trendingRouter.get("/", async (req, res) => {
       window: query.window,
       ...movementWhere(query.movement),
       mediaItem: {
+        ...ACTIVE_MEDIA_WHERE,
         mediaType: query.mediaType,
         releaseForm: query.releaseForm
       }

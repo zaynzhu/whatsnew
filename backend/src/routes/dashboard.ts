@@ -5,6 +5,7 @@ import {
   featuredScore,
   type AttentionMedia
 } from "../domain/contentAttention.js"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { withDataSources } from "../domain/mediaPresenter.js"
 import { contentWeightMap } from "../settings/contentAttentionSettings.js"
 import { runtimeSettings } from "../settings/runtimeSettingsService.js"
@@ -18,16 +19,17 @@ dashboardRouter.get("/", async (_req, res) => {
 
   const [todayPool, weekPool, trendingPool, events, sourceRuns] = await Promise.all([
     db.release.findMany({
-      where: { releaseDate: today },
+      where: { releaseDate: today, mediaItem: ACTIVE_MEDIA_WHERE },
       include: { mediaItem: true },
       take: 250
     }),
     db.release.findMany({
-      where: { releaseDate: { gte: today, lte: weekEnd } },
+      where: { releaseDate: { gte: today, lte: weekEnd }, mediaItem: ACTIVE_MEDIA_WHERE },
       include: { mediaItem: true },
       take: 500
     }),
     db.mediaItem.findMany({
+      where: ACTIVE_MEDIA_WHERE,
       include: {
         releases: { select: { source: true } },
         popularitySignals: { where: { isCurrent: true }, select: { source: true } }

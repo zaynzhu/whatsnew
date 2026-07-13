@@ -25,6 +25,8 @@ TVmaze combines its country schedule and web schedule before grouping episodes b
 | `SourceSyncRun` | One adapter execution, including `source`, `scope`, status, counts, duration and redacted errors. |
 | `ChangeEvent` | Change feed events. Types: `media_detected`, `release_announced`, `airing_today`, `available_now`, `rank_entered`, `rank_changed`, `heat_rising`, `delayed`, `source_failed`. `mediaItemId` is nullable for `source_failed`. |
 
+Current catalog surfaces require at least one active `MediaSourceRef`: dashboard, media discovery, calendar, trending and Douban preview all share this boundary. Inactive source history remains queryable through the direct media detail and popularity-history routes.
+
 ## Sync Flow
 
 1. An adapter fetches and normalizes one source into `AdapterItem` rows.

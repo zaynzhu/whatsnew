@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client"
 import { Router } from "express"
 import { z } from "zod"
 import { db } from "../config/db.js"
+import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { withDataSources } from "../domain/mediaPresenter.js"
 import {
   markPosterDegraded,
@@ -54,6 +55,7 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
 
     const items = await database.mediaItem.findMany({
       where: {
+        ...ACTIVE_MEDIA_WHERE,
         mediaType: typeof mediaType === "string" ? mediaType : undefined,
         releaseForm: typeof releaseForm === "string" ? releaseForm : undefined,
         status: typeof status === "string" ? status : undefined,
