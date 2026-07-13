@@ -46,7 +46,7 @@ npm run prisma:push --workspace backend
 - 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；腾讯视频只使用 `getMVLPage` 的频道“即将上线”筛选，电视剧固定 `channel_id=100113, iyear=1`，电影固定 `channel_id=100173, iyear=999`，不得把 `publish_date` 当作腾讯上线日期；芒果TV 当前为 blocked，不得按旧频道首页方案恢复
 - Prime Video 只使用 About Amazon 官方月度上新文章，必须排除直播体育、音乐和无法可靠判断影视类型的条目；娱乐频道页仅用于发现最新月度文章
 - 缺失海报优先复用库内唯一的近期同类型作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；外部 ID 冲突和无法拉开置信差距的歧义必须跳过
-- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。唯一现有例外是热度榜的 `iqiyi_reserve`，它把爱奇艺 `141×188` 缩略图改为 `579×772` 后 direct-first，其他页面不得复用这个页面级特例
+- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
 - 图片可用性与清晰度分开记录；`posterQuality=undersized` 表示实测宽度小于 300 或高度小于 400，只能通过现有严格 TMDb 身份规则替换，不得放宽标题匹配
 - 响应式 WebP 缓存默认上限为 512 MB，超过后每日调度按最旧条目清理至 90%；写入不足一小时的临时或孤立文件不得删除
 - 图片尺寸验证按热度优先持续消化：小时组最多 20 张，启动同步和日组最多 100 张；网络失败、损坏和尺寸未知项必须遵守既有退避窗口

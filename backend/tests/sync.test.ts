@@ -178,6 +178,26 @@ function adapterWithPoster(posterUrl: string): SourceAdapter {
   }
 }
 
+function iqiyiAdapterWithPoster(posterUrl: string): SourceAdapter {
+  return {
+    source: "iqiyi",
+    async fetchItems() {
+      const [base] = await demoSeedAdapter.fetchItems()
+      return [{
+        ...base,
+        media: {
+          ...base.media,
+          source: "iqiyi",
+          sourceId: "iqiyi-stable-poster-1",
+          posterUrl
+        },
+        releases: [],
+        popularitySignals: []
+      }]
+    }
+  }
+}
+
 describe("runSourceSync", () => {
   it("replaces a broken poster when its source provides a different URL", async () => {
     await runSourceSync(prisma, adapterWithPoster("https://img.example.test/old.jpg"))
@@ -200,6 +220,34 @@ describe("runSourceSync", () => {
       posterCheckedAt: null,
       posterFailureCount: 0,
       posterFailureReason: null
+    })
+  })
+
+  it("用同一爱奇艺来源身份的高清等价地址替换已验证缩略图", async () => {
+    const lowResolutionUrl = "https://pic9.iqiyipic.com/image/20260710/a_100841174_m_601_m5_141_188.jpg"
+    const highResolutionUrl = "https://pic9.iqiyipic.com/image/20260713/a_100841174_m_601_m6_579_772.jpg"
+    await runSourceSync(prisma, iqiyiAdapterWithPoster(lowResolutionUrl))
+    const media = await prisma.mediaItem.findFirstOrThrow()
+    await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: {
+        posterStatus: "healthy",
+        posterCheckedAt: new Date("2026-07-13T00:00:00Z"),
+        posterWidth: 141,
+        posterHeight: 188,
+        posterQuality: "undersized"
+      }
+    })
+
+    await runSourceSync(prisma, iqiyiAdapterWithPoster(highResolutionUrl))
+
+    expect(await prisma.mediaItem.findUnique({ where: { id: media.id } })).toMatchObject({
+      posterUrl: highResolutionUrl,
+      posterStatus: "unverified",
+      posterCheckedAt: null,
+      posterWidth: null,
+      posterHeight: null,
+      posterQuality: "unknown"
     })
   })
 

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createIqiyiAdapter } from "../src/adapters/iqiyiAdapter.js"
+import { isIqiyiPosterUpgrade, normalizeIqiyiPosterUrl } from "../src/utils/iqiyiPosterUrl.js"
 import type { SourceHttpClient } from "../src/utils/sourceHttpClient.js"
 
 function htmlWithNuxt(data: unknown): string {
@@ -108,7 +109,7 @@ describe("iqiyiAdapter", () => {
       sourceContentType: "电影",
       titleDisplay: "镖人：风起大漠",
       overview: "大漠之上，多方势力暗潮涌动。",
-      posterUrl: "https://pic9.iqiyipic.com/image/20260617/poster_120_160.jpg",
+      posterUrl: "https://pic9.iqiyipic.com/image/20260617/poster_579_772.jpg",
       productionCountries: ["CN"],
       originalLanguage: "zh",
       genres: ["电影"],
@@ -147,6 +148,30 @@ describe("iqiyiAdapter", () => {
       releaseForm: "web_series",
       sourceContentType: "电视剧"
     })
+  })
+
+  it("只升级爱奇艺已知竖版缩略图地址", () => {
+    expect(normalizeIqiyiPosterUrl("https://pic9.iqiyipic.com/image/poster_120_160.jpg"))
+      .toBe("https://pic9.iqiyipic.com/image/poster_579_772.jpg")
+    expect(normalizeIqiyiPosterUrl("https://pic9.iqiyipic.com/image/poster_141_188.webp?token=1"))
+      .toBe("https://pic9.iqiyipic.com/image/poster_579_772.webp?token=1")
+    expect(normalizeIqiyiPosterUrl("https://pic9.iqiyipic.com/image/poster_480_270.jpg"))
+      .toBe("https://pic9.iqiyipic.com/image/poster_480_270.jpg")
+    expect(normalizeIqiyiPosterUrl("https://images.example.com/poster_120_160.jpg"))
+      .toBe("https://images.example.com/poster_120_160.jpg")
+    expect(normalizeIqiyiPosterUrl(null)).toBeNull()
+    expect(isIqiyiPosterUpgrade(
+      "https://pic2.iqiyipic.com/image/20260710/a_100841174_m5_141_188.jpg",
+      "https://pic2.iqiyipic.com/image/20260713/a_100841174_m6_579_772.jpg"
+    )).toBe(true)
+    expect(isIqiyiPosterUpgrade(
+      "https://pic2.iqiyipic.com/image/20260710/a_100841174_m5_141_188.jpg",
+      "https://images.example.com/a_100841174_m6_579_772.jpg"
+    )).toBe(false)
+    expect(isIqiyiPosterUpgrade(
+      "https://pic2.iqiyipic.com/image/20260710/a_100841174_m5_141_188.jpg",
+      "https://pic2.iqiyipic.com/image/20260713/a_999999999_m6_579_772.jpg"
+    )).toBe(false)
   })
 
   it("returns no items when the page has no Nuxt release data", async () => {

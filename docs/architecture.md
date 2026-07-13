@@ -58,7 +58,7 @@ External reads use the shared `SourceHttpClient`. The production client preserve
 15. Hourly maintenance verifies up to 20 high-heat eligible posters; startup sync and daily maintenance verify up to 100. Measurements are stored as `posterWidth` / `posterHeight`; widths below 300 or heights below 400 become `posterQuality=undersized`, independently of `posterStatus` availability. Degraded items wait one day and broken items seven days before retry.
 16. Missing, broken and undersized posters enter the strict TMDb enrichment queue. Identity requirements are unchanged; unmatched records retry only after the seven-day cooldown. `/api/poster-health` derives `not_attempted`, `cooldown` and `retry_eligible` lookup states from `posterLookupAttemptedAt` without treating an attempted lookup as a successful match.
 
-The heat page has one scoped exception: `iqiyi_reserve` poster URLs from `newOnlinePCW` are upgraded from the source's `141×188` thumbnail size to `579×772` and loaded direct-first. This does not change stored URLs or the poster behavior of other pages.
+iQIYI `newOnlinePCW` poster URLs on `iqiyipic.com` are normalized at adapter ingestion when they use the known `120×160` or `141×188` portrait suffix. The stored URL requests `579×772`, so every page can use the normal proxy and responsive variant pipeline. Existing low-resolution rows accept this replacement only through the same stable iQIYI source identity and matching asset ID; the heat page keeps its direct-first URL upgrade only as a legacy-data fallback.
 
 ## Source Registry
 

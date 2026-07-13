@@ -8,6 +8,7 @@ import type {
   SourceFetchBatch,
   SourceFetchResult
 } from "../domain/types.js"
+import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
 import { loadExistingMediaCandidates, mediaTypeFromStorageValue } from "./mediaCandidateService.js"
 import { PopularitySnapshotService } from "./popularitySnapshotService.js"
@@ -122,15 +123,23 @@ async function upsertItem(
   const replacePlatformFirstReleaseDate = match
     ? shouldReplacePlatformFirstReleaseDate(item, match)
     : false
-  const nextPosterUrl = match
-    ? match.posterStatus === "broken" && item.media.posterUrl
-      ? item.media.posterUrl
-      : item.media.source === "tvmaze"
-        && item.media.posterUrl
-        && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
-        ? item.media.posterUrl
-        : match.posterUrl ?? item.media.posterUrl
-    : item.media.posterUrl
+  const acceptIqiyiPosterUpgrade = match
+    ? hasStableSourceIdentity
+      && item.media.source === "iqiyi"
+      && isIqiyiPosterUpgrade(match.posterUrl, item.media.posterUrl)
+    : false
+  let nextPosterUrl = match?.posterUrl ?? item.media.posterUrl
+  const acceptTvmazePoster = match
+    && item.media.source === "tvmaze"
+    && item.media.posterUrl
+    && (!match.posterUrl || match.posterUrl.includes("static.tvmaze.com/"))
+  if (match && item.media.posterUrl && (
+    match.posterStatus === "broken"
+    || acceptIqiyiPosterUpgrade
+    || acceptTvmazePoster
+  )) {
+    nextPosterUrl = item.media.posterUrl
+  }
   const posterChanged = match?.posterUrl !== nextPosterUrl
 
   const mediaItem = match

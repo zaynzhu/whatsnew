@@ -5,6 +5,7 @@ import { captureSourceProxySettings } from "../settings/proxyResolver.js"
 import { RuntimeSettingsService, runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "../utils/rateLimiter.js"
 import { SourceHttpClient, sourceHttpClient } from "../utils/sourceHttpClient.js"
+import { normalizeIqiyiPosterUrl } from "../utils/iqiyiPosterUrl.js"
 
 type IqiyiVideo = {
   name?: string
@@ -201,7 +202,7 @@ function videoToAdapterItem(video: IqiyiVideo, today: string): AdapterItem {
       titleOriginal: video.name!,
       titleAliases: [],
       overview: cleanText(video.desc),
-      posterUrl: absoluteUrl(video.thumbnail) ?? absoluteUrl(video.imageUrl),
+      posterUrl: normalizeIqiyiPosterUrl(video.thumbnail) ?? absoluteUrl(video.imageUrl),
       productionCountries: ["CN"],
       originalLanguage: "zh",
       genres: [category],
