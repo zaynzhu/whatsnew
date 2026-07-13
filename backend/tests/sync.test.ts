@@ -832,6 +832,26 @@ describe("runSourceSync", () => {
             },
             releases: [],
             popularitySignals: []
+          },
+          {
+            ...base,
+            media: {
+              ...base.media,
+              source: "status_date_guard",
+              sourceId: "past-unknown",
+              titleDisplay: "Past Unknown",
+              titleOriginal: "Past Unknown",
+              titleAliases: [],
+              firstReleaseDate: "2026-07-11",
+              status: "unknown",
+              tmdbId: null,
+              tvmazeId: null,
+              imdbId: null,
+              traktId: null,
+              tvdbId: null
+            },
+            releases: [],
+            popularitySignals: []
           }
         ]
       }
@@ -845,6 +865,7 @@ describe("runSourceSync", () => {
     })
     expect(rows).toEqual([
       { titleDisplay: "Future Released", status: "upcoming" },
+      { titleDisplay: "Past Unknown", status: "released" },
       { titleDisplay: "Past Upcoming", status: "released" }
     ])
   })

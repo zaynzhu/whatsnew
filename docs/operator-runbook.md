@@ -240,7 +240,7 @@ npm run reconcile:duplicate-identities --workspace backend -- --apply
 npm run cleanup:platform-orphans --workspace backend -- --apply
 ```
 
-`reconcile:media-statuses` repairs only exact-date contradictions: a future first release becomes `upcoming`, and an `upcoming` work whose first-release date has arrived becomes `released`. It does not infer `ongoing`, `returning` or `ended`, and it does not alter platform-specific release rows. The same reconciliation runs automatically after initial, hourly and daily source batches.
+`reconcile:media-statuses` repairs only exact-date contradictions: a future first release becomes `upcoming`, and an `upcoming` or `unknown` work whose first-release date has arrived becomes `released`. It leaves undated `unknown` works unchanged, does not infer `ongoing`, `returning` or `ended`, and does not alter platform-specific release rows. The same reconciliation runs automatically after initial, hourly and daily source batches.
 
 `reconcile:release-statuses` advances exact-dated release rows to `upcoming`, `airing_today` or `available` according to the current local date. Explicit same-day `available`, `delayed` and `ended` states are retained. The same rule is applied before every release write and during scheduled data-quality maintenance.
 

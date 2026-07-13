@@ -37,6 +37,7 @@ This file is the short operational handoff for the current branch.
 - Exact-dated release rows now advance on every sync and scheduled maintenance while preserving explicit same-day availability, delayed and ended states. Main-database reconciliation on 2026-07-13 corrected 87 stale rows (`58 airing_today -> available`, `14 upcoming -> available`, `15 upcoming -> airing_today`); the follow-up dry run reported zero remaining contradictions.
 - TVmaze now deduplicates overlapping country-schedule and web-schedule results by stable episode ID before grouping releases. A real main-database sync on 2026-07-13 completed with 229 items, retained fresh/passed source health and reduced exact duplicate release groups from 2 to 0.
 - Current dashboard, discovery, calendar, trending and Douban preview queries now require an active source reference while direct media detail remains available for history. Main-database validation on 2026-07-13 retained all 6 inactive history-only works, returned none from title searches or dashboard candidates, and returned HTTP 200 for direct detail.
+- Exact past premiere dates now also resolve a work lifecycle from `unknown` to `released`. Main-database reconciliation on 2026-07-13 corrected `Iyanu` and `Faster with Newbern and Cotten`; the follow-up dry run found zero contradictions, while all 24 remaining active `unknown` works were intentionally preserved because none has a release date.
 
 ## Source Coverage
 

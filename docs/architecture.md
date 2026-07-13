@@ -32,7 +32,7 @@ Current catalog surfaces require at least one active `MediaSourceRef`: dashboard
 1. An adapter fetches and normalizes one source into `AdapterItem` rows.
 2. `runSourceSync()` creates a `SourceSyncRun` with `running`.
 3. Items are matched by stable source refs and external IDs before title matching.
-4. Canonical work status is constrained by an exact `firstReleaseDate`: a future premiere is `upcoming`, while a reached premiere cannot remain `upcoming`. Platform availability remains a source-attributed `Release` rather than overwriting the work lifecycle. Exact-dated release rows also advance from `upcoming` to `airing_today` and `available`; explicit same-day availability, delayed and ended states are preserved.
+4. Canonical work status is constrained by an exact `firstReleaseDate`: a future premiere is `upcoming`, while a reached premiere cannot remain `upcoming` or `unknown`. Undated works retain `unknown`; platform availability remains a source-attributed `Release` rather than overwriting the work lifecycle. Exact-dated release rows also advance from `upcoming` to `airing_today` and `available`; explicit same-day availability, delayed and ended states are preserved.
 5. Releases and popularity signals are upserted with original source attribution.
 6. Complete snapshots can retire missing releases or mark missing popularity signals historical.
 7. The sync run is finished as `success`, `warning` or `failed`.

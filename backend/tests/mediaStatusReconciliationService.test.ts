@@ -7,6 +7,7 @@ describe("normalizeMediaStatusForDate", () => {
     expect(normalizeMediaStatusForDate("released", "2026-07-20", "2026-07-13")).toBe("upcoming")
     expect(normalizeMediaStatusForDate("upcoming", "2026-07-12", "2026-07-13")).toBe("released")
     expect(normalizeMediaStatusForDate("upcoming", "2026-07-13", "2026-07-13")).toBe("released")
+    expect(normalizeMediaStatusForDate("unknown", "2026-07-12", "2026-07-13")).toBe("released")
   })
 
   it("保留已开播作品更具体的生命周期状态和非精确日期", () => {
@@ -20,6 +21,7 @@ describe("reconcileMediaStatuses", () => {
   it("预览并按目标状态批量修复日期矛盾", async () => {
     const rows = [
       { id: "past", titleDisplay: "Past", firstReleaseDate: "2026-07-12", status: "upcoming" },
+      { id: "known-past", titleDisplay: "Known Past", firstReleaseDate: "2025-07-12", status: "unknown" },
       { id: "future", titleDisplay: "Future", firstReleaseDate: "2026-07-20", status: "released" },
       { id: "stable", titleDisplay: "Stable", firstReleaseDate: "2024-01-01", status: "ended" }
     ]
@@ -37,11 +39,12 @@ describe("reconcileMediaStatuses", () => {
       now: new Date("2026-07-13T08:00:00+08:00")
     })
     expect(preview).toMatchObject({
-      scanned: 3,
-      matched: 2,
+      scanned: 4,
+      matched: 3,
       updated: 0,
       transitions: {
         "upcoming->released": 1,
+        "unknown->released": 1,
         "released->upcoming": 1
       }
     })
@@ -52,7 +55,7 @@ describe("reconcileMediaStatuses", () => {
       apply: true,
       now: new Date("2026-07-13T08:00:00+08:00")
     })
-    expect(applied.updated).toBe(2)
+    expect(applied.updated).toBe(3)
     expect(database.mediaItem.updateMany).toHaveBeenCalledTimes(2)
   })
 })

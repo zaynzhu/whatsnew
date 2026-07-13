@@ -15,6 +15,6 @@ export function normalizeMediaStatusForDate(
   if (!firstReleaseDate || !EXACT_DATE_PATTERN.test(firstReleaseDate)) return normalizedStatus
 
   if (firstReleaseDate > today) return "upcoming"
-  if (normalizedStatus === "upcoming") return "released"
+  if (normalizedStatus === "upcoming" || normalizedStatus === "unknown") return "released"
   return normalizedStatus
 }
