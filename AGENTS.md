@@ -57,6 +57,7 @@ npm run prisma:push --workspace backend
 - 图片健康接口和设置页必须分别统计缺图补全与低清替换任务，不能把两类任务的未尝试、冷却中和可重试数量混为一组
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 来源健康样本必须与 scope 语义严格对应；例如豆瓣 `popularity` 只能使用 `douban_top`，不得被 `douban_upcoming` 样本代替
+- 豆瓣 `/preview` 必须完整返回当前未来及待定档条目，不得用任意固定行数截断页面数据
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 - 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`
 

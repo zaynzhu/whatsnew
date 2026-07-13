@@ -28,8 +28,7 @@ previewRouter.get("/", async (_req, res) => {
         OR: [{ releaseDate: null }, { releaseDate: { gte: today } }]
       },
       include: { mediaItem: true },
-      orderBy: [{ releaseDate: "asc" }, { fetchedAt: "desc" }],
-      take: 500
+      orderBy: [{ releaseDate: "asc" }, { fetchedAt: "desc" }]
     }),
     db.sourceSyncRun.findFirst({
       where: { source: "douban", scope: { in: ["upcoming", "all"] } },

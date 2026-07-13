@@ -116,7 +116,7 @@ npm run enrich:posters --workspace backend -- --limit=120
 
 `sync:douban` runs two independent daily scopes in sequence: `popularity` fetches only TOP250 rating signals, then `upcoming` fetches only the paginated movie and TV coming-soon feeds. Their `SourceSyncRun` records and health samples remain separate.
 
-The `/preview` page reads only Douban movie and TV upcoming releases. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
+The `/preview` page reads only Douban movie and TV upcoming releases. Its read endpoint returns the complete current future/undated set without an arbitrary row cap. Its manual sync action calls `POST /api/preview/sync`, paginates the dedicated `movie/coming_soon` and `tv/coming_soon` endpoints, skips TOP250 and refuses to queue a second Douban run while one is already active. Opening or refreshing the page never triggers external requests.
 
 IMDb is local-cache based:
 

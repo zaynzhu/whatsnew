@@ -24,6 +24,7 @@ This file is the short operational handoff for the current branch.
 - Poster lookup observability separately tracks missing-poster enrichment and undersized-poster replacement across never-attempted, seven-day cooldown and retry-eligible states. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
+- `/preview` no longer has the former 500-row read cap. A real main-database request on 2026-07-13 returned all 206 current Douban upcoming works: 179 dated across 55 days and 27 undated.
 - The heat page groups duplicate works, filters reservation signals with stored Chinese platform values, and uses poster-led compact cards. iQIYI now stores known `120×160` / `141×188` portrait thumbnails as `579×772`; the page-level direct-first upgrade remains only for legacy rows.
 - Domestic-source evaluation uses the isolated `whatsnew_china_sandbox`; its scheduler, startup sync and every source switch are disabled by construction.
 - Tencent Video passed an isolated sandbox sync on 2026-07-13: 206 active source identities, 206 undated upcoming releases, 206 posters and 28 reservation signals; 167 works were new and 39 matched existing identities, while the main database counts stayed unchanged.

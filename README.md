@@ -231,6 +231,7 @@ Apple TV+ 来源读取官方 Press RSS feed（`https://www.apple.com/tv-pr/news-
 - daily 调度与 `sync:douban` 都依次执行两个独立 scope：`popularity` 只拉 TOP250，`upcoming` 只拉待映待播；两者独立记录运行与健康状态
 - TOP250 只输出 media 与评分 popularity signal（`sourceCategory: chinese_reputation`）
 - 独立页面输出 release calendar，并把页面排序和想看人数记录为 `douban_upcoming` 期待信号
+- `/preview` 不做列表截断，完整返回当前仍有效的已定档和待定档电影、剧集
 - 同步入口：`m.douban.com/rexxar/api/v2/movie/coming_soon`、`m.douban.com/rexxar/api/v2/tv/coming_soon`
 - 来源默认关闭，需在设置页启用后手动同步；`DOUBAN_COOKIE` 可选，不得高频爬取或绕过登录/验证码
 - 手动同步：`npm run sync:douban --workspace backend`

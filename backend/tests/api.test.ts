@@ -311,6 +311,38 @@ describe("api routes", () => {
     ))).toBe(true)
   })
 
+  it("returns the complete Douban preview beyond the former 500-row cap", async () => {
+    const itemCount = 501
+    await prisma.mediaItem.createMany({
+      data: Array.from({ length: itemCount }, (_, index) => ({
+        id: `preview-media-${index}`,
+        mediaType: index % 2 === 0 ? "movie" : "series",
+        releaseForm: index % 2 === 0 ? "theatrical_movie" : "tv_series",
+        titleDisplay: `Preview ${index}`,
+        status: "upcoming"
+      }))
+    })
+    await prisma.release.createMany({
+      data: Array.from({ length: itemCount }, (_, index) => ({
+        id: `preview-release-${index}`,
+        mediaItemId: `preview-media-${index}`,
+        platform: "豆瓣",
+        region: "CN",
+        releaseDate: "2099-01-01",
+        releasePattern: index % 2 === 0 ? "theatrical_coming_soon" : "tv_coming_soon",
+        releaseStatus: "upcoming",
+        source: "douban"
+      }))
+    })
+
+    const response = await request(createApp()).get("/api/preview")
+
+    expect(response.status).toBe(200)
+    expect(response.body.summary.total).toBe(itemCount)
+    expect(response.body.days).toHaveLength(1)
+    expect(response.body.days[0].items).toHaveLength(itemCount)
+  })
+
   it("counts unique works instead of episode rows in calendar summaries", async () => {
     const media = await prisma.mediaItem.create({
       data: {
