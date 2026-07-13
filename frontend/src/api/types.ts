@@ -62,6 +62,12 @@ export type PosterHealthResponse = {
     retryEligible: number
     retryAfterDays: number
   }
+  replacement: {
+    notAttempted: number
+    cooldown: number
+    retryEligible: number
+    retryAfterDays: number
+  }
   cache: {
     entries: number
     bytes: number

@@ -574,11 +574,11 @@ export function SettingsPage() {
                 <strong>{posterHealth.missing}</strong>
               </div>
               <div>
-                <span>等待重试</span>
+                <span>缺图冷却中</span>
                 <strong>{posterHealth.lookup.cooldown}</strong>
               </div>
               <div>
-                <span>可以重试</span>
+                <span>缺图可重试</span>
                 <strong>{posterHealth.lookup.retryEligible}</strong>
               </div>
               <div>
@@ -596,6 +596,14 @@ export function SettingsPage() {
                 <strong className={posterHealth.quality.undersized > 0 ? "warningText" : "successText"}>
                   {posterHealth.quality.undersized}
                 </strong>
+              </div>
+              <div>
+                <span>低清冷却中</span>
+                <strong>{posterHealth.replacement.cooldown}</strong>
+              </div>
+              <div>
+                <span>低清可重试</span>
+                <strong>{posterHealth.replacement.retryEligible}</strong>
               </div>
               <div>
                 <span>原图缓存</span>
@@ -628,6 +636,7 @@ export function SettingsPage() {
               </span>
               <span>尺寸待检测 {posterHealth.quality.unknown}</span>
               <span>缺图未尝试 {posterHealth.lookup.notAttempted}</span>
+              <span>低清未尝试 {posterHealth.replacement.notAttempted}</span>
               <span className={posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries > 0 ? "error" : ""}>
                 缓存损坏 {posterHealth.cache.corruptEntries + posterHealth.cache.variants.corruptEntries}
               </span>
@@ -660,7 +669,7 @@ export function SettingsPage() {
                     <Link to={`/media/${item.id}`} key={item.id}>
                       <span>{item.title}</span>
                       <small>
-                        {item.width ?? "?"}×{item.height ?? "?"} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"}
+                        {item.width ?? "?"}×{item.height ?? "?"} · Heat {Math.round(item.heatScore)} · {item.sources.join(" / ") || "来源待确认"} · {posterLookupLabel(item)}
                       </small>
                     </Link>
                   ))}

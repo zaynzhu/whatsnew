@@ -50,6 +50,7 @@ npm run prisma:push --workspace backend
 - 响应式 WebP 缓存默认上限为 512 MB，超过后每日调度按最旧条目清理至 90%；写入不足一小时的临时或孤立文件不得删除
 - 图片尺寸验证按热度优先持续消化：小时组最多 20 张，启动同步和日组最多 100 张；网络失败、损坏和尺寸未知项必须遵守既有退避窗口
 - 缺图补全必须在图片健康接口中区分尚未尝试、7 天冷却中和可以重试；最近尝试时间只表示严格查询已执行，不表示已经找到可靠匹配
+- 图片健康接口和设置页必须分别统计缺图补全与低清替换任务，不能把两类任务的未尝试、冷却中和可重试数量混为一组
 - 多 scope 来源的状态必须通过 `aggregateLatestSourceRuns()` 聚合，避免 `/api/sources` 与 `/api/settings` 显示不一致
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 - 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`

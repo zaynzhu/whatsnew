@@ -220,6 +220,7 @@ const posterHealthResponse: PosterHealthResponse = {
   statuses: { unverified: 700, healthy: 150, degraded: 5, broken: 2 },
   quality: { unknown: 630, adequate: 70, undersized: 7 },
   lookup: { notAttempted: 12, cooldown: 130, retryEligible: 8, retryAfterDays: 7 },
+  replacement: { notAttempted: 2, cooldown: 4, retryEligible: 1, retryAfterDays: 7 },
   cache: {
     entries: 209,
     bytes: 73_886_357,
@@ -320,8 +321,12 @@ describe("SettingsPage", () => {
     expect(screen.getByText("30 / 512 MB")).toBeInTheDocument()
     expect(screen.getByText("孤立文件 1")).toBeInTheDocument()
     expect(screen.getByText("低清 7")).toBeInTheDocument()
+    expect(screen.getByText("缺图冷却中")).toBeInTheDocument()
     expect(screen.getByText("130")).toBeInTheDocument()
-    expect(screen.getByText("可以重试")).toBeInTheDocument()
+    expect(screen.getByText("低清冷却中")).toBeInTheDocument()
+    expect(screen.getByText("低清可重试")).toBeInTheDocument()
+    expect(screen.getByText("低清未尝试 2")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Low Resolution Poster.*可以重试/ })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Low Resolution Poster/ })).toHaveAttribute(
       "href",
       "/media/media-low-resolution"

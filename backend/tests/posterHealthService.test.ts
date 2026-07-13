@@ -62,10 +62,11 @@ describe("PosterHealthService", () => {
       if (!where) return 10
       if (where.OR) return 2
       if (where.AND) {
+        const isReplacement = where.AND[0]?.posterQuality === "undersized"
         const lookup = where.AND[1]?.posterLookupAttemptedAt
-        if (lookup === null) return 0
-        if (lookup?.gte) return 2
-        if (lookup?.lt) return 0
+        if (lookup === null) return isReplacement ? 1 : 0
+        if (lookup?.gte) return isReplacement ? 1 : 2
+        if (lookup?.lt) return isReplacement ? 1 : 0
       }
       const qualityCounts: Record<string, number> = { unknown: 4, adequate: 3, undersized: 1 }
       if (where.posterQuality) return qualityCounts[String(where.posterQuality)] ?? 0
@@ -88,6 +89,7 @@ describe("PosterHealthService", () => {
       statuses: { unverified: 5, healthy: 3, degraded: 1, broken: 1 },
       quality: { unknown: 4, adequate: 3, undersized: 1 },
       lookup: { notAttempted: 0, cooldown: 2, retryEligible: 0, retryAfterDays: 7 },
+      replacement: { notAttempted: 1, cooldown: 1, retryEligible: 1, retryAfterDays: 7 },
       cache: {
         entries: 2,
         bytes: 5,

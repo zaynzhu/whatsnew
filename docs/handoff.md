@@ -21,7 +21,7 @@ This file is the short operational handoff for the current branch.
 - Poster health is persisted per title and exposed through `/api/poster-health` and the settings page. Original and responsive caches have separate counts, capacity and integrity metrics. Cache refresh can serve stale bytes during transient upstream failures.
 - Responsive variants are capped at 512 MB. Startup sync and daily maintenance clean stale partial files and evict oldest complete variants to 90% when over capacity; manual cleanup defaults to dry-run.
 - Poster quality is tracked separately from availability. Requests and verification persist dimensions; images below 300×400 are listed as undersized and enter strict TMDb replacement without relaxing identity matching.
-- Missing-poster observability separates never-attempted, seven-day cooldown and retry-eligible records. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
+- Poster lookup observability separately tracks missing-poster enrichment and undersized-poster replacement across never-attempted, seven-day cooldown and retry-eligible states. Settings samples show the last strict lookup time so a safe skip is not mistaken for a stalled worker.
 - The calendar is an image-first month wall: seven poster columns on desktop, a horizontal poster rail on mobile, and a large selected-day gallery.
 - `/preview` is a standalone Douban upcoming timeline for dated and undated movie/series releases.
 - The heat page groups duplicate works, filters reservation signals with stored Chinese platform values, and uses poster-led compact cards. Only iQIYI reservation cards upgrade `141×188` source thumbnails to `579×772` direct-first images.
