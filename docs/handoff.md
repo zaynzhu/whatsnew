@@ -26,8 +26,8 @@ Verified against the running main backend on 2026-07-14:
 - Source health has 24 adapter scopes: 11 passed and runnable, 13 intentionally blocked, with zero degraded, failed or stale scopes.
 - The enabled passing scopes are TVmaze, TMDb, Trakt popularity, Trakt calendar, TheTVDB updates, Netflix, Hulu, Disney+, Tencent Video, Douban popularity and Douban upcoming.
 - Tencent Video is no longer sandbox-only. Its accepted main sync contains 208 active source identities and 208 undated upcoming releases; 196 works were created and 12 matched existing identities. All 208 posters passed real verification, with minimum dimensions of `350x490`, and 27 reservation signals were retained.
-- The active catalog has 1,459 works, 1,345 posters and 114 missing posters, for 92.2% coverage. All stored posters are healthy; 1,342 are adequate and three are undersized.
-- Missing-poster lookup state is four not attempted, 110 cooling and zero retry-eligible. The four not-attempted Trakt titles remain uncooldowned after bounded TMDb transport failures. The next missing-poster cooldown expiry is 2026-07-16 12:52 Asia/Shanghai.
+- The active catalog has 1,452 works, 1,341 posters and 111 missing posters, for 92.4% coverage. All stored posters are healthy; 1,338 are adequate and three are undersized.
+- Missing-poster lookup state is zero not attempted, 111 cooling and zero retry-eligible. A fresh Trakt sync added `The Real Wolf of Wall Street`; bounded strict enrichment added its verified `500x750` TMDb poster without bypassing cooldown. The next missing-poster cooldown expiry is 2026-07-16 12:52 Asia/Shanghai.
 - The three undersized low-attention posters are cooling until the next replacement window. Source-generic placeholders remain classified as missing instead of healthy artwork.
 - The normal frontend and backend are running. The domestic sandbox services are stopped.
 
@@ -67,7 +67,7 @@ Verified against the running main backend on 2026-07-14:
 
 ## Next Priority
 
-Continue poster-system phase two after the 2026-07-16 cooldown window opens. Recheck the 110 cooling missing titles and three undersized titles without bypassing cooldown. Retry the four uncooldowned Trakt titles only in a bounded batch, preserving the existing content-attention order and strict TMDb, IMDb and TheTVDB identity rules.
+Continue poster-system phase two after the 2026-07-16 cooldown window opens. Recheck the 111 cooling missing titles and three undersized titles without bypassing cooldown, preserving the existing content-attention order and strict TMDb, IMDb and TheTVDB identity rules.
 
 ## Validation Baseline
 
