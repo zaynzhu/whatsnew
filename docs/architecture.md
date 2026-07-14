@@ -87,6 +87,8 @@ Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_
 
 Youku uses the signed MTop `kuflix_node_page` reservation node for paginated movie and series upcoming lists. iQIYI uses the complete `newOnlinePCW` upcoming page. Tencent Video posts to the `getMVLPage` structured page service and validates the exact “即将上线” option before accepting paginated movie and series cards; its `publish_date` is work metadata, not a Tencent availability date. MangoTV is blocked because the former channel-homepage modules did not provide a trustworthy upcoming/reservation contract.
 
+Hulu schedule titles explicitly marked as a season, series, film or special premiere are normalized to the underlying work title while retaining the platform wording as an alias. Dashboard release ranking gives platform premieres a timing advantage, keeps ordinary releases in the middle and removes timing boost from catalog additions. Catalog additions remain visible in the complete calendar and date shelves.
+
 ## Identity And Release Semantics
 
 Platform catalog additions use `releasePattern=catalog_addition` and do not overwrite a work's `firstReleaseDate`. Calendar counts are unique works per day, while the selected-day response can retain multiple underlying release rows for provenance.

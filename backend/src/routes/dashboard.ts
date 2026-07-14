@@ -1,3 +1,4 @@
+import type { ContentAttentionCategory } from "@whatsnew/shared/settings"
 import { Router } from "express"
 import { db } from "../config/db.js"
 import {
@@ -12,6 +13,32 @@ import { runtimeSettings } from "../settings/runtimeSettingsService.js"
 import { getUpcomingDateWindow } from "../utils/date.js"
 
 export const dashboardRouter = Router()
+
+type DashboardRelease = {
+  releasePattern: string
+  mediaItem: AttentionMedia
+}
+
+export function dashboardReleasePriority(
+  release: DashboardRelease,
+  weights: Record<ContentAttentionCategory, number>
+): number {
+  const patternBoost = release.releasePattern === "platform_premiere"
+    ? 100
+    : release.releasePattern === "catalog_addition"
+      ? -100
+      : 0
+
+  return contentAttentionWeight(release.mediaItem, weights) * 100
+    + release.mediaItem.heatScore
+    + patternBoost
+}
+
+export function dashboardTimingBoost(releasePattern: string, baseBoost: number): number {
+  if (releasePattern === "catalog_addition") return 0
+  if (releasePattern === "platform_premiere") return baseBoost + 5
+  return baseBoost
+}
 
 dashboardRouter.get("/", async (_req, res) => {
   const { from: today, to: weekEnd } = getUpcomingDateWindow()
@@ -52,14 +79,11 @@ dashboardRouter.get("/", async (_req, res) => {
       take: 50
     })
   ])
-  const releasePriority = (release: { mediaItem: AttentionMedia }) => (
-    contentAttentionWeight(release.mediaItem, weights) * 100 + release.mediaItem.heatScore
-  )
   const todayReleases = [...todayPool]
-    .sort((left, right) => releasePriority(right) - releasePriority(left))
+    .sort((left, right) => dashboardReleasePriority(right, weights) - dashboardReleasePriority(left, weights))
     .slice(0, 12)
   const weekReleases = [...weekPool]
-    .sort((left, right) => releasePriority(right) - releasePriority(left))
+    .sort((left, right) => dashboardReleasePriority(right, weights) - dashboardReleasePriority(left, weights))
     .slice(0, 24)
   const trending = trendingPool.map(withDataSources)
   const candidates = new Map<string, { media: AttentionMedia & { id: string }, timingBoost: number }>()
@@ -69,11 +93,21 @@ dashboardRouter.get("/", async (_req, res) => {
     const current = candidates.get(release.mediaItem.id)
     candidates.set(release.mediaItem.id, {
       media: release.mediaItem,
-      timingBoost: Math.max(current?.timingBoost ?? 0, 5)
+      timingBoost: Math.max(
+        current?.timingBoost ?? 0,
+        dashboardTimingBoost(release.releasePattern, 5)
+      )
     })
   }
   for (const release of todayPool) {
-    candidates.set(release.mediaItem.id, { media: release.mediaItem, timingBoost: 10 })
+    const current = candidates.get(release.mediaItem.id)
+    candidates.set(release.mediaItem.id, {
+      media: release.mediaItem,
+      timingBoost: Math.max(
+        current?.timingBoost ?? 0,
+        dashboardTimingBoost(release.releasePattern, 10)
+      )
+    })
   }
 
   const featured = [...candidates.values()]
