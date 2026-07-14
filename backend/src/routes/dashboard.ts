@@ -40,6 +40,29 @@ export function dashboardTimingBoost(releasePattern: string, baseBoost: number):
   return baseBoost
 }
 
+function rankedUniqueReleases<T extends DashboardRelease & {
+  mediaItemId: string
+  releaseDate: string | null
+}>(
+  releases: T[],
+  weights: Record<ContentAttentionCategory, number>,
+  limit: number
+): T[] {
+  const seen = new Set<string>()
+
+  return [...releases]
+    .sort((left, right) => (
+      dashboardReleasePriority(right, weights) - dashboardReleasePriority(left, weights)
+      || (left.releaseDate ?? "").localeCompare(right.releaseDate ?? "")
+    ))
+    .filter((release) => {
+      if (seen.has(release.mediaItemId)) return false
+      seen.add(release.mediaItemId)
+      return true
+    })
+    .slice(0, limit)
+}
+
 dashboardRouter.get("/", async (_req, res) => {
   const { from: today, to: weekEnd } = getUpcomingDateWindow()
   const weights = contentWeightMap(runtimeSettings)
@@ -79,12 +102,8 @@ dashboardRouter.get("/", async (_req, res) => {
       take: 50
     })
   ])
-  const todayReleases = [...todayPool]
-    .sort((left, right) => dashboardReleasePriority(right, weights) - dashboardReleasePriority(left, weights))
-    .slice(0, 12)
-  const weekReleases = [...weekPool]
-    .sort((left, right) => dashboardReleasePriority(right, weights) - dashboardReleasePriority(left, weights))
-    .slice(0, 24)
+  const todayReleases = rankedUniqueReleases(todayPool, weights, 12)
+  const weekReleases = rankedUniqueReleases(weekPool, weights, 24)
   const trending = trendingPool.map(withDataSources)
   const candidates = new Map<string, { media: AttentionMedia & { id: string }, timingBoost: number }>()
 

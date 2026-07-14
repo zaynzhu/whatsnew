@@ -65,6 +65,7 @@ npm run prisma:push --workspace backend
 - Prime Video 只使用 About Amazon 官方月度上新文章，必须排除直播体育、音乐和无法可靠判断影视类型的条目；娱乐频道页仅用于发现最新月度文章
 - Hulu 排期中带原始年份的 `En Espanol` 版本保留平台展示标题，同时增加去除语言版本后缀的基础片名别名；没有原始年份时不得应用该规则，以免放宽 TMDb 匹配
 - Hulu 标题中的 `Season`、`Series`、`Film` 与 `Special Premiere` 必须清理为作品标题并保留原文别名；首页优先平台首发，普通排期次之，旧目录新增不获得时效加成，但日历仍完整保留
+- 首页今日与本周片单必须先按作品去重再截取，不能让同日多集或多来源排期重复占位；日历和详情页继续保留完整排期
 - 缺失海报优先复用库内唯一的近期同类作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；严格 TMDb 身份可归并同一作品大类内的普通与专业内容类型，但必须保留 `anime`、`documentary`、`variety`、`short_drama` 专业分类并迁移全部外部 ID；外部 ID 冲突和无法拉开置信差距的歧义必须跳过。TMDb 候选海报必须先真实下载并通过尺寸、竖版比例校验后才能写入，下载失败不得覆盖已有图片或启动作品级冷却
 - 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。缺图状态必须由同一组件区分待播作品的“海报待发布”、普通缺图的“暂无海报”和双链路失败的“图片暂不可用”。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。豆瓣 adapter 必须把 `doubanio.com` 的 `s_ratio_poster` 与 `m_ratio_poster` 规范为同一素材的 `l_ratio_poster`，已有记录也只允许相同稳定豆瓣来源身份和相同素材路径升级；`/pics/subject/movie*.jpg` 与 `/pics/subject/tv*.jpg` 是通用占位图，必须先按同一 subject ID 低频读取详情，并保留该详情的 `original_title`、`aka` 与 `countries` 作为严格身份信息，仍无真实素材时才按缺图入库并进入补图队列。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
 - 已知图片 CDN 必须沿用所属数据源的 `direct`、`inherit` 或 `custom` 代理模式；不得只按图片 URL 协议无条件套用全局代理，否则会出现数据同步成功但海报验证失败的假故障。未知图片域名继续沿用全局 HTTP/HTTPS 代理作为兼容兜底

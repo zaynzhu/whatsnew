@@ -73,6 +73,61 @@ describe("api routes", () => {
     expect(response.body.sources.map((run: any) => run.source)).toEqual(["tmdb"])
   })
 
+  it("returns each work only once in dashboard date shelves", async () => {
+    const today = new Date()
+    const releaseDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-")
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        titleDisplay: "Dashboard Duplicate",
+        status: "ongoing",
+        heatScore: 80,
+        sourceRefs: {
+          create: { source: "trakt", sourceId: "dashboard-duplicate", isActive: true }
+        },
+        releases: {
+          createMany: {
+            data: [
+              {
+                platform: "Trakt",
+                region: "US",
+                releaseDate,
+                releasePattern: "episode_release",
+                releaseStatus: "airing_today",
+                seasonNumber: 1,
+                episodeNumber: 1,
+                source: "trakt"
+              },
+              {
+                platform: "Trakt",
+                region: "US",
+                releaseDate,
+                releasePattern: "episode_release",
+                releaseStatus: "airing_today",
+                seasonNumber: 1,
+                episodeNumber: 2,
+                source: "trakt"
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    const response = await request(createApp()).get("/api/dashboard")
+    const todayIds = response.body.today.map((release: any) => release.mediaItemId)
+    const weekIds = response.body.week.map((release: any) => release.mediaItemId)
+
+    expect(response.status).toBe(200)
+    expect(todayIds.filter((id: string) => id === media.id)).toHaveLength(1)
+    expect(weekIds.filter((id: string) => id === media.id)).toHaveLength(1)
+  })
+
   it("returns poster coverage and persistent health status", async () => {
     const response = await request(createApp()).get("/api/poster-health")
 
