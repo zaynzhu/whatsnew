@@ -24,6 +24,8 @@ type DoubanMobilePerson = {
 type DoubanMobileSubject = {
   id?: string
   title?: string
+  original_title?: string | null
+  aka?: string[]
   type?: string
   subtype?: string
   cover_url?: string
@@ -31,6 +33,8 @@ type DoubanMobileSubject = {
   directors?: DoubanMobilePerson[]
   actors?: DoubanMobilePerson[]
   genres?: string[]
+  countries?: string[]
+  languages?: string[]
   pic?: {
     large?: string
     normal?: string
@@ -218,6 +222,10 @@ function mobileSubjectToAdapterItem(
     genres
   })
   const releaseDate = releaseDateFromSubject(item, today)
+  const originalTitle = item.original_title?.trim() || title
+  const titleAliases = compactTexts([item.original_title, ...(item.aka ?? [])])
+    .filter((alias) => alias !== title)
+  const countries = compactTexts(item.countries ?? [])
 
   return {
     media: {
@@ -227,11 +235,11 @@ function mobileSubjectToAdapterItem(
       releaseForm: classification.releaseForm,
       sourceContentType: contentType,
       titleDisplay: title,
-      titleOriginal: title,
-      titleAliases: [],
+      titleOriginal: originalTitle,
+      titleAliases,
       overview: item.intro?.trim() || null,
       posterUrl: posterUrlFromSubject(item),
-      productionCountries: regionsFromSubject(item, groupTitle),
+      productionCountries: countries.length > 0 ? countries : regionsFromSubject(item, groupTitle),
       originalLanguage: null,
       genres,
       firstReleaseDate: releaseDate,

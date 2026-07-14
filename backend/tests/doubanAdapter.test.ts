@@ -313,6 +313,9 @@ describe("doubanAdapter", () => {
         return JSON.stringify({
           ...placeholderSubject,
           title: "我剩下的恋爱",
+          original_title: "Last Love",
+          aka: ["Remaining Love"],
+          countries: ["韩国"],
           cover_url: "https://img1.doubanio.com/view/photo/m_ratio_poster/public/p2934049189.jpg",
           intro: "在经历人生终点后寻找真爱。"
         })
@@ -335,7 +338,9 @@ describe("doubanAdapter", () => {
     expect(result.items[0].media).toMatchObject({
       sourceId: "douban-38545558",
       titleDisplay: "余下的恋爱",
-      titleAliases: ["我剩下的恋爱"],
+      titleOriginal: "Last Love",
+      titleAliases: ["我剩下的恋爱", "Last Love", "Remaining Love"],
+      productionCountries: ["韩国"],
       overview: "在经历人生终点后寻找真爱。",
       posterUrl: "https://img1.doubanio.com/view/photo/l_ratio_poster/public/p2934049189.jpg",
       firstReleaseDate: "2026-08-20"

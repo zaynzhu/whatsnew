@@ -114,15 +114,25 @@ export function createDoubanAdapter(options: DoubanAdapterOptions = {}): SourceA
               }))
               const detail = parseDoubanSubjectDetail(detailJson, kind, today)
               const detailTitle = detail?.media.titleDisplay.trim()
+              const detailOriginalTitle = detail?.media.titleOriginal?.trim()
               items.push({
                 ...item,
                 media: {
                   ...item.media,
                   posterUrl: detail?.media.posterUrl ?? item.media.posterUrl,
                   overview: item.media.overview ?? detail?.media.overview ?? null,
-                  titleAliases: detailTitle && detailTitle !== item.media.titleDisplay
-                    ? [...new Set([...item.media.titleAliases, detailTitle])]
-                    : item.media.titleAliases
+                  titleOriginal: detailOriginalTitle && detailOriginalTitle !== detailTitle
+                    ? detailOriginalTitle
+                    : item.media.titleOriginal,
+                  titleAliases: [...new Set([
+                    ...item.media.titleAliases,
+                    ...(detailTitle && detailTitle !== item.media.titleDisplay ? [detailTitle] : []),
+                    ...(detail?.media.titleAliases ?? [])
+                  ])],
+                  productionCountries: [...new Set([
+                    ...item.media.productionCountries,
+                    ...(detail?.media.productionCountries ?? [])
+                  ])]
                 }
               })
             } catch {

@@ -51,6 +51,7 @@ npm run prisma:push --workspace backend
 - TVmaze 普通电视排期与 Web 排期可能返回同一 episode，合并结果必须按稳定 episode ID 去重后再写入 `Release`
 - demo seed 仅用于显式开发测试，不得作为真实数据同步步骤或生产初始化步骤
 - 国内来源先在 `whatsnew_china_sandbox` 验收；沙盒强制关闭调度和全部来源，禁止把沙盒业务数据复制回主库
+- `backend/src/config/db.ts` 必须先加载 `config/env.ts` 再创建 PrismaClient，确保 `SETTINGS_ENV_PATH=.env.china-sandbox` 对所有维护脚本都生效；不得依赖其他 adapter 的间接 import 顺序选择数据库
 - 优酷、爱奇艺、腾讯、哔哩哔哩、芒果TV和豆瓣的普通同步 CLI 必须遵守主库来源开关；关闭状态下不得绕过设置写入主库，独立验证统一使用 `sandbox:sync`
 - 优酷只使用 MTop 独立待播预约节点，爱奇艺只使用 `newOnlinePCW` 待播页；腾讯视频只使用 `getMVLPage` 的频道“即将上线”筛选，电视剧固定 `channel_id=100113, iyear=1`，电影固定 `channel_id=100173, iyear=999`，不得把 `publish_date` 当作腾讯上线日期；芒果TV 当前为 blocked，不得按旧频道首页方案恢复
 - 平台页面的语言和地区不得直接推断为作品原始语言或制片国家；缺少作品级字段时保持未知
@@ -64,7 +65,7 @@ npm run prisma:push --workspace backend
 - Prime Video 只使用 About Amazon 官方月度上新文章，必须排除直播体育、音乐和无法可靠判断影视类型的条目；娱乐频道页仅用于发现最新月度文章
 - Hulu 排期中带原始年份的 `En Espanol` 版本保留平台展示标题，同时增加去除语言版本后缀的基础片名别名；没有原始年份时不得应用该规则，以免放宽 TMDb 匹配
 - 缺失海报优先复用库内唯一的近期同类作品，再通过 TMDb ID、唯一严格标题或 Netflix 高置信近期候选补全；严格 TMDb 身份可归并同一作品大类内的普通与专业内容类型，但必须保留 `anime`、`documentary`、`variety`、`short_drama` 专业分类并迁移全部外部 ID；外部 ID 冲突和无法拉开置信差距的歧义必须跳过。TMDb 候选海报必须先真实下载并通过尺寸、竖版比例校验后才能写入，下载失败不得覆盖已有图片或启动作品级冷却
-- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。缺图状态必须由同一组件区分待播作品的“海报待发布”、普通缺图的“暂无海报”和双链路失败的“图片暂不可用”。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。豆瓣 adapter 必须把 `doubanio.com` 的 `s_ratio_poster` 与 `m_ratio_poster` 规范为同一素材的 `l_ratio_poster`，已有记录也只允许相同稳定豆瓣来源身份和相同素材路径升级；`/pics/subject/movie*.jpg` 与 `/pics/subject/tv*.jpg` 是通用占位图，必须先按同一 subject ID 低频读取详情，仍无真实素材时才按缺图入库并进入严格补图队列。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
+- 前端影视图片默认通过 `MediaPoster` 的 `srcset` 请求 `/api/media/:id/poster?width=320|640|960`；后端只缩小、不放大并缓存 WebP 变体。缺图状态必须由同一组件区分待播作品的“海报待发布”、普通缺图的“暂无海报”和双链路失败的“图片暂不可用”。爱奇艺 adapter 会把 `iqiyipic.com` 上已知的 `120×160` / `141×188` 竖版缩略图严格规范为 `579×772` 后入库；已有低清图只允许同一稳定爱奇艺来源身份、同一素材 ID 的高清地址替换。豆瓣 adapter 必须把 `doubanio.com` 的 `s_ratio_poster` 与 `m_ratio_poster` 规范为同一素材的 `l_ratio_poster`，已有记录也只允许相同稳定豆瓣来源身份和相同素材路径升级；`/pics/subject/movie*.jpg` 与 `/pics/subject/tv*.jpg` 是通用占位图，必须先按同一 subject ID 低频读取详情，并保留该详情的 `original_title`、`aka` 与 `countries` 作为严格身份信息，仍无真实素材时才按缺图入库并进入补图队列。热度页仍保留 direct-first 作为旧数据兜底，其他页面沿用统一代理方案
 - 已知图片 CDN 必须沿用所属数据源的 `direct`、`inherit` 或 `custom` 代理模式；不得只按图片 URL 协议无条件套用全局代理，否则会出现数据同步成功但海报验证失败的假故障。未知图片域名继续沿用全局 HTTP/HTTPS 代理作为兼容兜底
 - 图片可用性与清晰度分开记录；`posterQuality=undersized` 表示实测宽度小于 300 或高度小于 400，只能通过严格 TMDb 身份规则、同一 IMDb ID 的 OMDb 精确查询，或已有同一 `tvdbId` 的 TheTVDB 免费详情替换，不得放宽标题匹配；所有候选必须先通过真实下载、至少 300×400 和竖版比例校验，失效地址、缓存兜底和横版剧照不得入库
 - 原图缓存默认上限为 2 GB，响应式 WebP 缓存默认上限为 512 MB；超过后每日调度按最旧条目清理至各自上限的 90%，写入不足一小时的临时或孤立文件不得删除
