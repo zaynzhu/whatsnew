@@ -39,8 +39,8 @@ function cleanHuluTitle(value: string): {
   return { title, titleAliases, originalReleaseYear: Number(yearMatch[1]) }
 }
 
-function releasePattern(labels: string[]): string {
-  const status = labels.join(" ").toLowerCase()
+function releasePattern(title: string, labels: string[]): string {
+  const status = [title, ...labels].join(" ").toLowerCase()
   return /\b(?:premiere|debut)\b/.test(status) ? "platform_premiere" : "catalog_addition"
 }
 
@@ -95,7 +95,7 @@ export function parseHuluSchedule(
         sourceContentType: inferContentType(rawTitle, labels),
         releaseDate,
         originalReleaseYear: normalizedTitle.originalReleaseYear,
-        releasePattern: releasePattern(labels),
+        releasePattern: releasePattern(rawTitle, labels),
         description: labels.length > 0 ? labels.join(" · ") : null,
         labels,
         sourceUrl

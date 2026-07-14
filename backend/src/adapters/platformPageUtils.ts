@@ -68,7 +68,7 @@ export function cleanPlatformText(value: string | null | undefined): string | nu
 
 export function stripSeasonQualifier(value: string): string {
   const colonQualifier = value.replace(
-    /\s*:\s*(?:(?:complete\s+)?seasons?\b|(?:[a-z-]+\s+)?(?:docu)?series\s+premiere\b).*$/i,
+    /\s*:\s*(?:(?:complete\s+)?seasons?\b|(?:(?:[a-z-]+\s+)?(?:docu)?series|film|movie|special)\s+premiere\b).*$/i,
     ""
   )
 

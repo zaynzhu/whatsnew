@@ -135,6 +135,18 @@ describe("Hulu schedule parser", () => {
                   <td></td>
                   <td>Added</td>
                 </tr>
+                <tr>
+                  <td data-sort="1782864000"><span data-month="July"></span> July 1</td>
+                  <td>They Fight: Film Premiere</td>
+                  <td>Hulu Original</td>
+                  <td>Added</td>
+                </tr>
+                <tr>
+                  <td data-sort="1782864000"><span data-month="July"></span> July 1</td>
+                  <td>Undead Unluck: Winter Arc: Special Premiere (DUBBED)</td>
+                  <td>Hulu Original</td>
+                  <td>Added</td>
+                </tr>
               </tbody>
             </table>
           </article>
@@ -164,6 +176,20 @@ describe("Hulu schedule parser", () => {
         sourceContentType: "movie",
         releaseDate: "2026-07-01",
         releasePattern: "catalog_addition"
+      }),
+      expect.objectContaining({
+        title: "They Fight",
+        titleAliases: ["They Fight: Film Premiere"],
+        sourceContentType: "movie",
+        releaseDate: "2026-07-01",
+        releasePattern: "platform_premiere"
+      }),
+      expect.objectContaining({
+        title: "Undead Unluck: Winter Arc",
+        titleAliases: ["Undead Unluck: Winter Arc: Special Premiere (DUBBED)"],
+        sourceContentType: "special",
+        releaseDate: "2026-07-01",
+        releasePattern: "platform_premiere"
       })
     ])
   })
@@ -218,5 +244,8 @@ describe("Hulu adapter", () => {
       sourceUrl: "https://press.hulu.com/schedule/"
     })
     expect(items[0].popularitySignals).toEqual([])
+    expect(items[1].releases[0]).toMatchObject({
+      releasePattern: "platform_premiere"
+    })
   })
 })
