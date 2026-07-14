@@ -236,7 +236,8 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 Apple TV+ 来源读取官方 Press RSS feed（`https://www.apple.com/tv-pr/news-feed.xml`，Atom XML），同步最近 10 条上新资讯。
 
 - `tv.apple.com` collection 本地 HTTP 返回 404，不硬接平台片库，改用官方 RSS 作为 news_signal 来源
-- `<updated>` 是新闻发布日期，首版作为 `releaseDate`（非精确上线日）；非影视类新闻（无 series/movie/documentary/special 关键词）会被过滤
+- `<updated>` 只作为资讯发布时间；adapter 低频读取官方文章正文，只有明确出现 premiere/debut 日期时才写入 `Release`，否则仅保留 news_signal
+- 官方文章的横版 `og:image` 不写入竖版海报字段；非影视类新闻（无 series/movie/documentary/special 关键词）会在读取正文前过滤
 - 来源默认关闭，需在设置页启用后手动同步
 - 手动同步：`npm run sync:apple-tv-plus --workspace backend`
 

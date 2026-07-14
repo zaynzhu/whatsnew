@@ -10,7 +10,11 @@ import {
   candidateToAdapterItem,
   type PlatformAdapterConfig
 } from "./platformPageUtils.js"
-import { parseAppleTvPlusNewsFeed } from "./appleTvPlusParser.js"
+import {
+  parseAppleTvPlusNewsFeed,
+  parseAppleTvPlusPressArticle,
+  type AppleTvPressCandidate
+} from "./appleTvPlusParser.js"
 
 export type AppleTvPlusAdapterOptions = {
   url?: string
@@ -45,6 +49,54 @@ function todayLocalDate(): string {
   ].join("-")
 }
 
+function mediaStatus(releaseDate: string | null, today: string) {
+  if (!releaseDate) return "unknown" as const
+  return releaseDate > today ? "upcoming" as const : "released" as const
+}
+
+function releaseStatus(releaseDate: string, today: string) {
+  if (releaseDate > today) return "upcoming"
+  if (releaseDate === today) return "airing_today"
+  return "available"
+}
+
+function candidateItem(candidate: AppleTvPressCandidate, today: string) {
+  const publishedDate = candidate.publishedAt.slice(0, 10)
+  const item = candidateToAdapterItem(CONFIG, { ...candidate, releaseDate: publishedDate }, today)
+  if (!item) return null
+
+  const releaseDate = candidate.releaseDate
+  return {
+    ...item,
+    media: {
+      ...item.media,
+      firstReleaseDate: releaseDate,
+      status: mediaStatus(releaseDate, today)
+    },
+    releases: releaseDate ? [{
+      ...item.releases[0],
+      releaseDate,
+      releasePattern: "platform_premiere",
+      releaseStatus: releaseStatus(releaseDate, today)
+    }] : [],
+    popularitySignals: [{
+      source: "apple_tv_plus_news",
+      sourceCategory: "news_signal",
+      platform: "Apple TV+",
+      region: "US",
+      window: "latest",
+      rankingScope: "news",
+      rankingEntryKey: item.media.sourceId,
+      rank: null,
+      rankDelta: null,
+      value: null,
+      valueLabel: "官方资讯",
+      sourceUrl: candidate.sourceUrl,
+      capturedAt: new Date(candidate.publishedAt)
+    }]
+  }
+}
+
 export function createAppleTvPlusAdapter(options: AppleTvPlusAdapterOptions = {}): SourceAdapter<SourceFetchBatch> {
   const httpClient = options.httpClient ?? sourceHttpClient
   const settings = options.settings ?? runtimeSettings
@@ -57,21 +109,35 @@ export function createAppleTvPlusAdapter(options: AppleTvPlusAdapterOptions = {}
       const currentSettings = settings.view()
       const url = (options.url ?? currentSettings.get("SOURCE_APPLE_TV_PLUS_BASE_URL")) || APPLE_TV_PLUS_FEED_URL
       const settingsOverride = captureSourceProxySettings(currentSettings, "apple_tv_plus")
-      const xml = await limiter.run(() => httpClient.fetchText("apple_tv_plus", url, {
+      const fetchPage = (targetUrl: string) => limiter.run(() => httpClient.fetchText("apple_tv_plus", targetUrl, {
         timeoutMs: APPLE_TV_PLUS_TIMEOUT_MS,
         settingsOverride,
         headers: USER_AGENT_HEADERS
       }))
+      const xml = await fetchPage(url)
       const todayValue = today()
-      const candidates = parseAppleTvPlusNewsFeed(xml, url, Number(todayValue.slice(0, 4)))
+      const fallbackYear = Number(todayValue.slice(0, 4))
+      const feedCandidates = parseAppleTvPlusNewsFeed(xml, url, fallbackYear)
+      const relevantCandidates = feedCandidates.filter((candidate) => (
+        candidateToAdapterItem(CONFIG, { ...candidate, releaseDate: candidate.publishedAt.slice(0, 10) }, todayValue)
+      ))
+      const candidates: AppleTvPressCandidate[] = []
+      for (const candidate of relevantCandidates) {
+        const articleHtml = candidate.sourceUrl === url ? "" : await fetchPage(candidate.sourceUrl)
+        candidates.push(articleHtml
+          ? parseAppleTvPlusPressArticle(candidate, articleHtml, fallbackYear)
+          : candidate)
+      }
 
       const items = candidates
-        .map((candidate) => candidateToAdapterItem({ ...CONFIG, sourceUrl: url }, candidate, todayValue))
+        .map((candidate) => candidateItem(candidate, todayValue))
         .filter((item): item is NonNullable<typeof item> => item != null)
+
+      if (items.length === 0) throw new Error("Apple TV+ RSS 没有可同步的影视资讯")
 
       return {
         items,
-        completeReleaseSources: ["apple_tv_plus"]
+        completePopularitySources: ["apple_tv_plus_news"]
       }
     }
   }

@@ -44,7 +44,7 @@ Verified against the running main backend on 2026-07-14:
 | Prime Video | Official About Amazon US monthly lineup; disabled by default. |
 | Hulu | Official press schedule. |
 | Disney+ | Official New to Disney+ article. |
-| Apple TV+ | Official Press RSS news signals; disabled by default. |
+| Apple TV+ | Official Press RSS news signals with article-confirmed premiere dates only; disabled by default. |
 | Youku | Signed MTop upcoming reservation node; disabled in the current main runtime. |
 | iQIYI | `newOnlinePCW` upcoming reservation page; disabled in the current main runtime. |
 | Tencent Video | Accepted `getMVLPage` movie/series upcoming filters; enabled in the current main runtime. |

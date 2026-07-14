@@ -85,6 +85,8 @@ Planned, restricted or commercial entries remain visible in the source catalog b
 
 Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure.
 
+Apple TV+ uses the official Press RSS as a rolling news feed. Atom `<updated>` is stored only as the news signal time. The adapter follows relevant official article links through the shared rate limiter and creates a release only when the article states an explicit premiere or debut date; otherwise the item remains a news signal without an inferred work date. Horizontal press artwork is not accepted as a poster.
+
 Youku uses the signed MTop `kuflix_node_page` reservation node for paginated movie and series upcoming lists. iQIYI uses the complete `newOnlinePCW` upcoming page. Tencent Video posts to the `getMVLPage` structured page service and validates the exact “即将上线” option before accepting paginated movie and series cards; its `publish_date` is work metadata, not a Tencent availability date. MangoTV is blocked because the former channel-homepage modules did not provide a trustworthy upcoming/reservation contract.
 
 Hulu schedule titles explicitly marked as a season, series, film or special premiere are normalized to the underlying work title while retaining the platform wording as an alias. Dashboard release ranking gives platform premieres a timing advantage, keeps ordinary releases in the middle and removes timing boost from catalog additions. Catalog additions remain visible in the complete calendar and date shelves.
