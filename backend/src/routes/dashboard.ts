@@ -1,4 +1,5 @@
 import type { ContentAttentionCategory } from "@whatsnew/shared/settings"
+import type { ChangeEvent } from "@prisma/client"
 import { Router } from "express"
 import { db } from "../config/db.js"
 import {
@@ -14,9 +15,110 @@ import { getUpcomingDateWindow } from "../utils/date.js"
 
 export const dashboardRouter = Router()
 
+const DASHBOARD_EVENT_LIMIT = 20
+const DASHBOARD_EVENT_CANDIDATE_LIMIT = 100
+const RELEASE_EVENT_TYPES = new Set(["release_announced", "delayed", "airing_today", "available_now"])
+
 type DashboardRelease = {
   releasePattern: string
   mediaItem: AttentionMedia
+}
+
+type DashboardEvent = ChangeEvent & {
+  mediaItem: { id: string, titleDisplay: string } | null
+}
+
+type ReleaseEventPayload = {
+  platform?: string | null
+  region?: string | null
+  seasonNumber?: number | null
+  episodeNumber?: number | null
+  previousDate?: string | null
+  releaseDate?: string | null
+  direction?: string | null
+}
+
+function releaseEventPayload(event: DashboardEvent): ReleaseEventPayload | null {
+  if (!RELEASE_EVENT_TYPES.has(event.eventType)) return null
+
+  try {
+    return JSON.parse(event.payload) as ReleaseEventPayload
+  } catch {
+    return null
+  }
+}
+
+function releaseEventGroupKey(event: DashboardEvent, payload: ReleaseEventPayload): string {
+  return [
+    event.mediaItemId ?? event.id,
+    event.eventType,
+    event.source,
+    payload.platform ?? "",
+    payload.region ?? "",
+    payload.previousDate ?? "",
+    payload.releaseDate ?? "",
+    payload.direction ?? ""
+  ].join("|")
+}
+
+function aggregateReleaseEvents(events: DashboardEvent[]): DashboardEvent[] {
+  if (events.length < 2) return events
+
+  const payloads = events.map(releaseEventPayload)
+  if (payloads.some((payload) => payload == null)) return events
+
+  const episodeNumbers = [...new Set(payloads
+    .map((payload) => payload?.episodeNumber)
+    .filter((episodeNumber): episodeNumber is number => episodeNumber != null))]
+    .sort((left, right) => left - right)
+  if (episodeNumbers.length < 2) return events
+
+  const seasonNumbers = [...new Set(payloads
+    .map((payload) => payload?.seasonNumber)
+    .filter((seasonNumber): seasonNumber is number => seasonNumber != null))]
+    .sort((left, right) => left - right)
+  const seasonNumber = seasonNumbers.length === 1 ? seasonNumbers[0] : null
+  const episodeLabel = seasonNumber == null
+    ? `共 ${episodeNumbers.length} 集`
+    : `第 ${seasonNumber} 季共 ${episodeNumbers.length} 集`
+  const event = events[0]
+  const payload = payloads[0]
+  const mediaTitle = event.mediaItem?.titleDisplay
+  if (!payload || !mediaTitle) return events
+  const summarizedTitle = `${mediaTitle} ${episodeLabel}`
+
+  return [{
+    ...event,
+    title: event.title.replace(mediaTitle, summarizedTitle),
+    description: event.description.replace(mediaTitle, summarizedTitle),
+    payload: JSON.stringify({
+      ...payload,
+      seasonNumber,
+      seasonNumbers,
+      episodeNumber: null,
+      episodeNumbers,
+      episodeCount: episodeNumbers.length
+    })
+  }]
+}
+
+function aggregateDashboardEvents(events: DashboardEvent[]): DashboardEvent[] {
+  const groups = new Map<string, DashboardEvent[]>()
+
+  for (const event of events) {
+    const payload = releaseEventPayload(event)
+    const key = payload?.episodeNumber == null
+      ? `event|${event.id}`
+      : releaseEventGroupKey(event, payload)
+
+    const group = groups.get(key)
+    if (group) group.push(event)
+    else groups.set(key, [event])
+  }
+
+  return [...groups.values()]
+    .flatMap(aggregateReleaseEvents)
+    .slice(0, DASHBOARD_EVENT_LIMIT)
 }
 
 export function dashboardReleasePriority(
@@ -94,7 +196,7 @@ dashboardRouter.get("/", async (_req, res) => {
         }
       },
       orderBy: { eventAt: "desc" },
-      take: 20
+      take: DASHBOARD_EVENT_CANDIDATE_LIMIT
     }),
     db.sourceSyncRun.findMany({
       where: { source: { not: "demo" } },
@@ -145,7 +247,7 @@ dashboardRouter.get("/", async (_req, res) => {
     week: weekReleases,
     featured,
     trending: trending.slice(0, 12),
-    events,
+    events: aggregateDashboardEvents(events),
     sources
   })
 })

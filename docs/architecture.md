@@ -125,7 +125,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | Route | Purpose |
 |---|---|
 | `GET /api/health` | Backend health check. |
-| `GET /api/dashboard` | Dashboard slices: today, week, trending, events, source runs. |
+| `GET /api/dashboard` | Dashboard slices: today, week, trending, events, source runs. Same-work episode events sharing type, source, platform, region and date are summarized into one feed item. |
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
 | `GET /api/media/:id` | Media detail with releases, refs, current signals and events. |
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |

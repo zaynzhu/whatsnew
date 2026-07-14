@@ -25,6 +25,7 @@ Verified against the running main backend on 2026-07-14:
 
 - Source health has 24 adapter scopes: 11 passed and runnable, 13 intentionally blocked, with zero degraded, failed or stale scopes.
 - The enabled passing scopes are TVmaze, TMDb, Trakt popularity, Trakt calendar, TheTVDB updates, Netflix, Hulu, Disney+, Tencent Video, Douban popularity and Douban upcoming.
+- The dashboard event feed summarizes same-work episode events sharing type, source, platform, region and date into one item with season and episode counts. Media detail keeps the original per-episode event history.
 - Tencent Video is no longer sandbox-only. Its accepted main sync contains 208 active source identities and 208 undated upcoming releases; 196 works were created and 12 matched existing identities. All 208 posters passed real verification, with minimum dimensions of `350x490`, and 27 reservation signals were retained.
 - The active catalog has 1,452 works, 1,341 posters and 111 missing posters, for 92.4% coverage. All stored posters are healthy; 1,338 are adequate and three are undersized.
 - Missing-poster lookup state is zero not attempted, 111 cooling and zero retry-eligible. A fresh Trakt sync added `The Real Wolf of Wall Street`; bounded strict enrichment added its verified `500x750` TMDb poster without bypassing cooldown. The next missing-poster cooldown expiry is 2026-07-16 12:52 Asia/Shanghai.

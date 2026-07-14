@@ -128,6 +128,73 @@ describe("api routes", () => {
     expect(weekIds.filter((id: string) => id === media.id)).toHaveLength(1)
   })
 
+  it("aggregates same-day episode events in the dashboard while preserving detail history", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "series",
+        releaseForm: "tv_series",
+        titleDisplay: "Episode Event Series",
+        status: "upcoming",
+        sourceRefs: {
+          create: { source: "trakt", sourceId: "episode-event-series", isActive: true }
+        }
+      }
+    })
+    const eventAt = new Date("2026-07-14T06:21:55.082Z")
+    const eventData = [1, 2, 3].map((episodeNumber) => ({
+      mediaItemId: media.id,
+      eventType: "release_announced",
+      title: "定档：Episode Event Series 将于 2026-07-23 在 Unspecified 上线",
+      description: "Episode Event Series 计划于 2026-07-23 在 Unspecified（GLOBAL）上线",
+      source: "trakt",
+      eventAt,
+      payload: JSON.stringify({
+        source: "trakt",
+        platform: "Unspecified",
+        region: "GLOBAL",
+        seasonNumber: 1,
+        episodeNumber,
+        releaseDate: "2026-07-23",
+        releaseStatus: "upcoming"
+      })
+    }))
+    eventData.push({
+      ...eventData[0],
+      title: "定档：Episode Event Series 将于 2026-07-24 在 Unspecified 上线",
+      description: "Episode Event Series 计划于 2026-07-24 在 Unspecified（GLOBAL）上线",
+      payload: JSON.stringify({
+        source: "trakt",
+        platform: "Unspecified",
+        region: "GLOBAL",
+        seasonNumber: 1,
+        episodeNumber: 4,
+        releaseDate: "2026-07-24",
+        releaseStatus: "upcoming"
+      })
+    })
+    await prisma.changeEvent.createMany({ data: eventData })
+
+    const dashboardResponse = await request(createApp()).get("/api/dashboard")
+    const detailResponse = await request(createApp()).get(`/api/media/${media.id}`)
+    const dashboardEvents = dashboardResponse.body.events.filter((event: any) => event.mediaItemId === media.id)
+
+    expect(dashboardResponse.status).toBe(200)
+    expect(dashboardEvents).toHaveLength(2)
+    const groupedEvent = dashboardEvents.find((event: any) => event.title.includes("2026-07-23"))
+    expect(groupedEvent).toMatchObject({
+      title: "定档：Episode Event Series 第 1 季共 3 集 将于 2026-07-23 在 Unspecified 上线",
+      description: "Episode Event Series 第 1 季共 3 集 计划于 2026-07-23 在 Unspecified（GLOBAL）上线"
+    })
+    expect(JSON.parse(groupedEvent.payload)).toMatchObject({
+      seasonNumber: 1,
+      episodeNumber: null,
+      episodeNumbers: [1, 2, 3],
+      episodeCount: 3
+    })
+    expect(detailResponse.status).toBe(200)
+    expect(detailResponse.body.changeEvents).toHaveLength(4)
+  })
+
   it("returns poster coverage and persistent health status", async () => {
     const response = await request(createApp()).get("/api/poster-health")
 
