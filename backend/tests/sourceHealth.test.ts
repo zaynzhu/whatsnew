@@ -205,6 +205,11 @@ describe("source health service", () => {
       acceptanceStatus: "blocked",
       reasonCode: "commercial"
     })
+    expect(row("max:all")).toMatchObject({
+      acceptanceStatus: "blocked",
+      reasonCode: "restricted",
+      reason: "WBD Pressroom 当前要求登录或返回 403，暂不产生新的 Max 数据"
+    })
     expect(response.summary).toMatchObject({
       total: response.items.length,
       passed: 1,

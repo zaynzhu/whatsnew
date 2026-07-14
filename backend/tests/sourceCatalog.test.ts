@@ -94,7 +94,7 @@ describe("source catalog", () => {
       supportsEnable: false,
       defaultEnabled: false,
       scheduleGroups: ["daily"],
-      testUrl: "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july"
+      testUrl: "https://press.wbd.com/us/brands/hbo-max/media-releases"
     })
     expect(getSourceDefinition("max").semantics).toMatchObject({
       access: "restricted_page"

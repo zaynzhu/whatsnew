@@ -174,14 +174,14 @@ const SOURCE_SEMANTICS: Record<SourceId, SourceSemanticsView> = {
     cadence: "WBD Pressroom 恢复公开访问后再启用日级检查",
     access: "restricted_page",
     freshnessNote: "WBD Pressroom 当前要求登录或返回 403，暂不产生新的 Max 数据",
-    riskNote: "保留解析器和 SOURCE_MAX_BASE_URL 覆盖能力，确认公开访问恢复后再重新启用"
+    riskNote: "设置页连接测试使用官方品牌发布列表探测访问恢复；确认页面公开可读后再重新启用"
   },
   apple_tv_plus: {
     signalKinds: ["news_signal"],
     coverage: "Apple TV+ Press 官方 RSS 上新资讯",
     cadence: "日级检查官方 news-feed.xml",
     access: "public_page",
-    freshnessNote: "只代表 Apple TV Press 发布的上新资讯，<updated> 是发布日期非精确上线日",
+    freshnessNote: "只代表 Apple TV Press 发布的上新资讯；仅正文明确的 premiere 或 debut 日期会生成排期",
     riskNote: "tv.apple.com collection 本地 404，不硬接平台片库；RSS 仅近 10 条无分页"
   },
   youku: {
@@ -291,7 +291,7 @@ export const SOURCE_CATALOG = [
   source("prime_video", "Prime Video", "美国区官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.aboutamazon.com/news/entertainment", [], ["daily"], false),
   source("hulu", "Hulu", "官方排期与上新", "international_platform", "active", "inherit", true, true, "https://press.hulu.com/schedule/", [], ["daily"], false),
   source("disney_plus", "Disney+", "官方月度上新", "international_platform", "active", "inherit", true, true, "https://www.disneyplus.com/explore/articles/new-to-disney-plus", [], ["daily"], false),
-  source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/media-release/hbo-max/whats-new-hbo-max-july", [], ["daily"], false),
+  source("max", "Max", "官方月度上新（当前受限）", "international_platform", "blocked", "inherit", false, false, "https://press.wbd.com/us/brands/hbo-max/media-releases", [], ["daily"], false),
   source("apple_tv_plus", "Apple TV+", "Apple TV+ Press 上新资讯", "international_platform", "active", "inherit", true, true, "https://www.apple.com/tv-pr/news-feed.xml", [], ["daily"], false),
   source("youku", "优酷", "电影与剧集待播预约", "china_platform", "active", "direct", true, true, "https://acs.youku.com/", [], ["hourly"], false),
   source("iqiyi", "爱奇艺", "新片速递、预约与平台内容", "china_platform", "active", "direct", true, true, "https://www.iqiyi.com/newOnlinePCW", [], ["hourly"], false),

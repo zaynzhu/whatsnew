@@ -142,7 +142,7 @@ Only sources that are enabled, implemented and credential-complete are scheduled
 
 The settings page can change the hourly interval and daily time. Saving stops the old future jobs and immediately registers the new schedule without restarting the backend or re-running startup sync. It also shows the next hourly and daily execution times. The China sandbox writes `SCHEDULER_ENABLED=false`, so its controls are disabled and enabling a source there still does not create automatic refreshes.
 
-Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again.
+Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again. The settings-page connection test targets the official HBO Max brand release listing; a successful test is only a recovery signal and must be followed by parser validation before the source is re-enabled.
 
 Prime Video discovers the newest official monthly article from the About Amazon entertainment page, then imports only dated US movie and series entries. Live sports, live music and entries with ambiguous media types are intentionally skipped. The source defaults to disabled and may need a per-source direct network mode when the inherited proxy cannot reach Amazon domains.
 

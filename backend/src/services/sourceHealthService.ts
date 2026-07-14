@@ -286,6 +286,9 @@ function blockedRow(
   scheduleGroup: SourceHealthScheduleGroup = "none"
 ): SourceHealthRow {
   const missingCredentials = settings.missingCredentials(source.id)
+  const reason = reasonCode === "restricted"
+    ? source.semantics.freshnessNote
+    : reasonText(reasonCode)
   return {
     sourceId: source.id,
     sourceName: source.name,
@@ -302,7 +305,7 @@ function blockedRow(
     acceptanceStatus: "blocked",
     freshnessStatus: "blocked",
     reasonCode,
-    reason: reasonText(reasonCode),
+    reason,
     latestRun: null,
     lastSuccessAt: null,
     staleAfterHours: null,

@@ -167,7 +167,7 @@ Prime Video、Hulu 和 Disney+ 只同步官方页面中的平台上新和排期�
   - 带原始年份的 `En Espanol` 版本会保留平台标题，并增加基础片名别名供严格年份匹配补图
 - Disney+ 使用 `https://www.disneyplus.com/explore/articles/new-to-disney-plus`
 - 平台页面只证明上架地区，不证明作品原始语言或制片国家；无明确字段时这两项保持未知
-- Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度
+- Max 解析器仍保留，但 WBD Pressroom 当前要求登录或返回 403，因此来源被标记为受限且不会进入调度；设置页连接测试会探测稳定的官方品牌发布列表，便于发现公开访问恢复
 - Prime Video、Hulu 和 Disney+ 均为 daily schedule，默认关闭，需在设置页显式启用
 - 手动同步：
   - `npm run sync:prime-video --workspace backend`

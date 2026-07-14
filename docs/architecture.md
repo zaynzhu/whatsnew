@@ -83,7 +83,7 @@ Poster fetching maps known CDN hosts back to their owning source before choosing
 
 Planned, restricted or commercial entries remain visible in the source catalog but cannot be enabled or synced unless `implementationStatus`, `supportsSync` and adapter registration all exist.
 
-Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure.
+Max keeps its WBD Pressroom parser but is classified as `blocked` / `restricted_page` while the official page requires login or returns 403. This prevents a known external access restriction from appearing as a recurring sync failure. The connection test probes the durable official HBO Max brand release listing instead of a month-specific article, so public access recovery can be detected without enabling ingestion.
 
 Apple TV+ uses the official Press RSS as a rolling news feed. Atom `<updated>` is stored only as the news signal time. The adapter follows relevant official article links through the shared rate limiter and creates a release only when the article states an explicit premiere or debut date; otherwise the item remains a news signal without an inferred work date. Horizontal press artwork is not accepted as a poster.
 
