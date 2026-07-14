@@ -223,7 +223,7 @@ TheTVDB 只支持免费 project API Key 接入，不会自动回退到任何付�
 
 ### 哔哩哔哩
 
-哔哩哔哩来源读取 pgc 季度排行榜 API（`api.bilibili.com/pgc/season/rank/web/list`），同步番剧、国创和纪录片三个完整榜单（近 3 日综合得分）。
+哔哩哔哩来源读取 pgc 季度排行榜 API（`api.bilibili.com/pgc/season/rank/web/list`），同步番剧、国创和纪录片三个完整榜单（近 3 日综合得分），并分别使用 `bangumi`、`guochuang`、`documentary` 独立 `rankingScope` 保存名次。
 
 - 榜单不需 WBI 签名，纯 HTTP JSON；字段含排名、标题、海报、播放量、追番数、评分和更新进度
 - "更新至第 N 话"记为 `ongoing`/`available`，"全 N 话/完结"记为 `ended`；榜单无上线日期，release 不带 `releaseDate`

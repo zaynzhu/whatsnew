@@ -39,6 +39,12 @@ const SEASON_TYPE_CATEGORY: Record<number, string> = {
   3: "纪录片"
 }
 
+const SEASON_TYPE_RANKING_SCOPE: Record<number, string> = {
+  1: "bangumi",
+  4: "guochuang",
+  3: "documentary"
+}
+
 function parseRating(value: string | null | undefined): number | null {
   if (!value) return null
   const match = value.match(/(\d+(?:\.\d+)?)/)
@@ -116,7 +122,7 @@ function videoToAdapterItem(video: BiliRankVideo, seasonType: number): AdapterIt
       tvdbId: null
     },
     releases: [buildRelease(video, status, seasonId)],
-    popularitySignals: [buildSignal(video, rank, view)]
+    popularitySignals: [buildSignal(video, rank, view, seasonType)]
   }
 }
 
@@ -137,13 +143,19 @@ function buildRelease(video: BiliRankVideo, status: "upcoming" | "ongoing" | "en
   }
 }
 
-function buildSignal(video: BiliRankVideo, rank: number | null, view: number | null): PopularitySignalInput {
+function buildSignal(
+  video: BiliRankVideo,
+  rank: number | null,
+  view: number | null,
+  seasonType: number
+): PopularitySignalInput {
   return {
     source: "bilibili_rank",
     sourceCategory: "official_platform",
     platform: "哔哩哔哩",
     region: "CN",
     window: "current",
+    rankingScope: SEASON_TYPE_RANKING_SCOPE[seasonType] ?? "overall",
     rank,
     rankDelta: null,
     value: view,

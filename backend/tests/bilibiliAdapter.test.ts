@@ -86,6 +86,7 @@ describe("bilibiliAdapter", () => {
       platform: "哔哩哔哩",
       region: "CN",
       window: "current",
+      rankingScope: "bangumi",
       rank: 1,
       value: 100000,
       valueLabel: "B站播放量"
@@ -99,6 +100,7 @@ describe("bilibiliAdapter", () => {
       productionCountries: ["CN"],
       originalLanguage: "zh"
     })
+    expect(items[1].popularitySignals[0].rankingScope).toBe("guochuang")
 
     // season_type=3 纪录片
     expect(items[2].media).toMatchObject({
@@ -107,6 +109,7 @@ describe("bilibiliAdapter", () => {
       releaseForm: "documentary_series",
       sourceContentType: "纪录片"
     })
+    expect(items[2].popularitySignals[0].rankingScope).toBe("documentary")
   })
 
   it("returns no items when the API responds with a non-zero code", async () => {
