@@ -16,6 +16,7 @@ import {
 } from "../utils/doubanPosterUrl.js"
 import { formatLocalDate } from "../utils/date.js"
 import { isIqiyiPosterUpgrade } from "../utils/iqiyiPosterUrl.js"
+import { runWithSourceSyncSignal } from "../utils/sourceSyncContext.js"
 import { createMediaDetectedEvent, createSourceFailedEvent, generateReleaseEvents } from "./eventService.js"
 import {
   loadExistingMediaCandidates,
@@ -28,7 +29,12 @@ const POPULARITY_HISTORY_DAYS = 90
 const DAY_MS = 24 * 60 * 60 * 1000
 const TITLE_ALIASES_STORAGE_LIMIT = 191
 const INTERRUPTED_SYNC_ERROR = "同步进程中断，已自动收尾；请重新触发同步"
+const DEFAULT_SOURCE_SYNC_TIMEOUT_MS = 15 * 60 * 1000
 const sourceSyncTails = new Map<string, Promise<void>>()
+
+type SourceSyncOptions = {
+  timeoutMs?: number
+}
 
 export function isSourceSyncInFlight(source: string): boolean {
   return sourceSyncTails.has(source)
@@ -397,14 +403,27 @@ async function upsertItem(
   return { mediaItem, persistedSignals }
 }
 
-async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
+async function runSourceSyncUnlocked(
+  prisma: PrismaClient,
+  adapter: SourceAdapter<SourceFetchResult>,
+  options: SourceSyncOptions
+) {
   const startedAt = new Date()
   const run = await prisma.sourceSyncRun.create({
     data: { source: adapter.source, scope: adapter.scope ?? "all", status: "running", startedAt }
   })
+  const timeoutMs = options.timeoutMs ?? DEFAULT_SOURCE_SYNC_TIMEOUT_MS
+  const controller = new AbortController()
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException(`来源同步超过总时限（${timeoutMs}ms）`, "TimeoutError"))
+  }, timeoutMs)
 
   try {
-    const batch = normalizeFetchResult(await adapter.fetchItems())
+    const batch = await runWithSourceSyncSignal(controller.signal, async () => {
+      const fetched = normalizeFetchResult(await adapter.fetchItems())
+      controller.signal.throwIfAborted()
+      return fetched
+    })
     const {
       items,
       retiredSourceRefs,
@@ -413,6 +432,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
       completeReleaseSources
     } = batch
 
+    controller.signal.throwIfAborted()
     if (retiredSourceRefs.length > 0) {
       await prisma.mediaSourceRef.updateMany({
         where: {
@@ -423,6 +443,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     }
 
     const candidates = await loadExistingMediaCandidates(prisma)
+    controller.signal.throwIfAborted()
     const snapshotService = new PopularitySnapshotService(prisma)
     const currentSignalIds: string[] = []
     const releaseMediaIds = new Map(completeReleaseSources.map((source) => [source, new Set<string>()]))
@@ -432,6 +453,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     ])
 
     for (const item of items) {
+      controller.signal.throwIfAborted()
       const result = await upsertItem(
         prisma,
         item,
@@ -440,6 +462,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
         run.id,
         startedAt
       )
+      controller.signal.throwIfAborted()
       if (!result) continue
       currentSignalIds.push(...result.persistedSignals.map((signal) => signal.id))
       for (const source of completeReleaseSources) {
@@ -450,6 +473,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     }
 
     for (const source of completeMediaSources) {
+      controller.signal.throwIfAborted()
       const currentSourceIds = uniqueValues(
         items
           .filter((item) => item.media.source === source)
@@ -465,6 +489,7 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     }
 
     for (const source of completeReleaseSources) {
+      controller.signal.throwIfAborted()
       const mediaItemIds = [...(releaseMediaIds.get(source) ?? [])]
       await prisma.release.deleteMany({
         where: {
@@ -475,7 +500,9 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     }
 
     const finishedAt = new Date()
+    controller.signal.throwIfAborted()
     await snapshotService.deactivateMissingCurrentSignals(signalSources, currentSignalIds)
+    controller.signal.throwIfAborted()
     const cutoff = new Date(finishedAt.getTime() - POPULARITY_HISTORY_DAYS * DAY_MS)
     let status = "success"
     let errorMessage: string | null = null
@@ -520,10 +547,16 @@ async function runSourceSyncUnlocked(prisma: PrismaClient, adapter: SourceAdapte
     }
 
     return updated
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
-export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter<SourceFetchResult>) {
+export async function runSourceSync(
+  prisma: PrismaClient,
+  adapter: SourceAdapter<SourceFetchResult>,
+  options: SourceSyncOptions = {}
+) {
   const previous = sourceSyncTails.get(adapter.source) ?? Promise.resolve()
   let releaseLock: () => void = () => undefined
   const current = new Promise<void>((resolve) => {
@@ -534,7 +567,7 @@ export async function runSourceSync(prisma: PrismaClient, adapter: SourceAdapter
 
   await previous.catch(() => undefined)
   try {
-    return await runSourceSyncUnlocked(prisma, adapter)
+    return await runSourceSyncUnlocked(prisma, adapter, options)
   } finally {
     releaseLock()
     if (sourceSyncTails.get(adapter.source) === tail) sourceSyncTails.delete(adapter.source)

@@ -11,6 +11,7 @@ import {
   runtimeSettings
 } from "../settings/runtimeSettingsService.js"
 import { RateLimiter } from "./rateLimiter.js"
+import { currentSourceSyncSignal } from "./sourceSyncContext.js"
 
 const SENSITIVE_QUERY_KEYS = new Set(["api_key", "key", "token", "access_token"])
 
@@ -176,9 +177,11 @@ export class SourceHttpClient {
     const method = (requestOptions.method ?? "GET").toUpperCase()
     const retryableMethod = ["GET", "HEAD", "OPTIONS"].includes(method)
     const attempts = retryableMethod ? Math.max(1, Math.min(retryAttempts, 3)) : 1
+    const sourceSyncSignal = currentSourceSyncSignal()
     let lastError: unknown
 
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      sourceSyncSignal?.throwIfAborted()
       try {
         const dispatcher = proxyUrl ? this.dispatcherFor(proxyUrl) : undefined
         const response = await this.limiterFor(url).run(async () => {
@@ -186,10 +189,13 @@ export class SourceHttpClient {
           const timeout = setTimeout(() => {
             controller.abort(new DOMException(`请求超时（${timeoutMs}ms）`, "TimeoutError"))
           }, timeoutMs)
+          const signal = sourceSyncSignal
+            ? AbortSignal.any([controller.signal, sourceSyncSignal])
+            : controller.signal
           try {
             return await this.transport(url, {
               ...requestOptions as UndiciRequestInit,
-              signal: controller.signal,
+              signal,
               ...(dispatcher ? { dispatcher } : {})
             })
           } finally {
@@ -206,6 +212,7 @@ export class SourceHttpClient {
         throw new SourceHttpError(message, sourceId, response.status, body, response.headers.get("server"))
       } catch (error) {
         lastError = redactError(error, secrets)
+        sourceSyncSignal?.throwIfAborted()
         if (attempt >= attempts || !isRetryableRequestError(lastError)) throw lastError
         if (retryDelayMs > 0) await sleep(retryDelayMs)
       }

@@ -142,6 +142,22 @@ Only sources that are enabled, implemented and credential-complete are scheduled
 
 The settings page can change the hourly interval and daily time. Saving stops the old future jobs and immediately registers the new schedule without restarting the backend or re-running startup sync. It also shows the next hourly and daily execution times. The China sandbox writes `SCHEDULER_ENABLED=false`, so its controls are disabled and enabling a source there still does not create automatic refreshes.
 
+Each source sync has a 15-minute total deadline. The deadline propagates to active HTTP requests and is checked between persistence stages; an expired run is recorded as `failed`. Scheduled batches isolate each source, so one timeout or unexpected exception does not prevent later sources or maintenance steps from running.
+
+On the primary macOS workstation, the backend runs from the compiled output through `~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist`. The LaunchAgent uses `RunAtLoad` and `KeepAlive`, so it starts after login and restarts after an unexpected exit. Rebuild before restarting it after backend changes:
+
+```bash
+npm run build
+launchctl kickstart -k gui/$(id -u)/com.zaynzhu.whatsnew.backend
+curl -s http://127.0.0.1:19993/api/health
+```
+
+Inspect its state with:
+
+```bash
+launchctl print gui/$(id -u)/com.zaynzhu.whatsnew.backend
+```
+
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again. The settings-page connection test targets the official HBO Max brand release listing; a successful test is only a recovery signal and must be followed by parser validation before the source is re-enabled.
 
 Prime Video discovers the newest official monthly article from the About Amazon entertainment page, then imports only dated US movie and series entries. Live sports, live music and entries with ambiguous media types are intentionally skipped. The source defaults to disabled and may need a per-source direct network mode when the inherited proxy cannot reach Amazon domains.
@@ -214,6 +230,8 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | Symptom | Check |
 |---|---|
 | Source stays `running` after restart | Backend startup should mark interrupted runs as `failed`. Refresh `/sources` after 5 seconds. |
+| One source blocks the rest of a scheduled batch | Runs should fail after the 15-minute total deadline and the scheduler should continue. Check the backend log and verify later sources received newer `SourceSyncRun` rows. |
+| Backend is unavailable after an unexpected exit | Check the LaunchAgent state, rebuild if `dist` is stale, then use `launchctl kickstart -k gui/$(id -u)/com.zaynzhu.whatsnew.backend`. |
 | `/api/settings` and `/api/sources` disagree | Both must use `aggregateLatestSourceRuns()`; rerun tests if this regresses. |
 | Source shows `降级可用` | The latest run failed or warned, but a fresh successful snapshot still exists. Inspect the row reason before manually retrying. |
 | Trakt fails with network errors | Verify `TRAKT_CLIENT_ID` and proxy settings. Trakt only needs the public client ID. |

@@ -418,6 +418,25 @@ describe("runSourceSync", () => {
     expect(await prisma.mediaSourceRef.count()).toBe(1)
   })
 
+  it("fails a source run when its total timeout expires", async () => {
+    const adapter: SourceAdapter = {
+      source: "timeout_source",
+      async fetchItems() {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return []
+      }
+    }
+
+    const run = await runSourceSync(prisma, adapter, { timeoutMs: 10 })
+
+    expect(run).toMatchObject({
+      status: "failed",
+      itemCount: 0
+    })
+    expect(run.finishedAt).not.toBeNull()
+    expect(run.errorMessage).toContain("来源同步超过总时限")
+  })
+
   it("removes releases missing from a complete source snapshot", async () => {
     const [first, second] = await demoSeedAdapter.fetchItems()
     const items = [first, second].map((item, index) => ({

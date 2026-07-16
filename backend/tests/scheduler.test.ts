@@ -297,6 +297,29 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.doubanUpcomingAdapter)
   })
 
+  it("continues scheduled sources after one source throws", async () => {
+    mocks.runSourceSync
+      .mockResolvedValueOnce({ status: "success" })
+      .mockRejectedValueOnce(new Error("timeout"))
+      .mockResolvedValue({ status: "success" })
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const { registerScheduler } = await import("../src/scheduler.js")
+
+    registerScheduler()
+    const scheduledJob = mocks.schedule.mock.calls.find((call) => {
+      return call[0] === "0 * * * *"
+    })?.[1] as () => Promise<void>
+    await scheduledJob()
+
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tmdbAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktPopularityAdapter)
+    expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tencentVideoAdapter)
+    expect(consoleError).toHaveBeenCalledWith(
+      "Scheduled tmdb/all sync failed",
+      expect.any(Error)
+    )
+  })
+
   it("re-registers future jobs when schedule settings change", async () => {
     const { refreshScheduler, registerScheduler } = await import("../src/scheduler.js")
     registerScheduler()

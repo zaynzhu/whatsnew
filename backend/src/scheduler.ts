@@ -31,6 +31,16 @@ const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max", "prime_video"]
 const scheduledTasks: Array<{ stop(): void }> = []
 let schedulerStarted = false
 
+async function runScheduledAdapters(scheduleGroup?: "hourly" | "daily") {
+  for (const entry of getEnabledAdapters(scheduleGroup)) {
+    try {
+      await runSourceSync(db, entry.adapter)
+    } catch (error) {
+      console.error(`Scheduled ${entry.sourceId}/${entry.adapter.scope ?? "all"} sync failed`, error)
+    }
+  }
+}
+
 async function maintainDataQuality(cleanPlatformOrphans: boolean) {
   try {
     await reconcileMediaStatuses({ database: db, apply: true })
@@ -92,9 +102,7 @@ async function prunePosterCaches() {
 }
 
 export async function runInitialSync() {
-  for (const entry of getEnabledAdapters()) {
-    await runSourceSync(db, entry.adapter)
-  }
+  await runScheduledAdapters()
   await maintainDataQuality(true)
   await enrichPostersAfterSync()
   await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)
@@ -110,18 +118,14 @@ function scheduleRecurringJobs() {
   const config = schedulerConfig(runtimeSettings)
 
   scheduledTasks.push(cron.schedule(config.hourlyCron, async () => {
-    for (const entry of getEnabledAdapters("hourly")) {
-      await runSourceSync(db, entry.adapter)
-    }
+    await runScheduledAdapters("hourly")
     await maintainDataQuality(false)
     await enrichPostersAfterSync()
     await verifyPostersAfterSync(HOURLY_POSTER_VERIFICATION_LIMIT)
   }, { timezone: SCHEDULER_TIMEZONE }))
 
   scheduledTasks.push(cron.schedule(config.dailyCron, async () => {
-    for (const entry of getEnabledAdapters("daily")) {
-      await runSourceSync(db, entry.adapter)
-    }
+    await runScheduledAdapters("daily")
     await maintainDataQuality(true)
     await enrichPostersAfterSync()
     await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)

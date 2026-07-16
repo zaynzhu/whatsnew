@@ -9,6 +9,7 @@ import {
   SourceHttpError,
   type SourceTransport
 } from "../src/utils/sourceHttpClient.js"
+import { runWithSourceSyncSignal } from "../src/utils/sourceSyncContext.js"
 
 function fakeSettings(values: Record<string, string>): RuntimeSettingsService {
   return new RuntimeSettingsService(new EnvFileStore("/tmp/unused-whatsnew-env"), values)
@@ -235,6 +236,31 @@ describe("SourceHttpClient", () => {
     await expect(client.fetchText("tmdb", "https://api.example.test/slow", { timeoutMs: 5 })).rejects.toMatchObject({
       name: "TimeoutError"
     })
+  })
+
+  it("aborts requests when the enclosing source sync is cancelled", async () => {
+    const transport = vi.fn<SourceTransport>(async (_url, options) => {
+      return new Promise<Response>((_resolve, reject) => {
+        if (options?.signal?.aborted) {
+          reject(options.signal.reason)
+          return
+        }
+        options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true })
+      })
+    })
+    const client = new SourceHttpClient(fakeSettings({ SOURCE_TRAKT_PROXY_MODE: "direct" }), transport)
+    const controller = new AbortController()
+    const request = runWithSourceSyncSignal(controller.signal, () => {
+      return client.fetchText("trakt", "https://api.example.test/slow", { timeoutMs: 1000 })
+    })
+
+    controller.abort(new DOMException("来源同步超时", "TimeoutError"))
+
+    await expect(request).rejects.toMatchObject({
+      name: "TimeoutError",
+      message: "来源同步超时"
+    })
+    expect(transport).toHaveBeenCalledTimes(1)
   })
 
   it("throws a redacted bounded error for failed HTTP responses", async () => {
