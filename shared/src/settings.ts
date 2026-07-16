@@ -146,6 +146,29 @@ export type SourcesResponse = {
   items: SourceCatalogItem[]
 }
 
+export type SourceRunLogItem = {
+  id: string
+  sourceId: string
+  sourceName: string
+  scope: string
+  status: string
+  startedAt: string
+  finishedAt: string | null
+  durationMs: number | null
+  itemCount: number
+  errorMessage: string | null
+  retryable: boolean
+}
+
+export type SourceRunLogsResponse = {
+  generatedAt: string
+  sources: Array<{
+    id: string
+    name: string
+  }>
+  items: SourceRunLogItem[]
+}
+
 export type SourcePreviewScope = {
   scope: string
   itemCount: number

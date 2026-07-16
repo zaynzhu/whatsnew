@@ -142,6 +142,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `POST /api/settings/proxy/test` | Test direct, HTTP proxy and HTTPS proxy paths. |
 | `GET /api/sources` | Source catalog with semantic metadata, local state and latest runs. |
 | `GET /api/source-health` | Read-only source health matrix by adapter scope; does not trigger sync. |
+| `GET /api/source-runs` | Persistent source sync run history with source/status filters and redacted errors. |
 | `POST /api/sources/:source/test` | Test one source's configured connectivity. |
 | `POST /api/sources/:source/preview` | Fetch and summarize an active source without writing media data or sync runs; the source may remain disabled. |
 | `POST /api/sources/:source/sync` | Run enabled adapters for one source. |

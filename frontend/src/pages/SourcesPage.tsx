@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
+import { ScrollText } from "lucide-react"
+import { Link } from "react-router-dom"
 import { apiGet } from "../api/client"
 import type { SourceHealthResponse, SourceHealthRow, SourcesResponse } from "../api/types"
 import { StatusBadge } from "../components/StatusBadge"
@@ -70,6 +72,12 @@ export function SourcesPage() {
           <p className="eyebrow">采集网络</p>
           <h1 id="page-title">数据源状态</h1>
           <p className="summary">查看来源能力、访问方式、最新同步和不能同步的真实原因。</p>
+        </div>
+        <div className="pageHeaderActions">
+          <Link className="secondaryButton" to="/sources/runs">
+            <ScrollText aria-hidden="true" size={17} />
+            运行日志
+          </Link>
         </div>
       </section>
 

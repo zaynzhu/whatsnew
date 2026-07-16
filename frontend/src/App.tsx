@@ -19,6 +19,7 @@ import { DiscoverPage } from "./pages/DiscoverPage"
 import { MediaDetailPage } from "./pages/MediaDetailPage"
 import { PreviewPage } from "./pages/PreviewPage"
 import { SettingsPage } from "./pages/SettingsPage"
+import { SourceRunsPage } from "./pages/SourceRunsPage"
 import { SourcesPage } from "./pages/SourcesPage"
 import { TrendingPage } from "./pages/TrendingPage"
 
@@ -106,6 +107,7 @@ export function App() {
           <Route path="/preview" element={<PreviewPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/sources" element={<SourcesPage />} />
+          <Route path="/sources/runs" element={<SourceRunsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/media/:id" element={<MediaDetailPage />} />
         </Routes>

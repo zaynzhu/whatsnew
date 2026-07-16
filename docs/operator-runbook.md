@@ -216,6 +216,8 @@ Both prune commands default to a dry run. Add `--apply` to remove stale corrupt/
 
 The source page polls both `/api/sources` and the read-only `/api/source-health` endpoint every five seconds. Its summary counts enabled sources, not every catalog entry or adapter scope. A source with multiple scopes, such as Trakt or Douban, uses its least healthy scope as the source-level status.
 
+The source page also links to `/sources/runs`, which reads persistent `SourceSyncRun` records through `GET /api/source-runs`. This is the primary operator view for recent source results after Docker deployment: it shows status, scope, duration, item count, and redacted errors without requiring container log access. Failed runnable sources can be retried individually from the page. Persist the application database when containerizing WhatsNew or this history will be lost with the container.
+
 - `健康`: the latest accepted data is fresh and has verifiable samples.
 - `降级可用`: the latest run has a problem, but a recent successful snapshot is still fresh enough to serve.
 - `失败`: no fresh successful snapshot remains.

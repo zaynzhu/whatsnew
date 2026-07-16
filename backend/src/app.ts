@@ -8,6 +8,7 @@ import { posterHealthRouter } from "./routes/posterHealth.js"
 import { previewRouter } from "./routes/preview.js"
 import { settingsRouter } from "./routes/settings.js"
 import { sourceHealthRouter } from "./routes/sourceHealth.js"
+import { sourceRunsRouter } from "./routes/sourceRuns.js"
 import { sourcesRouter, syncRouter } from "./routes/sources.js"
 import { trendingRouter } from "./routes/trending.js"
 
@@ -15,6 +16,7 @@ type AppDependencies = {
   mediaRouter?: Router
   settingsRouter?: Router
   sourceHealthRouter?: Router
+  sourceRunsRouter?: Router
   sourcesRouter?: Router
   syncRouter?: Router
 }
@@ -38,6 +40,7 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use("/api/settings", dependencies.settingsRouter ?? settingsRouter)
   app.use("/api/sources", dependencies.sourcesRouter ?? sourcesRouter)
   app.use("/api/source-health", dependencies.sourceHealthRouter ?? sourceHealthRouter)
+  app.use("/api/source-runs", dependencies.sourceRunsRouter ?? sourceRunsRouter)
   app.use("/api/sync", dependencies.syncRouter ?? syncRouter)
 
   return app
