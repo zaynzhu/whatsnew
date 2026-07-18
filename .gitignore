@@ -12,6 +12,7 @@ dist/
 *.sql
 .DS_Store
 coverage/
+.cache/
 frontend/.vite/
 backend/.cache/
 .superpowers/
