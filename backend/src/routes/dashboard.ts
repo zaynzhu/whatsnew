@@ -18,6 +18,7 @@ export const dashboardRouter = Router()
 const DASHBOARD_EVENT_LIMIT = 20
 const DASHBOARD_EVENT_CANDIDATE_LIMIT = 100
 const RELEASE_EVENT_TYPES = new Set(["release_announced", "delayed", "airing_today", "available_now"])
+const SOURCE_FAILED_EVENT_TYPE = "source_failed"
 
 type DashboardRelease = {
   releasePattern: string
@@ -102,14 +103,22 @@ function aggregateReleaseEvents(events: DashboardEvent[]): DashboardEvent[] {
   }]
 }
 
+function aggregateEventGroup(events: DashboardEvent[]): DashboardEvent[] {
+  if (events.length < 2) return events
+  if (events[0]?.eventType === SOURCE_FAILED_EVENT_TYPE) return [events[0]]
+  return aggregateReleaseEvents(events)
+}
+
 function aggregateDashboardEvents(events: DashboardEvent[]): DashboardEvent[] {
   const groups = new Map<string, DashboardEvent[]>()
 
   for (const event of events) {
     const payload = releaseEventPayload(event)
-    const key = payload?.episodeNumber == null
-      ? `event|${event.id}`
-      : releaseEventGroupKey(event, payload)
+    const key = event.eventType === SOURCE_FAILED_EVENT_TYPE
+      ? `source_failed|${event.source}|${event.eventAt.toISOString().slice(0, 10)}`
+      : payload?.episodeNumber == null
+        ? `event|${event.id}`
+        : releaseEventGroupKey(event, payload)
 
     const group = groups.get(key)
     if (group) group.push(event)
@@ -117,7 +126,7 @@ function aggregateDashboardEvents(events: DashboardEvent[]): DashboardEvent[] {
   }
 
   return [...groups.values()]
-    .flatMap(aggregateReleaseEvents)
+    .flatMap(aggregateEventGroup)
     .slice(0, DASHBOARD_EVENT_LIMIT)
 }
 

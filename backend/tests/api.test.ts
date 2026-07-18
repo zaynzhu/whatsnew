@@ -195,6 +195,57 @@ describe("api routes", () => {
     expect(detailResponse.body.changeEvents).toHaveLength(4)
   })
 
+  it("deduplicates same-day source_failed events in the dashboard feed", async () => {
+    const firstFailureAt = new Date("2026-07-16T08:35:59.791Z")
+    const secondFailureAt = new Date("2026-07-16T09:04:35.980Z")
+    await prisma.changeEvent.createMany({
+      data: [
+        {
+          mediaItemId: null,
+          eventType: "source_failed",
+          title: "tmdb 数据源同步失败",
+          description: "请求超时（30000ms）",
+          source: "tmdb",
+          eventAt: firstFailureAt,
+          payload: JSON.stringify({
+            source: "tmdb",
+            runId: "tmdb-run-1",
+            errorMessage: "请求超时（30000ms）"
+          })
+        },
+        {
+          mediaItemId: null,
+          eventType: "source_failed",
+          title: "tmdb 数据源同步失败",
+          description: "请求超时（30000ms）",
+          source: "tmdb",
+          eventAt: secondFailureAt,
+          payload: JSON.stringify({
+            source: "tmdb",
+            runId: "tmdb-run-2",
+            errorMessage: "请求超时（30000ms）"
+          })
+        }
+      ]
+    })
+
+    const response = await request(createApp()).get("/api/dashboard")
+    const failedEvents = response.body.events.filter((event: any) => (
+      event.eventType === "source_failed"
+      && event.source === "tmdb"
+      && typeof event.eventAt === "string"
+      && event.eventAt.startsWith("2026-07-16")
+    ))
+
+    expect(response.status).toBe(200)
+    expect(failedEvents).toHaveLength(1)
+    expect(failedEvents[0].eventAt).toBe(secondFailureAt.toISOString())
+    expect(JSON.parse(failedEvents[0].payload)).toMatchObject({
+      runId: "tmdb-run-2",
+      source: "tmdb"
+    })
+  })
+
   it("returns poster coverage and persistent health status", async () => {
     const response = await request(createApp()).get("/api/poster-health")
 
