@@ -20,6 +20,14 @@ Expected:
 { "ok": true, "service": "whatsnew-backend", "environment": "main" }
 ```
 
+## Dashboard
+
+```bash
+curl -s http://127.0.0.1:19993/api/dashboard
+```
+
+Returns `today`, `week`, `trending`, `events` and `sources` slices for the home page. The event feed summarizes same-work episode events that share type, source, platform, region and date. For `source_failed`, only the latest event from the same source and UTC `eventAt` date is returned; the underlying `ChangeEvent` history is not deleted.
+
 ## Media Browse
 
 ```bash

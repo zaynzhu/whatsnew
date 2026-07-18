@@ -21,16 +21,16 @@ The normal local runtime currently uses the main environment. The domestic sandb
 
 ## Current Acceptance Snapshot
 
-Verified against the running main backend on 2026-07-18:
+Verified against the running main backend on 2026-07-18 at 23:13 CST:
 
 - Source health has 24 adapter scopes: 17 passed, seven intentionally blocked and zero degraded, failed or stale scopes. Sixteen passed scopes are runnable; IMDb remains a passed manual-cache scope.
 - The passing scopes are TVmaze, TMDb, Trakt popularity, Trakt calendar, TheTVDB updates, Netflix, Prime Video, Hulu, Disney+, Apple TV+, Youku, iQIYI, Tencent Video, Bilibili, Douban popularity, Douban upcoming and IMDb datasets cache.
 - Bilibili and both Douban scopes were safely retried on 2026-07-18 after stale health results. The latest successful runs contain Bilibili `297`, Douban popularity `20` and Douban upcoming `208` items, restoring source health to the full 17-pass target.
-- The latest accepted item counts for the other daily focus sources are Netflix `40`, Prime Video `78`, Apple TV+ `6`, TheTVDB `40` and Trakt calendar `208`; the latest hourly runs contain TVmaze `237`, TMDb `79`, Trakt popularity `199`, Youku `237`, iQIYI `283` and Tencent Video `206` items.
+- The latest accepted item counts for the other daily focus sources are Netflix `40`, Prime Video `78`, Apple TV+ `6`, TheTVDB `40` and Trakt calendar `208`; the latest hourly runs contain TVmaze `238`, TMDb `79`, Trakt popularity `199`, Youku `237`, iQIYI `285` and Tencent Video `206` items.
 - IMDb's latest accepted manual cache sync is still the 2026-07-14 run: `804` matched dataset rows, no created works or events, and persisted current rating signals for existing titles only.
 - The dashboard event feed still summarizes same-work episode events sharing type, source, platform, region and date into one item with season and episode counts, and media detail keeps the original per-episode event history.
-- The dashboard event feed no longer repeats same-day same-source `source_failed` rows. TMDb's 2026-07-16 timeout history remains stored, but the dashboard now keeps only the latest semantic failure entry for that day and source.
-- The active catalog has `2,405` works, `2,278` posters and `127` missing posters, for `94.7%` coverage. Poster status is `2,273 healthy`, `1 degraded`, `4 broken` and `0 unverified`; poster quality is `2,270 adequate`, `3 undersized` and `5 unknown`.
+- The dashboard event feed no longer repeats `source_failed` rows sharing one source and UTC `eventAt` date. TMDb's 2026-07-16 timeout history remains stored, but the dashboard now keeps only the latest semantic failure entry for that date and source.
+- The active catalog has `2,408` works, `2,281` posters and `127` missing posters, for `94.7%` coverage. Poster status is `2,276 healthy`, `1 degraded`, `4 broken` and `0 unverified`; poster quality is `2,273 adequate`, `3 undersized` and `5 unknown`.
 - Missing-poster lookup state is `0 not attempted`, `127 cooling` and `0 retry eligible`. Replacement state for undersized posters is `3 cooling`, `0 retry eligible`. The four broken posters and one degraded poster are Bilibili-origin animation rows under normal backoff.
 - The normal frontend and backend are running. The domestic sandbox services are stopped.
 
