@@ -10,11 +10,14 @@ dist/
 *.log
 *.db
 *.sql
+*.tar
+*.tar.sha256
 .DS_Store
 coverage/
 .cache/
 frontend/.vite/
 backend/.cache/
+runtime/
 .superpowers/
 .worktrees/
 .playwright-mcp/

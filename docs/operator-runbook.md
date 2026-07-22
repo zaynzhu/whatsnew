@@ -38,45 +38,19 @@ npm run build
 
 ## Docker Deployment
 
-The Docker stack keeps MySQL external and runs exactly one backend scheduler plus one Nginx frontend. It does not create, migrate or copy the application database.
+The production Docker target is a trusted Extreme Space NAS, not the primary Mac mini. The stack keeps MySQL external and runs one backend scheduler plus one Nginx frontend. It never packages, creates, migrates or copies the application database.
 
-Before the first build, prepare `backend/.env` as usual. `DATABASE_URL` must use a hostname reachable from inside the backend container. When MySQL runs on the same Docker host, use `host.docker.internal`; on a NAS or another server, use its trusted LAN hostname. Keep the file at mode `0600` and never add it to the image or Git.
+Infrastructure settings stay in Compose variables: image tags, CPU platform, bind addresses, ports, PUID/PGID, timezone, log rotation, config path and data path. Application settings stay in the bind-mounted `runtime/config/settings.env`; the Settings page writes source, proxy, credential, attention-weight and scheduler-time changes back to that file. The whole config directory is mounted because settings updates use atomic file replacement.
 
-Validate and build the stack:
-
-```bash
-docker compose config --quiet
-docker compose build
-```
-
-Only one scheduler may run against the main database. Stop the macOS LaunchAgent before starting Docker, then start the stack:
+Build the architecture-specific image tar only on a Linux Docker builder or CI host:
 
 ```bash
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist
-docker compose up -d
-docker compose ps
-curl -s http://127.0.0.1:19992/api/health
+./deploy/nas/build-image-tar.sh 0.1.0 linux/amd64
 ```
 
-The frontend is published on port `19992` and proxies `/api` to the private backend service. The backend also binds `19993` to host loopback for local operator checks. Keep the frontend on a trusted LAN because settings and sync routes do not have authentication.
+Use `linux/arm64` when the NAS reports `aarch64` or `arm64`. The resulting tar contains both frontend and backend images with matching tags. It contains no settings or credentials.
 
-After startup, verify the scheduler and source state before leaving the stack unattended:
-
-```bash
-curl -s http://127.0.0.1:19992/api/settings
-curl -s http://127.0.0.1:19992/api/source-health
-curl -s http://127.0.0.1:19992/api/source-runs
-```
-
-The named `poster_cache` volume preserves original posters, responsive variants and the optional IMDb cache across container replacement. The main database remains the authority for media, release, signal and source-run history.
-
-If container startup or acceptance fails, stop Docker before restoring the LaunchAgent so the schedulers never overlap:
-
-```bash
-docker compose down
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist
-curl -s http://127.0.0.1:19993/api/health
-```
+Follow [`deploy/nas/README.md`](../deploy/nas/README.md) for image import, persistent directory setup, first-run smoke testing, scheduler cutover, upgrades and rollback. Keep the NAS scheduler disabled until its health checks pass, then stop the Mac LaunchAgent before enabling the NAS scheduler. Two schedulers must never write the main database concurrently.
 
 ## China Source Sandbox
 
