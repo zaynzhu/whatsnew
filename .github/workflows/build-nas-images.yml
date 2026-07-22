@@ -1,0 +1,42 @@
+name: 构建极空间镜像包
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 镜像版本，例如 0.1.0
+        required: true
+        default: 0.1.0
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 构建 linux/amd64 镜像包
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建 tar
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p dist
+          ./deploy/nas/build-image-tar.sh "$VERSION" linux/amd64 "dist/whatsnew-${VERSION}-linux-amd64.tar"
+
+      - name: 上传镜像包
+        uses: actions/upload-artifact@v4
+        with:
+          name: whatsnew-${{ inputs.version }}-linux-amd64
+          path: |
+            dist/*.tar
+            dist/*.tar.sha256
+          if-no-files-found: error
+          retention-days: 7

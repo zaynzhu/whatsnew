@@ -42,7 +42,9 @@ The production Docker target is a trusted Extreme Space NAS, not the primary Mac
 
 Infrastructure settings stay in Compose variables: image tags, CPU platform, bind addresses, ports, PUID/PGID, timezone, log rotation, config path and data path. Application settings stay in the bind-mounted `runtime/config/settings.env`; the Settings page writes source, proxy, credential, attention-weight and scheduler-time changes back to that file. The whole config directory is mounted because settings updates use atomic file replacement.
 
-Build the architecture-specific image tar only on a Linux Docker builder or CI host:
+The Z4S uses Intel 64-bit processors, so its Docker platform is `linux/amd64`. Prefer the manually triggered `构建极空间镜像包` GitHub Actions workflow when the Mac mini must remain Docker-free. It produces a downloadable tar and SHA-256 file without packaging runtime settings or credentials.
+
+Alternatively, build the architecture-specific image tar on a Linux Docker builder:
 
 ```bash
 ./deploy/nas/build-image-tar.sh 0.1.0 linux/amd64

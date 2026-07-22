@@ -15,7 +15,15 @@ uname -m
 
 镜像架构必须与 NAS 一致。
 
-## 2. 在构建机生成 tar
+## 2. 生成 tar
+
+### 推荐：GitHub Actions
+
+Mac mini 不安装 Docker 时，在 GitHub 仓库的 Actions 页面打开“构建极空间镜像包”，点击“Run workflow”，填写版本号并运行。任务完成后下载 `whatsnew-<版本>-linux-amd64` artifact，解压得到 tar 和 `.sha256` 文件。
+
+该工作流只允许手动触发，固定生成 Z4S 可用的 `linux/amd64` 镜像，不读取运行设置或凭据。
+
+### 备选：Linux 构建机
 
 只在 Linux Docker 构建机或 CI 中执行，不在运行 WhatsNew LaunchAgent 的 Mac mini 上执行：
 
