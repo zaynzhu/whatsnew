@@ -36,6 +36,48 @@ npm test
 npm run build
 ```
 
+## Docker Deployment
+
+The Docker stack keeps MySQL external and runs exactly one backend scheduler plus one Nginx frontend. It does not create, migrate or copy the application database.
+
+Before the first build, prepare `backend/.env` as usual. `DATABASE_URL` must use a hostname reachable from inside the backend container. When MySQL runs on the same Docker host, use `host.docker.internal`; on a NAS or another server, use its trusted LAN hostname. Keep the file at mode `0600` and never add it to the image or Git.
+
+Validate and build the stack:
+
+```bash
+docker compose config --quiet
+docker compose build
+```
+
+Only one scheduler may run against the main database. Stop the macOS LaunchAgent before starting Docker, then start the stack:
+
+```bash
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist
+docker compose up -d
+docker compose ps
+curl -s http://127.0.0.1:19992/api/health
+```
+
+The frontend is published on port `19992` and proxies `/api` to the private backend service. The backend also binds `19993` to host loopback for local operator checks. Keep the frontend on a trusted LAN because settings and sync routes do not have authentication.
+
+After startup, verify the scheduler and source state before leaving the stack unattended:
+
+```bash
+curl -s http://127.0.0.1:19992/api/settings
+curl -s http://127.0.0.1:19992/api/source-health
+curl -s http://127.0.0.1:19992/api/source-runs
+```
+
+The named `poster_cache` volume preserves original posters, responsive variants and the optional IMDb cache across container replacement. The main database remains the authority for media, release, signal and source-run history.
+
+If container startup or acceptance fails, stop Docker before restoring the LaunchAgent so the schedulers never overlap:
+
+```bash
+docker compose down
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist
+curl -s http://127.0.0.1:19993/api/health
+```
+
 ## China Source Sandbox
 
 Never evaluate domestic adapters against the main `whatsnew` database. Rebuild the isolated sandbox from the current main database baseline:

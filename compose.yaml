@@ -1,0 +1,57 @@
+name: whatsnew
+
+services:
+  backend:
+    image: whatsnew-backend:local
+    build:
+      context: .
+      target: backend
+    env_file:
+      - backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 19993
+      IMDB_DATASET_CACHE_DIR: /app/backend/.cache/imdb
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:19993:19993"
+    volumes:
+      - poster_cache:/app/backend/.cache
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:19993/api/health').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  frontend:
+    image: whatsnew-frontend:local
+    build:
+      context: .
+      target: frontend
+    init: true
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WHATSNEW_FRONTEND_PORT:-19992}:80"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  poster_cache:
