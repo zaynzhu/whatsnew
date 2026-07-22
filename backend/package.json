@@ -39,7 +39,7 @@
     "reconcile:duplicate-identities": "tsx src/scripts/reconcileDuplicateIdentities.ts",
     "download:imdb": "tsx src/scripts/downloadImdb.ts",
     "sync:imdb": "tsx src/scripts/syncImdb.ts",
-    "test": "npm run build --workspace @whatsnew/shared && tsx src/scripts/prepareTestDatabase.ts && vitest run",
+    "test": "npm run build --workspace @whatsnew/shared && npm run prisma:generate && tsx src/scripts/prepareTestDatabase.ts && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
