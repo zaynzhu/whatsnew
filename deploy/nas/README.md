@@ -19,7 +19,7 @@ uname -m
 
 ### 推荐：GitHub Actions
 
-Mac mini 不安装 Docker 时，在 GitHub 仓库的 Actions 页面打开“构建极空间镜像包”，点击“Run workflow”，填写版本号并运行。任务完成后下载 `whatsnew-<版本>-linux-amd64` artifact，解压得到 tar 和 `.sha256` 文件。
+Mac mini 不安装 Docker 时，在 GitHub 仓库的 Actions 页面打开“构建极空间镜像包”，点击“Run workflow”，填写版本号并运行。任务完成后下载 `whatsnew-<版本>-linux-amd64` artifact，解压得到 tar、`.sha256`、匹配版本的 `compose.yaml` 和部署示例文件。
 
 该工作流只允许手动触发，固定生成 Z4S 可用的 `linux/amd64` 镜像，不读取运行设置或凭据。
 
@@ -62,6 +62,8 @@ chown -R 1000:1000 runtime
 
 如果 `.env` 使用了其他 PUID/PGID，这里使用相同数值。
 
+Compose 会先运行一次 `cache-init`，按 `.env` 中的 PUID/PGID 修正海报和 IMDb 缓存目录权限，完成后才启动 backend。backend 本身仍以普通用户运行。升级时必须同时使用 artifact 中的新 `compose.yaml`，否则旧部署不会执行这一步。
+
 编辑 `runtime/config/settings.env`，至少确认：
 
 - `DATABASE_URL` 可从 NAS 容器访问
@@ -74,12 +76,15 @@ chown -R 1000:1000 runtime
 在极空间镜像界面导入 tar，或通过 SSH 执行：
 
 ```bash
-sha256sum -c whatsnew-0.1.0-linux-amd64.tar.sha256
-docker load --input whatsnew-0.1.0-linux-amd64.tar
+sha256sum -c whatsnew-0.1.1-linux-amd64.tar.sha256
+docker load --input whatsnew-0.1.1-linux-amd64.tar
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d --pull never
+docker compose --env-file .env ps -a cache-init
 docker compose --env-file .env ps
 ```
+
+`cache-init` 应显示退出码 `0`。它是一次性初始化任务，显示 `Exited (0)` 属于正常状态。
 
 验收同源前端和后端代理：
 
@@ -105,7 +110,7 @@ curl -s http://127.0.0.1:19992/api/source-health
 
 ## 6. 升级与回滚
 
-升级时导入新 tar，修改 `.env` 中两个镜像 tag，再执行：
+升级时导入新 tar，用 artifact 中的新版 `compose.yaml` 替换部署目录中的旧文件，修改 `.env` 中两个镜像 tag，再执行：
 
 ```bash
 docker compose --env-file .env up -d --pull never

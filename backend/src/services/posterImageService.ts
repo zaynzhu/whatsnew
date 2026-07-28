@@ -132,6 +132,7 @@ export class PosterImageService {
   private readonly limiters = new Map<string, RateLimiter>()
   private readonly inFlight = new Map<string, Promise<PosterImage>>()
   private readonly recentFailures = new Map<string, RecentFailure>()
+  private cacheWriteWarningLogged = false
 
   constructor(options: PosterImageServiceOptions = {}) {
     this.cacheDir = options.cacheDir ?? POSTER_CACHE_DIR
@@ -245,7 +246,17 @@ export class PosterImageService {
         const contentType = assertImageResponse(response.headers.get("content-type"), body.length)
         const measured = dimensions(body)
 
-        await this.writeCached(url, contentType, body, measured)
+        try {
+          await this.writeCached(url, contentType, body, measured)
+        } catch (error) {
+          if (!this.cacheWriteWarningLogged) {
+            const code = error && typeof error === "object" && "code" in error
+              ? String(error.code)
+              : "unknown"
+            console.warn("海报缓存写入失败，当前请求将返回未缓存图片", { code })
+            this.cacheWriteWarningLogged = true
+          }
+        }
         return { body, contentType, ...measured, cacheHit: false, cacheStatus: "miss" }
       } finally {
         clearTimeout(timer)

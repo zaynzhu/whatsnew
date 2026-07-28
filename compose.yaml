@@ -1,6 +1,25 @@
 name: whatsnew
 
 services:
+  cache-init:
+    image: ${WHATSNEW_BACKEND_IMAGE:-whatsnew-backend:latest}
+    platform: ${WHATSNEW_PLATFORM:-linux/amd64}
+    user: "0:0"
+    environment:
+      TARGET_GID: ${WHATSNEW_PGID:-1000}
+      TARGET_UID: ${WHATSNEW_PUID:-1000}
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - |
+        set -eu
+        mkdir -p /app/backend/.cache/posters /app/backend/.cache/poster-variants /app/backend/.cache/imdb
+        chown -R "$${TARGET_UID}:$${TARGET_GID}" /app/backend/.cache
+    volumes:
+      - ${WHATSNEW_DATA_DIR:-./runtime/data}/cache:/app/backend/.cache
+    restart: "no"
+
   backend:
     image: ${WHATSNEW_BACKEND_IMAGE:-whatsnew-backend:latest}
     platform: ${WHATSNEW_PLATFORM:-linux/amd64}
@@ -15,6 +34,9 @@ services:
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
+    depends_on:
+      cache-init:
+        condition: service_completed_successfully
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

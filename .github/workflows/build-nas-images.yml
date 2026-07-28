@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 镜像版本，例如 0.1.0
+        description: 镜像版本，例如 0.1.1
         required: true
-        default: 0.1.0
+        default: 0.1.1
 
 permissions:
   contents: read
@@ -24,12 +24,25 @@ jobs:
       - name: 配置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: 验证 Compose
+        run: |
+          mkdir -p runtime/config runtime/data/cache
+          cp deploy/nas/settings.env.example runtime/config/settings.env
+          docker compose --env-file deploy/nas/compose.env.example config --quiet
+
       - name: 构建 tar
         env:
           VERSION: ${{ inputs.version }}
         run: |
           mkdir -p dist
           ./deploy/nas/build-image-tar.sh "$VERSION" linux/amd64 "dist/whatsnew-${VERSION}-linux-amd64.tar"
+          cp compose.yaml dist/compose.yaml
+          sed \
+            -e "s|^WHATSNEW_BACKEND_IMAGE=.*|WHATSNEW_BACKEND_IMAGE=whatsnew-backend:${VERSION}|" \
+            -e "s|^WHATSNEW_FRONTEND_IMAGE=.*|WHATSNEW_FRONTEND_IMAGE=whatsnew-frontend:${VERSION}|" \
+            deploy/nas/compose.env.example > dist/compose.env.example
+          cp deploy/nas/settings.env.example dist/settings.env.example
+          cp deploy/nas/README.md dist/README.md
 
       - name: 上传镜像包
         uses: actions/upload-artifact@v4
@@ -38,5 +51,9 @@ jobs:
           path: |
             dist/*.tar
             dist/*.tar.sha256
+            dist/compose.yaml
+            dist/compose.env.example
+            dist/settings.env.example
+            dist/README.md
           if-no-files-found: error
           retention-days: 7

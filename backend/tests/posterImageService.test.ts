@@ -74,6 +74,36 @@ describe("PosterImageService", () => {
     })
   })
 
+  it("serves the downloaded image when the disk cache is not writable", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
+    const invalidCacheDir = join(tempDir, "cache-file")
+    await writeFile(invalidCacheDir, "not-a-directory")
+    const body = Buffer.from("image-bytes")
+    const transport = vi.fn(async () => new Response(body, {
+      status: 200,
+      headers: { "content-type": "image/jpeg" }
+    }))
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const service = new PosterImageService({
+      cacheDir: invalidCacheDir,
+      transport,
+      minIntervalMs: 0
+    })
+
+    await expect(service.getPoster("https://img.test/uncached.jpg")).resolves.toMatchObject({
+      body,
+      cacheHit: false,
+      cacheStatus: "miss"
+    })
+    expect(warning).toHaveBeenCalledOnce()
+    expect(warning).toHaveBeenCalledWith(
+      "海报缓存写入失败，当前请求将返回未缓存图片",
+      { code: "EEXIST" }
+    )
+
+    warning.mockRestore()
+  })
+
   it("routes known poster hosts through their source proxy mode", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "whatsnew-posters-"))
     const settings = new RuntimeSettingsService(new EnvFileStore("/tmp/unused-poster-proxy-env"), {
