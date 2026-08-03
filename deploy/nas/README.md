@@ -62,7 +62,7 @@ chown -R 1000:1000 runtime
 
 如果 `.env` 使用了其他 PUID/PGID，这里使用相同数值。
 
-Compose 会先运行一次 `cache-init`，按 `.env` 中的 PUID/PGID 修正海报和 IMDb 缓存目录权限，完成后才启动 backend。backend 本身仍以普通用户运行。升级时必须同时使用 artifact 中的新 `compose.yaml`，否则旧部署不会执行这一步。
+Compose 会先运行一次 `cache-init`，按 `.env` 中的 PUID/PGID 修正配置、海报和 IMDb 缓存目录权限，完成后才启动 backend。配置目录保持 `0700`，设置文件及其本地备份保持 `0600`，因此设置页可以安全地原子写回 `settings.env`。backend 本身仍以普通用户运行。升级时必须同时使用 artifact 中的新 `compose.yaml`，否则旧部署不会执行这一步。
 
 编辑 `runtime/config/settings.env`，至少确认：
 
@@ -76,8 +76,8 @@ Compose 会先运行一次 `cache-init`，按 `.env` 中的 PUID/PGID 修正海�
 在极空间镜像界面导入 tar，或通过 SSH 执行：
 
 ```bash
-sha256sum -c whatsnew-0.1.1-linux-amd64.tar.sha256
-docker load --input whatsnew-0.1.1-linux-amd64.tar
+sha256sum -c whatsnew-0.1.2-linux-amd64.tar.sha256
+docker load --input whatsnew-0.1.2-linux-amd64.tar
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d --pull never
 docker compose --env-file .env ps -a cache-init

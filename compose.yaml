@@ -14,9 +14,16 @@ services:
     command:
       - |
         set -eu
-        mkdir -p /app/backend/.cache/posters /app/backend/.cache/poster-variants /app/backend/.cache/imdb
-        chown -R "$${TARGET_UID}:$${TARGET_GID}" /app/backend/.cache
+        mkdir -p /app/config /app/backend/.cache/posters /app/backend/.cache/poster-variants /app/backend/.cache/imdb
+        chown -R "$${TARGET_UID}:$${TARGET_GID}" /app/config /app/backend/.cache
+        chmod 700 /app/config
+        for config_file in /app/config/settings.env /app/config/settings.env.backup.local /app/config/settings.env.tmp; do
+          if [ -e "$${config_file}" ]; then
+            chmod 600 "$${config_file}"
+          fi
+        done
     volumes:
+      - ${WHATSNEW_CONFIG_DIR:-./runtime/config}:/app/config
       - ${WHATSNEW_DATA_DIR:-./runtime/data}/cache:/app/backend/.cache
     restart: "no"
 
