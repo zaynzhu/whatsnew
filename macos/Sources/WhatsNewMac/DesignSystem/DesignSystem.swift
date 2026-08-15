@@ -4,7 +4,10 @@ public enum DesignSystem {
   public static let reelBlue = Color(hex: 0x315A70)
   public static let cueRed = Color(hex: 0xC8553D)
   public static let archiveOlive = Color(hex: 0x7A8062)
+  public static let cinemaGold = Color(hex: 0xB78545)
 
+  public static let pageTitle = Font.system(size: 36, weight: .bold, design: .serif)
+  public static let displayNumber = Font.system(size: 42, weight: .bold, design: .rounded)
   public static let sectionTitle = Font.system(.title2, design: .serif).weight(.semibold)
   public static let body = Font.system(.body, design: .default)
   public static let mono = Font.system(.body, design: .monospaced)

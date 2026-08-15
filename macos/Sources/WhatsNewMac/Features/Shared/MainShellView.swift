@@ -53,31 +53,9 @@ public struct MainShellView: View {
   public init() {}
 
   public var body: some View {
-    NavigationSplitView {
-      List(selection: $selection) {
-        Section("浏览") {
-          navigationRow(.dashboard)
-          navigationRow(.discover)
-          navigationRow(.trending)
-          navigationRow(.preview)
-          navigationRow(.calendar)
-        }
-
-        Section("控制中心") {
-          navigationRow(.sources)
-          navigationRow(.sourceRuns)
-          navigationRow(.posterHealth)
-        }
-
-        Section("系统") {
-          navigationRow(.settings)
-        }
-      }
-      .listStyle(.sidebar)
-      .safeAreaInset(edge: .bottom) {
-        sidebarFooter
-      }
-    } detail: {
+    VStack(spacing: 0) {
+      topNavigation
+      Divider()
       detailView
     }
     .searchable(text: $searchText, placement: .toolbar, prompt: "搜索标题、来源或平台")
@@ -102,10 +80,100 @@ public struct MainShellView: View {
     }
   }
 
-  @ViewBuilder
-  private func navigationRow(_ item: NavigationItem) -> some View {
-    Label(item.title, systemImage: item.icon)
-      .tag(item)
+  private var topNavigation: some View {
+    HStack(spacing: 24) {
+      HStack(spacing: 10) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .fill(DesignSystem.cueRed)
+          Image(systemName: "play.rectangle.fill")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+        }
+        .frame(width: 34, height: 34)
+
+        VStack(alignment: .leading, spacing: 0) {
+          Text("WhatsNew")
+            .font(.headline.weight(.semibold))
+          Text("影视情报站")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+      }
+
+      HStack(spacing: 4) {
+        ForEach(primaryItems) { item in
+          navigationButton(item)
+        }
+      }
+
+      Spacer(minLength: 12)
+
+      Menu {
+        Section("控制中心") {
+          menuButton(.sources)
+          menuButton(.sourceRuns)
+          menuButton(.posterHealth)
+        }
+        Divider()
+        menuButton(.settings)
+      } label: {
+        HStack(spacing: 7) {
+          Image(systemName: selectedUtilityItem?.icon ?? "slider.horizontal.3")
+          Text(selectedUtilityItem?.title ?? "管理")
+          Image(systemName: "chevron.down")
+            .font(.caption2.weight(.bold))
+        }
+        .font(.callout.weight(.medium))
+        .foregroundStyle(selectedUtilityItem == nil ? Color.primary : DesignSystem.reelBlue)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.primary.opacity(selectedUtilityItem == nil ? 0.05 : 0.09), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+      }
+      .menuStyle(.borderlessButton)
+      .fixedSize()
+    }
+    .padding(.horizontal, 20)
+    .padding(.vertical, 10)
+    .background(.ultraThinMaterial)
+  }
+
+  private var primaryItems: [NavigationItem] {
+    [.dashboard, .discover, .trending, .preview, .calendar]
+  }
+
+  private var selectedUtilityItem: NavigationItem? {
+    guard let selection, !primaryItems.contains(selection) else { return nil }
+    return selection
+  }
+
+  private func navigationButton(_ item: NavigationItem) -> some View {
+    Button {
+      withAnimation(.easeOut(duration: 0.18)) {
+        selection = item
+      }
+    } label: {
+      Label(item.title, systemImage: item.icon)
+        .font(.callout.weight(selection == item ? .semibold : .medium))
+        .foregroundStyle(selection == item ? DesignSystem.reelBlue : Color.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background {
+          RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .fill(selection == item ? DesignSystem.reelBlue.opacity(0.12) : .clear)
+        }
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(selection == item ? .isSelected : [])
+  }
+
+  private func menuButton(_ item: NavigationItem) -> some View {
+    Button {
+      selection = item
+    } label: {
+      Label(item.title, systemImage: item.icon)
+    }
   }
 
   @ViewBuilder
@@ -142,7 +210,7 @@ public struct MainShellView: View {
           contentRevision += 1
         }
       case nil:
-        ContentUnavailableView("选择一个模块", systemImage: "sidebar.left", description: Text("从左侧边栏开始浏览。"))
+        ContentUnavailableView("选择一个模块", systemImage: "rectangle.topthird.inset.filled", description: Text("从顶部导航开始浏览。"))
       }
     } else {
       ContentUnavailableView("尚未连接 NAS", systemImage: "network.slash", description: Text("返回连接页配置服务地址。"))
@@ -160,42 +228,4 @@ public struct MainShellView: View {
     }
   }
 
-  private var sidebarFooter: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      if let profile = appState.profile {
-        Text(profile.normalizedAddress)
-          .font(.caption.monospaced())
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-      }
-      if let lastError = appState.lastError {
-        Text(lastError)
-          .font(.caption2)
-          .foregroundStyle(DesignSystem.cueRed)
-          .lineLimit(2)
-      }
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .frame(maxWidth: .infinity, alignment: .leading)
-  }
-}
-
-private struct FeaturePlaceholderView: View {
-  let title: String
-  let subtitle: String
-  let accent: Color
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 18) {
-      Text(title)
-        .font(DesignSystem.sectionTitle)
-      Rectangle()
-        .fill(accent)
-        .frame(width: 52, height: 3)
-      ContentUnavailableView("即将接入", systemImage: "film.stack", description: Text(subtitle))
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    .padding(32)
-  }
 }

@@ -96,9 +96,7 @@ public struct PreviewView: View {
         FeatureLoadingView(title: "加载前瞻时间线")
       case let .failed(message):
         FeatureFailureView(title: "前瞻加载失败", message: message) { Task { await model.load() } }
-      case .empty:
-        content
-      case .loaded:
+      case .empty, .loaded:
         content
       }
     }
@@ -118,71 +116,90 @@ public struct PreviewView: View {
       VStack(alignment: .leading, spacing: 24) {
         header
         controls
+
         if let error = model.syncError {
           Label(error, systemImage: "exclamationmark.triangle")
             .font(.callout)
             .foregroundStyle(DesignSystem.cueRed)
         }
+
         if let response = model.response, !response.source.enabled {
           Text("豆瓣数据源未启用，当前展示的是已有快照。")
             .font(.callout)
             .foregroundStyle(DesignSystem.cueRed)
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DesignSystem.cueRed.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .background(DesignSystem.cueRed.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
+
         if model.filteredDays.isEmpty && model.filteredUndated.isEmpty {
           FeatureEmptyView(title: "暂无前瞻条目", message: "当前筛选没有待映或待播作品。", systemImage: "calendar.badge.clock")
-            .frame(minHeight: 220)
+            .frame(minHeight: 260)
         } else {
-          ForEach(model.filteredDays) { day in
-            PreviewDateSection(client: client, day: day, onSelectMedia: onSelectMedia)
-          }
-          if !model.filteredUndated.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-              SectionHeader(title: "未定档", subtitle: "按豆瓣热门名次优先")
-              ForEach(model.filteredUndated) { item in
-                PreviewReleaseRowView(client: client, item: item, onSelect: { onSelectMedia(item.mediaItemId) })
-              }
+          VStack(alignment: .leading, spacing: 0) {
+            ForEach(model.filteredDays) { day in
+              PreviewTimelineSection(
+                client: client,
+                date: day.date,
+                items: day.items,
+                onSelectMedia: onSelectMedia
+              )
+            }
+
+            if !model.filteredUndated.isEmpty {
+              PreviewTimelineSection(
+                client: client,
+                date: nil,
+                items: model.filteredUndated,
+                onSelectMedia: onSelectMedia
+              )
             }
           }
         }
       }
-      .padding(28)
+      .padding(.horizontal, 30)
+      .padding(.top, 24)
+      .padding(.bottom, 42)
+      .frame(maxWidth: 1_480, alignment: .leading)
+      .frame(maxWidth: .infinity)
     }
   }
 
   private var header: some View {
-    HStack(alignment: .top) {
+    HStack(alignment: .bottom, spacing: 30) {
       VStack(alignment: .leading, spacing: 8) {
-        Text("前瞻")
-          .font(.system(size: 32, weight: .semibold, design: .serif))
+        Text("前瞻时间线")
+          .font(DesignSystem.pageTitle)
+          .tracking(-0.8)
           .foregroundStyle(DesignSystem.archiveOlive)
-        Text("豆瓣未来日期与未定档条目，保留热门名次和想看人数。")
+        Text("顺着日期向下看，每一天都是一条即将到来的片单。")
+          .font(.title3)
           .foregroundStyle(.secondary)
       }
       Spacer()
       if let summary = model.response?.summary {
-        HStack(spacing: 18) {
-          SummaryMetric(value: summary.total, label: "全部")
-          SummaryMetric(value: summary.movies, label: "电影")
-          SummaryMetric(value: summary.series, label: "剧集")
-          SummaryMetric(value: summary.hot, label: "热门")
+        HStack(spacing: 22) {
+          PreviewSummaryMetric(value: summary.total, label: "全部")
+          PreviewSummaryMetric(value: summary.movies, label: "电影")
+          PreviewSummaryMetric(value: summary.series, label: "剧集")
+          PreviewSummaryMetric(value: summary.hot, label: "热门", tint: DesignSystem.cueRed)
         }
       }
     }
   }
 
   private var controls: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: 14) {
       Picker("类型", selection: $model.filter) {
         Text("全部").tag("")
         Text("电影").tag("movie")
         Text("剧集").tag("series")
       }
       .pickerStyle(.segmented)
-      .frame(width: 210)
+      .frame(width: 240)
+
       Spacer()
+
       if let source = model.response?.source {
         Text(source.lastSuccessAt.map { "更新于 \(SharedFormatters.dateTimeText(fromISO8601: $0))" } ?? "尚未成功同步")
           .font(.caption)
@@ -197,17 +214,22 @@ public struct PreviewView: View {
         .disabled(model.isSyncing || !source.enabled || !source.runnable)
       }
     }
+    .padding(14)
+    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
-private struct SummaryMetric: View {
+private struct PreviewSummaryMetric: View {
   let value: Int
   let label: String
+  var tint: Color = .primary
 
   var body: some View {
     VStack(alignment: .trailing, spacing: 2) {
       Text(String(value))
-        .font(.title2.weight(.semibold))
+        .font(.title.weight(.bold))
+        .monospacedDigit()
+        .foregroundStyle(tint)
       Text(label)
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -215,72 +237,159 @@ private struct SummaryMetric: View {
   }
 }
 
-private struct PreviewDateSection: View {
+private struct PreviewTimelineSection: View {
   let client: APIClient
-  let day: FilteredPreviewDay
+  let date: String?
+  let items: [PreviewReleaseRow]
   let onSelectMedia: (String) -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack {
-        Text(SharedFormatters.dateText(fromISO8601: "\(day.date)T00:00:00Z"))
-          .font(DesignSystem.sectionTitle)
-        Text("\(day.items.count) 部")
-          .font(.caption)
+    HStack(alignment: .top, spacing: 16) {
+      VStack(alignment: .trailing, spacing: 2) {
+        if date != nil {
+          Text(datePresentation.day)
+            .font(.system(size: 38, weight: .bold, design: .serif))
+            .monospacedDigit()
+            .foregroundStyle(DesignSystem.archiveOlive)
+          Text(datePresentation.month)
+            .font(.callout.weight(.semibold))
+          Text(datePresentation.weekday)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        } else {
+          Text("待定")
+            .font(.title2.weight(.bold))
+            .foregroundStyle(DesignSystem.cinemaGold)
+          Text("未定档")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        Text("\(items.count) 部")
+          .font(.caption.monospaced())
           .foregroundStyle(.secondary)
+          .padding(.top, 4)
       }
-      ForEach(day.items) { item in
-        PreviewReleaseRowView(client: client, item: item, onSelect: { onSelectMedia(item.mediaItemId) })
+      .frame(width: 82, alignment: .topTrailing)
+
+      VStack(spacing: 0) {
+        Circle()
+          .fill(date == nil ? DesignSystem.cinemaGold : DesignSystem.archiveOlive)
+          .frame(width: 12, height: 12)
+          .overlay {
+            Circle()
+              .stroke(.background, lineWidth: 3)
+          }
+        Rectangle()
+          .fill(DesignSystem.archiveOlive.opacity(0.25))
+          .frame(width: 2)
+          .frame(maxHeight: .infinity)
       }
+      .frame(width: 14)
+
+      VStack(alignment: .leading, spacing: 12) {
+        HStack(alignment: .firstTextBaseline) {
+          Text(date.map { SharedFormatters.dateText(fromISO8601: "\($0)T00:00:00Z") } ?? "还没有确定日期")
+            .font(DesignSystem.sectionTitle)
+          Spacer()
+          if items.contains(where: { $0.doubanHotRank != nil }) {
+            Label("含豆瓣热门", systemImage: "flame.fill")
+              .font(.caption.weight(.medium))
+              .foregroundStyle(DesignSystem.cueRed)
+          }
+        }
+
+        ScrollView(.horizontal, showsIndicators: false) {
+          LazyHStack(alignment: .top, spacing: 14) {
+            ForEach(items) { item in
+              PreviewPosterCard(client: client, item: item) {
+                onSelectMedia(item.mediaItemId)
+              }
+            }
+          }
+          .padding(.vertical, 3)
+        }
+      }
+      .padding(.bottom, 30)
     }
+  }
+
+  private var datePresentation: (day: String, month: String, weekday: String) {
+    guard let date else { return ("", "", "") }
+    let parser = DateFormatter()
+    parser.calendar = Calendar(identifier: .gregorian)
+    parser.locale = Locale(identifier: "en_US_POSIX")
+    parser.dateFormat = "yyyy-MM-dd"
+    guard let value = parser.date(from: date) else {
+      return (String(date.suffix(2)), "", "")
+    }
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "zh_CN")
+    formatter.dateFormat = "M月|EEEE"
+    let parts = formatter.string(from: value).split(separator: "|", omittingEmptySubsequences: false)
+    return (
+      String(Calendar.current.component(.day, from: value)),
+      parts.first.map(String.init) ?? "",
+      parts.count > 1 ? String(parts[1]) : ""
+    )
   }
 }
 
-private struct PreviewReleaseRowView: View {
+private struct PreviewPosterCard: View {
   let client: APIClient
   let item: PreviewReleaseRow
   let onSelect: () -> Void
+  @State private var isHovering = false
 
   var body: some View {
     Button(action: onSelect) {
-      HStack(spacing: 12) {
-        NASPosterView(
-          client: client,
-          mediaID: item.mediaItem.id,
-          title: item.mediaItem.titleDisplay,
-          posterAvailable: item.mediaItem.posterUrl != nil,
-          mediaStatus: item.mediaItem.status,
-          width: .small
-        )
-        .frame(width: 45, height: 68)
-        VStack(alignment: .leading, spacing: 4) {
-          Text(item.mediaItem.titleDisplay)
-            .font(.callout.weight(.medium))
-            .lineLimit(1)
-          HStack(spacing: 8) {
-            SemanticStatusBadge(item.releasePattern == "theatrical_coming_soon" ? "movie" : "series")
-            if let rank = item.doubanHotRank {
-              Text("豆瓣 #\(rank)")
-                .font(.caption.monospaced())
-                .foregroundStyle(DesignSystem.cueRed)
-            }
-            if let wish = item.doubanWishCount {
-              Text("想看 \(SharedFormatters.numberText(wish))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
+      VStack(alignment: .leading, spacing: 8) {
+        ZStack(alignment: .topTrailing) {
+          NASPosterView(
+            client: client,
+            mediaID: item.mediaItem.id,
+            title: item.mediaItem.titleDisplay,
+            posterAvailable: item.mediaItem.posterUrl != nil,
+            mediaStatus: item.mediaItem.status,
+            width: .medium
+          )
+          .frame(width: 132, height: 198)
+
+          if let rank = item.doubanHotRank {
+            Text("#\(rank)")
+              .font(.caption.monospaced().weight(.bold))
+              .foregroundStyle(.white)
+              .padding(.horizontal, 7)
+              .padding(.vertical, 5)
+              .background(DesignSystem.cueRed, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+              .padding(7)
           }
         }
-        Spacer()
-        Text(item.releaseDate ?? "日期待定")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        .shadow(color: DesignSystem.archiveOlive.opacity(isHovering ? 0.24 : 0.1), radius: isHovering ? 15 : 7, y: 7)
+
+        Text(item.mediaItem.titleDisplay)
+          .font(.callout.weight(.semibold))
+          .lineLimit(2)
+          .frame(width: 132, alignment: .leading)
+
+        HStack(spacing: 6) {
+          Text(StatusPresentation.label(item.releasePattern == "theatrical_coming_soon" ? "movie" : "series"))
+          if let wish = item.doubanWishCount {
+            Text("想看 \(SharedFormatters.numberText(wish))")
+          }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
       }
-      .padding(10)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+      .frame(width: 132, alignment: .leading)
       .contentShape(Rectangle())
+      .offset(y: isHovering ? -4 : 0)
     }
     .buttonStyle(.plain)
+    .onHover { hovering in
+      withAnimation(.easeOut(duration: 0.18)) {
+        isHovering = hovering
+      }
+    }
   }
 }

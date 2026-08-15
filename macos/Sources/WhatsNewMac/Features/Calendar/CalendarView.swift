@@ -120,6 +120,7 @@ public struct CalendarView: View {
   private let client: APIClient
   private let onSelectMedia: (String) -> Void
   @State private var model: CalendarViewModel
+  @State private var isDayExpanded = true
 
   public init(client: APIClient, onSelectMedia: @escaping (String) -> Void = { _ in }) {
     self.client = client
@@ -155,44 +156,54 @@ public struct CalendarView: View {
   }
 
   private var header: some View {
-    HStack(alignment: .top) {
-      VStack(alignment: .leading, spacing: 8) {
-        Text("日历")
-          .font(.system(size: 32, weight: .semibold, design: .serif))
-          .foregroundStyle(DesignSystem.archiveOlive)
-        Text("月视图显示每日作品摘要，选日后查看完整排期。")
+    HStack(alignment: .bottom, spacing: 24) {
+      VStack(alignment: .leading, spacing: 7) {
+        Text("海报日历")
+          .font(DesignSystem.pageTitle)
+          .tracking(-0.8)
+          .foregroundStyle(DesignSystem.reelBlue)
+        Text("点开任意日期，在右侧展开当天的完整片单。")
+          .font(.title3)
           .foregroundStyle(.secondary)
       }
       Spacer()
       let total = (model.monthResponse?.days ?? []).reduce(0) { $0 + $1.count }
-      VStack(alignment: .trailing, spacing: 3) {
-        Text("\(total) 部作品")
-          .font(.title2.weight(.semibold))
-        Text("\(model.monthResponse?.days.count ?? 0) 个播出日")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+      HStack(spacing: 24) {
+        CalendarMetric(value: total, label: "月度排期")
+        CalendarMetric(value: model.monthResponse?.days.count ?? 0, label: "有内容的日期")
       }
     }
-    .padding(28)
+    .padding(.horizontal, 30)
+    .padding(.top, 22)
+    .padding(.bottom, 16)
   }
 
   private var controls: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: 10) {
       Button { Task { await model.shiftMonth(by: -1) } } label: {
         Image(systemName: "chevron.left")
       }
       .buttonStyle(.bordered)
+
       Text(SharedFormatters.monthText(model.month))
-        .font(.callout.weight(.medium))
-        .frame(minWidth: 90)
-      Button("今天") {
-        Task { await model.selectToday() }
-      }
-      .buttonStyle(.bordered)
+        .font(.title3.weight(.semibold))
+        .frame(minWidth: 110)
+
       Button { Task { await model.shiftMonth(by: 1) } } label: {
         Image(systemName: "chevron.right")
       }
       .buttonStyle(.bordered)
+
+      Button("回到今天") {
+        withAnimation(.easeOut(duration: 0.2)) {
+          isDayExpanded = true
+        }
+        Task { await model.selectToday() }
+      }
+      .buttonStyle(.bordered)
+
+      Spacer()
+
       Picker("影视类型", selection: $model.mediaType) {
         Text("全部").tag("")
         Text("电影").tag("movie")
@@ -203,10 +214,9 @@ public struct CalendarView: View {
         Text("纪录片").tag("documentary")
       }
       .pickerStyle(.segmented)
-      .frame(maxWidth: 430)
-      Spacer()
+      .frame(maxWidth: 470)
     }
-    .padding(.horizontal, 28)
+    .padding(.horizontal, 30)
     .padding(.bottom, 16)
   }
 
@@ -218,87 +228,90 @@ public struct CalendarView: View {
     case let .failed(message):
       FeatureFailureView(message: message) { Task { await model.loadMonth() } }
     case .empty, .loaded:
-      ScrollView {
-        VStack(alignment: .leading, spacing: 24) {
-          monthGrid
-          selectedDay
-        }
-        .padding(28)
+      GeometryReader { proxy in
+        calendarLayout(width: proxy.size.width)
       }
+    }
+  }
+
+  @ViewBuilder
+  private func calendarLayout(width: CGFloat) -> some View {
+    if width >= 1_000 {
+      HStack(spacing: 0) {
+        ScrollView {
+          monthGrid
+            .padding(24)
+        }
+        .frame(maxWidth: .infinity)
+
+        if isDayExpanded {
+          Divider()
+          ScrollView {
+            selectedDay
+              .padding(22)
+          }
+          .frame(width: min(max(width * 0.32, 340), 430))
+          .background(.ultraThinMaterial)
+          .transition(.move(edge: .trailing).combined(with: .opacity))
+        }
+      }
+      .animation(.easeOut(duration: 0.22), value: isDayExpanded)
+    } else {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 22) {
+          monthGrid
+          if isDayExpanded {
+            selectedDay
+              .padding(18)
+              .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+          }
+        }
+        .padding(24)
+      }
+      .animation(.easeOut(duration: 0.22), value: isDayExpanded)
     }
   }
 
   private var monthGrid: some View {
     let cells = Self.calendarCells(model.month)
-    return VStack(alignment: .leading, spacing: 8) {
+    return VStack(alignment: .leading, spacing: 10) {
       HStack {
         ForEach(["一", "二", "三", "四", "五", "六", "日"], id: \.self) { weekday in
           Text("周\(weekday)")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(weekday == "六" || weekday == "日" ? DesignSystem.cueRed : Color.secondary)
             .frame(maxWidth: .infinity)
         }
       }
-      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
+
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
         ForEach(cells, id: \.dateKey) { cell in
-          let summary = model.dayMap[cell.dateKey]
-          Button {
-            Task { await model.select(date: cell.date) }
-          } label: {
-            VStack(alignment: .leading, spacing: 5) {
-              HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(cell.dateKey.suffix(2))
-                  .font(.callout.weight(cell.isCurrentMonth ? .semibold : .regular))
-                Spacer(minLength: 0)
-                if let summary, summary.count > 0 {
-                  Text("\(summary.count) 部")
-                    .font(.caption2)
-                    .foregroundStyle(DesignSystem.cueRed)
-                }
-              }
-              Spacer(minLength: 0)
-              if let featured = summary?.items.first {
-                HStack(alignment: .bottom, spacing: 6) {
-                  Text(featured.mediaItem.titleDisplay)
-                    .font(.caption2.weight(.medium))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                  Spacer(minLength: 0)
-                  NASPosterView(
-                    client: client,
-                    mediaID: featured.mediaItem.id,
-                    title: featured.mediaItem.titleDisplay,
-                    posterAvailable: featured.mediaItem.posterUrl != nil,
-                    mediaStatus: featured.mediaItem.status,
-                    width: .small
-                  )
-                  .frame(width: 28, height: 42)
-                  .accessibilityHidden(true)
-                }
-              } else {
-                Text("暂无排期")
-                  .font(.caption2)
-                  .foregroundStyle(.tertiary)
-              }
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-            .background {
-              if cell.dateKey == model.selectedDate {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                  .fill(DesignSystem.reelBlue.opacity(0.18))
-              } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                  .fill(.thinMaterial)
-              }
-            }
-            .opacity(cell.isCurrentMonth ? 1 : 0.45)
+          CalendarDayCell(
+            client: client,
+            cell: cell,
+            summary: model.dayMap[cell.dateKey],
+            isSelected: cell.dateKey == model.selectedDate && isDayExpanded
+          ) {
+            select(cell)
           }
-          .buttonStyle(.plain)
-          .accessibilityLabel(calendarCellAccessibilityLabel(cell: cell, summary: summary))
+          .accessibilityLabel(calendarCellAccessibilityLabel(cell: cell, summary: model.dayMap[cell.dateKey]))
         }
       }
     }
+  }
+
+  private func select(_ cell: CalendarCell) {
+    if cell.dateKey == model.selectedDate, isDayExpanded {
+      withAnimation(.easeOut(duration: 0.2)) {
+        isDayExpanded = false
+      }
+      return
+    }
+
+    withAnimation(.easeOut(duration: 0.2)) {
+      isDayExpanded = true
+    }
+    Task { await model.select(date: cell.date) }
   }
 
   private func calendarCellAccessibilityLabel(cell: CalendarCell, summary: CalendarDay?) -> String {
@@ -313,36 +326,81 @@ public struct CalendarView: View {
 
   @ViewBuilder
   private var selectedDay: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      SectionHeader(title: "\(model.selectedDate) 排期", subtitle: "完整保留多集、多平台和多来源记录")
+    VStack(alignment: .leading, spacing: 18) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text(selectedDatePresentation.day)
+            .font(.system(size: 46, weight: .bold, design: .serif))
+            .monospacedDigit()
+            .foregroundStyle(DesignSystem.reelBlue)
+          Text("\(selectedDatePresentation.month) · \(selectedDatePresentation.weekday)")
+            .font(.headline)
+          Text(model.selectedDate)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Button {
+          withAnimation(.easeOut(duration: 0.2)) {
+            isDayExpanded = false
+          }
+        } label: {
+          Image(systemName: "xmark")
+        }
+        .buttonStyle(.bordered)
+        .help("收起当天片单")
+      }
+
+      HStack {
+        Text("当天片单")
+          .font(DesignSystem.sectionTitle)
+        Spacer()
+        Text("\(model.dayResponse?.items.count ?? 0) 条排期")
+          .font(.caption.monospaced())
+          .foregroundStyle(.secondary)
+      }
+
       switch model.dayState {
       case .idle, .loading:
         ProgressView("加载当天排期…")
+          .frame(maxWidth: .infinity, minHeight: 180)
       case let .failed(message):
         FeatureFailureView(title: "当天排期加载失败", message: message) { Task { await model.loadDay() } }
-          .frame(minHeight: 180)
+          .frame(minHeight: 220)
       case .empty:
-        FeatureEmptyView(title: "当天暂无排期", message: "可以选择其他日期查看。", systemImage: "calendar")
-          .frame(minHeight: 180)
+        FeatureEmptyView(title: "当天暂无排期", message: "再点一个日期看看。", systemImage: "calendar")
+          .frame(minHeight: 220)
       case .loaded:
-        LazyVStack(spacing: 0) {
+        LazyVStack(spacing: 10) {
           ForEach(model.dayResponse?.items ?? []) { release in
             Button { onSelectMedia(release.mediaItem.id) } label: {
-              CalendarReleaseRow(release: release)
+              CalendarReleaseRow(client: client, release: release)
             }
             .buttonStyle(.plain)
-            Divider()
           }
         }
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
       }
     }
   }
 
-  private struct CalendarCell {
-    let date: Date
-    let dateKey: String
-    let isCurrentMonth: Bool
+  private var selectedDatePresentation: (day: String, month: String, weekday: String) {
+    let parser = DateFormatter()
+    parser.calendar = Calendar(identifier: .gregorian)
+    parser.locale = Locale(identifier: "en_US_POSIX")
+    parser.timeZone = .current
+    parser.dateFormat = "yyyy-MM-dd"
+    guard let date = parser.date(from: model.selectedDate) else {
+      return (String(model.selectedDate.suffix(2)), "", "")
+    }
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "zh_CN")
+    formatter.dateFormat = "M月|EEEE"
+    let parts = formatter.string(from: date).split(separator: "|", omittingEmptySubsequences: false)
+    return (
+      String(Calendar.current.component(.day, from: date)),
+      parts.first.map(String.init) ?? "",
+      parts.count > 1 ? String(parts[1]) : ""
+    )
   }
 
   private static func calendarCells(_ month: Date) -> [CalendarCell] {
@@ -361,16 +419,127 @@ public struct CalendarView: View {
   }
 }
 
+private struct CalendarMetric: View {
+  let value: Int
+  let label: String
+
+  var body: some View {
+    VStack(alignment: .trailing, spacing: 2) {
+      Text(String(value))
+        .font(.title.weight(.bold))
+        .monospacedDigit()
+        .foregroundStyle(DesignSystem.reelBlue)
+      Text(label)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+  }
+}
+
+private struct CalendarCell {
+  let date: Date
+  let dateKey: String
+  let isCurrentMonth: Bool
+}
+
+private struct CalendarDayCell: View {
+  let client: APIClient
+  let cell: CalendarCell
+  let summary: CalendarDay?
+  let isSelected: Bool
+  let action: () -> Void
+  @State private var isHovering = false
+
+  var body: some View {
+    Button(action: action) {
+      VStack(alignment: .leading, spacing: 7) {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+          Text(String(Calendar.current.component(.day, from: cell.date)))
+            .font(.title3.weight(Calendar.current.isDateInToday(cell.date) ? .bold : .semibold))
+            .foregroundStyle(Calendar.current.isDateInToday(cell.date) ? DesignSystem.cueRed : Color.primary)
+          Spacer(minLength: 0)
+          if let summary, summary.count > 0 {
+            Text("\(summary.count)")
+              .font(.caption2.monospaced().weight(.bold))
+              .foregroundStyle(isSelected ? .white : DesignSystem.reelBlue)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 3)
+              .background(isSelected ? DesignSystem.reelBlue : DesignSystem.reelBlue.opacity(0.1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+          }
+        }
+
+        Spacer(minLength: 0)
+
+        if let featured = summary?.items.first {
+          HStack(alignment: .bottom, spacing: 7) {
+            NASPosterView(
+              client: client,
+              mediaID: featured.mediaItem.id,
+              title: featured.mediaItem.titleDisplay,
+              posterAvailable: featured.mediaItem.posterUrl != nil,
+              mediaStatus: featured.mediaItem.status,
+              width: .small
+            )
+            .frame(width: 34, height: 51)
+            .accessibilityHidden(true)
+            Text(featured.mediaItem.titleDisplay)
+              .font(.caption.weight(.medium))
+              .lineLimit(2)
+              .multilineTextAlignment(.leading)
+          }
+        } else {
+          Text("暂无排期")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      .padding(10)
+      .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
+      .background {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(isSelected ? DesignSystem.reelBlue.opacity(0.16) : Color.primary.opacity(isHovering ? 0.07 : 0.035))
+      }
+      .overlay {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .strokeBorder(isSelected ? DesignSystem.reelBlue.opacity(0.7) : Color.primary.opacity(isHovering ? 0.16 : 0.07), lineWidth: isSelected ? 1.5 : 1)
+      }
+      .contentShape(Rectangle())
+      .scaleEffect(isHovering ? 1.012 : 1)
+      .opacity(cell.isCurrentMonth ? 1 : 0.38)
+    }
+    .buttonStyle(.plain)
+    .onHover { hovering in
+      withAnimation(.easeOut(duration: 0.15)) {
+        isHovering = hovering
+      }
+    }
+  }
+}
+
 private struct CalendarReleaseRow: View {
+  let client: APIClient
   let release: ReleaseRow
 
   var body: some View {
     HStack(spacing: 12) {
-      VStack(alignment: .leading, spacing: 4) {
+      NASPosterView(
+        client: client,
+        mediaID: release.mediaItem.id,
+        title: release.mediaItem.titleDisplay,
+        posterAvailable: release.mediaItem.posterUrl != nil,
+        mediaStatus: release.mediaItem.status,
+        width: .small
+      )
+      .frame(width: 48, height: 72)
+
+      VStack(alignment: .leading, spacing: 5) {
         Text(release.mediaItem.titleDisplay)
-          .font(.callout.weight(.medium))
-        HStack(spacing: 8) {
-          Text(release.platform == "Unspecified" ? "平台待确认" : release.platform)
+          .font(.callout.weight(.semibold))
+          .lineLimit(2)
+        Text(release.platform == "Unspecified" ? "平台待确认" : release.platform)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        HStack(spacing: 7) {
           if let season = release.seasonNumber, let episode = release.episodeNumber {
             Text("S\(season) E\(episode)")
           }
@@ -378,17 +547,21 @@ private struct CalendarReleaseRow: View {
             Text(title).lineLimit(1)
           }
         }
-        .font(.caption)
+        .font(.caption2)
         .foregroundStyle(.secondary)
       }
-      Spacer()
-      VStack(alignment: .trailing, spacing: 4) {
-        Text(release.releasePattern.replacingOccurrences(of: "_", with: " "))
-          .font(.caption)
+      Spacer(minLength: 6)
+      VStack(alignment: .trailing, spacing: 5) {
         SemanticStatusBadge(release.releaseStatus)
+        Text(release.releasePattern.replacingOccurrences(of: "_", with: " "))
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
       }
     }
-    .padding(10)
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     .contentShape(Rectangle())
   }
 }
