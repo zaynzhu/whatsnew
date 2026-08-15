@@ -8,6 +8,7 @@ public struct MediaItem: Codable, Identifiable, Sendable {
   public let releaseForm: String
   public let sourceContentType: String?
   public let titleDisplay: String
+  public let titleChinese: String?
   public let titleOriginal: String?
   public let titleAliases: String?
   public let overview: String?
@@ -41,6 +42,7 @@ public struct MediaItem: Codable, Identifiable, Sendable {
     releaseForm: String,
     sourceContentType: String? = nil,
     titleDisplay: String,
+    titleChinese: String? = nil,
     titleOriginal: String? = nil,
     titleAliases: String? = nil,
     overview: String? = nil,
@@ -73,6 +75,7 @@ public struct MediaItem: Codable, Identifiable, Sendable {
     self.releaseForm = releaseForm
     self.sourceContentType = sourceContentType
     self.titleDisplay = titleDisplay
+    self.titleChinese = titleChinese
     self.titleOriginal = titleOriginal
     self.titleAliases = titleAliases
     self.overview = overview
@@ -99,6 +102,18 @@ public struct MediaItem: Codable, Identifiable, Sendable {
     self.createdAt = createdAt
     self.updatedAt = updatedAt
     self.dataSources = dataSources
+  }
+}
+
+public extension MediaItem {
+  var preferredTitle: String {
+    titleChinese?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? titleDisplay
+  }
+
+  var secondaryTitle: String? {
+    if preferredTitle != titleDisplay { return titleDisplay }
+    let original = titleOriginal?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
+    return original == preferredTitle ? nil : original
   }
 }
 
@@ -293,6 +308,7 @@ public struct MediaDetailResponse: Codable, Sendable {
   public let releaseForm: String
   public let sourceContentType: String?
   public let titleDisplay: String
+  public let titleChinese: String?
   public let titleOriginal: String?
   public let titleAliases: String?
   public let overview: String?
@@ -339,6 +355,22 @@ public struct MediaDetailResponse: Codable, Sendable {
     public let sourceUrl: String?
     public let fetchedAt: String
   }
+}
+
+public extension MediaDetailResponse {
+  var preferredTitle: String {
+    titleChinese?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? titleDisplay
+  }
+
+  var secondaryTitle: String? {
+    if preferredTitle != titleDisplay { return titleDisplay }
+    let original = titleOriginal?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
+    return original == preferredTitle ? nil : original
+  }
+}
+
+private extension String {
+  var nonEmpty: String? { isEmpty ? nil : self }
 }
 
 // MARK: - 图片健康

@@ -347,7 +347,7 @@ private struct PreviewPosterCard: View {
           NASPosterView(
             client: client,
             mediaID: item.mediaItem.id,
-            title: item.mediaItem.titleDisplay,
+            title: item.mediaItem.preferredTitle,
             posterAvailable: item.mediaItem.posterUrl != nil,
             mediaStatus: item.mediaItem.status,
             width: .medium
@@ -366,10 +366,18 @@ private struct PreviewPosterCard: View {
         }
         .shadow(color: DesignSystem.archiveOlive.opacity(isHovering ? 0.24 : 0.1), radius: isHovering ? 15 : 7, y: 7)
 
-        Text(item.mediaItem.titleDisplay)
+        Text(item.mediaItem.preferredTitle)
           .font(.callout.weight(.semibold))
           .lineLimit(2)
           .frame(width: 132, alignment: .leading)
+
+        if let secondaryTitle = item.mediaItem.secondaryTitle {
+          Text(secondaryTitle)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(width: 132, alignment: .leading)
+        }
 
         HStack(spacing: 6) {
           Text(StatusPresentation.label(item.releasePattern == "theatrical_coming_soon" ? "movie" : "series"))

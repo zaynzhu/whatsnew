@@ -94,6 +94,9 @@ export interface ExistingMediaCandidate {
   releaseForm: ReleaseForm
   sourceContentType?: string | null
   titleDisplay: string
+  titleChinese?: string | null
+  titleChineseSource?: string | null
+  titleChineseCheckedAt?: Date | null
   titleOriginal?: string | null
   titleAliases: string[]
   overview: string | null

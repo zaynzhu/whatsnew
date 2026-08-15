@@ -299,6 +299,18 @@ describe("api routes", () => {
     expect(bySource.body.items.map((item: any) => item.titleDisplay)).toContain("星际回声")
   })
 
+  it("searches media by its Chinese display title", async () => {
+    await prisma.mediaItem.updateMany({
+      where: { titleDisplay: "星际回声" },
+      data: { titleChinese: "群星回响", titleChineseSource: "tmdb:zh-CN" }
+    })
+
+    const response = await request(createApp()).get("/api/media?q=%E7%BE%A4%E6%98%9F%E5%9B%9E%E5%93%8D")
+
+    expect(response.status).toBe(200)
+    expect(response.body.items.map((item: any) => item.titleChinese)).toEqual(["群星回响"])
+  })
+
   it("keeps inactive history out of current views while preserving direct detail", async () => {
     const today = new Date()
     const releaseDate = [

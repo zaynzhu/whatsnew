@@ -114,17 +114,17 @@ public struct MediaDetailView: View {
       NASPosterView(
         client: client,
         mediaID: detail.id,
-        title: detail.titleDisplay,
+        title: detail.preferredTitle,
         posterAvailable: detail.posterUrl != nil,
         mediaStatus: detail.status,
         width: .medium
       )
       .frame(width: 170, height: 255)
       VStack(alignment: .leading, spacing: 10) {
-        Text(detail.titleDisplay)
+        Text(detail.preferredTitle)
           .font(.system(size: 30, weight: .semibold, design: .serif))
-        if let original = detail.titleOriginal, !original.isEmpty {
-          Text(original)
+        if let secondaryTitle = detail.secondaryTitle {
+          Text(secondaryTitle)
             .font(.title3)
             .foregroundStyle(.secondary)
         }

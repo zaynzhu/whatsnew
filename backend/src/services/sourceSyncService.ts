@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
+import { sourceChineseTitle } from "../domain/chineseTitle.js"
 import { findBestMatch } from "../domain/matcher.js"
 import { normalizeMediaStatusForDate } from "../domain/mediaStatus.js"
 import { parseJsonArray, toJsonArray } from "../domain/normalizer.js"
@@ -148,6 +149,7 @@ async function upsertItem(
   const titleAliases = match
     ? compactTitleAliases([...match.titleAliases, ...item.media.titleAliases])
     : compactTitleAliases(item.media.titleAliases)
+  const incomingChineseTitle = sourceChineseTitle(item.media.source, item.media.titleDisplay)
   const adoptCleanPlatformTitle = match ? shouldAdoptCleanPlatformTitle(item, match) : false
   const replaceSourceOwnedFirstReleaseDate = match
     ? shouldReplaceSourceOwnedFirstReleaseDate(item, match, hasStableSourceIdentity)
@@ -217,6 +219,8 @@ async function upsertItem(
         where: { id: match.id },
         data: {
           titleDisplay: adoptCleanPlatformTitle ? item.media.titleDisplay : match.titleDisplay,
+          titleChinese: match.titleChinese ?? incomingChineseTitle?.title,
+          titleChineseSource: match.titleChineseSource ?? incomingChineseTitle?.source,
           titleOriginal: match.titleOriginal ?? item.media.titleOriginal,
           sourceContentType: item.media.source === "tvmaze" || !match.sourceContentType
             ? item.media.sourceContentType
@@ -262,6 +266,8 @@ async function upsertItem(
           releaseForm: item.media.releaseForm,
           sourceContentType: item.media.sourceContentType,
           titleDisplay: item.media.titleDisplay,
+          titleChinese: incomingChineseTitle?.title,
+          titleChineseSource: incomingChineseTitle?.source,
           titleOriginal: item.media.titleOriginal,
           titleAliases: toJsonArray(titleAliases),
           overview: item.media.overview,
@@ -282,6 +288,9 @@ async function upsertItem(
 
   if (match) {
     match.titleDisplay = mediaItem.titleDisplay
+    match.titleChinese = mediaItem.titleChinese
+    match.titleChineseSource = mediaItem.titleChineseSource
+    match.titleChineseCheckedAt = mediaItem.titleChineseCheckedAt
     match.titleAliases = titleAliases
     match.sourceContentType = mediaItem.sourceContentType
     match.overview = mediaItem.overview
@@ -304,6 +313,9 @@ async function upsertItem(
       releaseForm: releaseFormFromStorageValue(mediaItem.releaseForm),
       sourceContentType: mediaItem.sourceContentType,
       titleDisplay: mediaItem.titleDisplay,
+      titleChinese: mediaItem.titleChinese,
+      titleChineseSource: mediaItem.titleChineseSource,
+      titleChineseCheckedAt: mediaItem.titleChineseCheckedAt,
       titleAliases,
       overview: mediaItem.overview,
       posterUrl: mediaItem.posterUrl,

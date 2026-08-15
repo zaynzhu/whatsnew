@@ -187,6 +187,12 @@ async function mergeDuplicate(
     const merged = await transaction.mediaItem.update({
       where: { id: canonical.id },
       data: {
+        titleChinese: canonical.titleChinese ?? duplicate.titleChinese,
+        titleChineseSource: canonical.titleChineseSource ?? duplicate.titleChineseSource,
+        titleChineseCheckedAt: latestDate(
+          canonical.titleChineseCheckedAt,
+          duplicate.titleChineseCheckedAt
+        ),
         titleOriginal: canonical.titleOriginal ?? duplicate.titleOriginal,
         titleAliases: toJsonArray(titleAliases),
         overview: canonical.overview ?? duplicate.overview,

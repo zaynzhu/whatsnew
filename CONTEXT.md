@@ -60,6 +60,10 @@ _Avoid_: demo validation, mock data check
 A source-specific popularity, catalog, release, rating, availability or news observation that keeps its original source, platform, region and time window.
 _Avoid_: unified ranking, global score
 
+**Chinese Display Title**:
+A trustworthy Chinese title attached to a `MediaItem` by a Chinese-facing source or stable external identity. It is presentation metadata, not the original title or an identity key; a work without a trustworthy Chinese title keeps this value empty.
+_Avoid_: machine-translated title, canonical identity title, title alias
+
 **Ranking Scope**:
 A stable identity for one independent chart inside a source. Trakt uses separate movie and series scopes; Netflix uses four language/type scopes. It prevents several legitimate number-one entries from being presented as one shared chart.
 _Avoid_: category label, global rank

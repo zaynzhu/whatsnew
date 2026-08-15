@@ -61,6 +61,7 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
         status: typeof status === "string" ? status : undefined,
         OR: query ? [
           { titleDisplay: { contains: query } },
+          { titleChinese: { contains: query } },
           { titleOriginal: { contains: query } },
           { titleAliases: { contains: query } },
           { sourceRefs: { some: { source: { contains: query }, isActive: true } } },

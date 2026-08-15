@@ -71,6 +71,34 @@ struct APIModelsTests {
     #expect(response.days.first?.count == 3)
   }
 
+  @Test("中文标题优先展示并保留原文副标题")
+  func prefersChineseTitleWithCanonicalSubtitle() {
+    let localized = MediaItem(
+      id: "localized",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      titleDisplay: "Dune: Part Three",
+      titleChinese: "沙丘3",
+      titleOriginal: "Dune: Part Three",
+      status: "upcoming",
+      heatScore: 80
+    )
+    let canonical = MediaItem(
+      id: "canonical",
+      mediaType: "movie",
+      releaseForm: "streaming_movie",
+      titleDisplay: "沙丘3",
+      titleOriginal: "Dune: Part Three",
+      status: "upcoming",
+      heatScore: 80
+    )
+
+    #expect(localized.preferredTitle == "沙丘3")
+    #expect(localized.secondaryTitle == "Dune: Part Three")
+    #expect(canonical.preferredTitle == "沙丘3")
+    #expect(canonical.secondaryTitle == "Dune: Part Three")
+  }
+
   @Test("设置允许运行态字段为空")
   func decodesNullableSettingsFields() throws {
     let json = """

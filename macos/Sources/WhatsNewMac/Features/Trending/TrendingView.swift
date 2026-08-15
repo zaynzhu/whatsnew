@@ -343,7 +343,7 @@ private struct TrendingSpotlightCard: View {
         NASPosterView(
           client: client,
           mediaID: group.mediaItem.id,
-          title: group.mediaItem.titleDisplay,
+          title: group.mediaItem.preferredTitle,
           posterAvailable: group.mediaItem.posterUrl != nil,
           mediaStatus: group.mediaItem.status,
           width: .medium
@@ -359,10 +359,16 @@ private struct TrendingSpotlightCard: View {
             .font(.system(size: 36, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(DesignSystem.cueRed)
-          Text(group.mediaItem.titleDisplay)
+          Text(group.mediaItem.preferredTitle)
             .font(.title3.weight(.semibold))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
+          if let secondaryTitle = group.mediaItem.secondaryTitle {
+            Text(secondaryTitle)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
           SemanticStatusBadge(group.mediaItem.mediaType)
           Spacer(minLength: 0)
           ForEach(group.signals.prefix(3)) { signal in
@@ -402,7 +408,7 @@ private struct TrendingWorkCard: View {
         NASPosterView(
           client: client,
           mediaID: group.mediaItem.id,
-          title: group.mediaItem.titleDisplay,
+          title: group.mediaItem.preferredTitle,
           posterAvailable: group.mediaItem.posterUrl != nil,
           mediaStatus: group.mediaItem.status,
           width: .small
@@ -411,13 +417,19 @@ private struct TrendingWorkCard: View {
 
         VStack(alignment: .leading, spacing: 7) {
           HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(group.mediaItem.titleDisplay)
+            Text(group.mediaItem.preferredTitle)
               .font(.headline)
               .lineLimit(1)
             Spacer()
             Text("Heat \(SharedFormatters.numberText(group.mediaItem.heatScore))")
               .font(.caption.monospaced().weight(.semibold))
               .foregroundStyle(DesignSystem.cueRed)
+          }
+          if let secondaryTitle = group.mediaItem.secondaryTitle {
+            Text(secondaryTitle)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
           }
           Text(StatusPresentation.label(group.mediaItem.mediaType))
             .font(.caption)

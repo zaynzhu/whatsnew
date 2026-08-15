@@ -556,6 +556,9 @@ export async function enrichMissingPosters(options: PosterEnrichmentOptions = {}
       const merged = await transaction.mediaItem.update({
         where: { id: canonical.id },
         data: {
+          titleChinese: canonical.titleChinese ?? item.titleChinese,
+          titleChineseSource: canonical.titleChineseSource ?? item.titleChineseSource,
+          titleChineseCheckedAt: canonical.titleChineseCheckedAt ?? item.titleChineseCheckedAt,
           titleOriginal: canonical.titleOriginal ?? item.titleOriginal,
           titleAliases: toJsonArray(titleAliases),
           overview: canonical.overview ?? item.overview,

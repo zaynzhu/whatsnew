@@ -13,6 +13,9 @@ model MediaItem {
   releaseForm             String
   sourceContentType       String?
   titleDisplay            String
+  titleChinese            String?
+  titleChineseSource      String?
+  titleChineseCheckedAt   DateTime?
   titleOriginal           String?
   titleAliases            String    @default("[]")
   overview                String?   @db.Text
@@ -51,6 +54,7 @@ model MediaItem {
   @@index([tmdbId])
   @@index([tvmazeId])
   @@index([imdbId])
+  @@index([titleChineseCheckedAt])
   @@index([posterLookupAttemptedAt])
   @@index([posterStatus])
   @@index([posterQuality])

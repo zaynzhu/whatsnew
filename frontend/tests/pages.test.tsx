@@ -12,6 +12,7 @@ const mediaItem = {
   mediaType: "series",
   releaseForm: "web_series",
   titleDisplay: "星际回声",
+  titleChinese: "星际回声",
   titleOriginal: "Echoes Beyond",
   posterUrl: null,
   firstReleaseDate: "2026-06-18",

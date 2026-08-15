@@ -154,7 +154,7 @@ public struct DashboardView: View {
             NASPosterView(
               client: client,
               mediaID: item.id,
-              title: item.titleDisplay,
+              title: item.preferredTitle,
               posterAvailable: item.posterUrl != nil,
               mediaStatus: item.status,
               width: .medium
@@ -300,7 +300,7 @@ private struct DashboardReleaseCard: View {
         NASPosterView(
           client: client,
           mediaID: release.mediaItem.id,
-          title: release.mediaItem.titleDisplay,
+          title: release.mediaItem.preferredTitle,
           posterAvailable: release.mediaItem.posterUrl != nil,
           mediaStatus: release.mediaItem.status,
           width: .medium
@@ -308,10 +308,16 @@ private struct DashboardReleaseCard: View {
         .frame(width: 78, height: 117)
 
         VStack(alignment: .leading, spacing: 7) {
-          Text(release.mediaItem.titleDisplay)
+          Text(release.mediaItem.preferredTitle)
             .font(.headline)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
+          if let secondaryTitle = release.mediaItem.secondaryTitle {
+            Text(secondaryTitle)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
           Text(release.platform == "Unspecified" ? "平台待确认" : release.platform)
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -364,7 +370,7 @@ private struct DashboardMediaCard: View {
           NASPosterView(
             client: client,
             mediaID: item.id,
-            title: item.titleDisplay,
+            title: item.preferredTitle,
             posterAvailable: item.posterUrl != nil,
             mediaStatus: item.status,
             width: .medium
@@ -381,10 +387,17 @@ private struct DashboardMediaCard: View {
         }
         .shadow(color: accent.opacity(isHovering ? 0.24 : 0.12), radius: isHovering ? 16 : 8, y: 8)
 
-        Text(item.titleDisplay)
+        Text(item.preferredTitle)
           .font(.callout.weight(.semibold))
           .lineLimit(2)
           .frame(width: 144, alignment: .leading)
+        if let secondaryTitle = item.secondaryTitle {
+          Text(secondaryTitle)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(width: 144, alignment: .leading)
+        }
         Text(StatusPresentation.label(item.mediaType))
           .font(.caption)
           .foregroundStyle(.secondary)

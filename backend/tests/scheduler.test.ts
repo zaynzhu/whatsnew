@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   reconcileUniqueTitleIdentities: vi.fn(async () => ({ groups: 0, merged: 0 })),
   reconcileSharedDateTitles: vi.fn(async () => ({ groups: 0, merged: 0 })),
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
+  enrichChineseTitles: vi.fn(async () => ({ scanned: 0, enriched: 0, failed: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
   verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
   prunePosterCache: vi.fn(async () => ({ removedEntries: 0 })),
@@ -153,6 +154,10 @@ vi.mock("../src/services/tmdbPosterEnrichmentService.js", () => ({
   enrichMissingPosters: mocks.enrichMissingPosters
 }))
 
+vi.mock("../src/services/chineseTitleEnrichmentService.js", () => ({
+  enrichChineseTitles: mocks.enrichChineseTitles
+}))
+
 vi.mock("../src/services/posterVerificationService.js", () => ({
   verifyPosterImages: mocks.verifyPosterImages
 }))
@@ -193,6 +198,7 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.tencentVideoAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
+    expect(mocks.enrichChineseTitles).not.toHaveBeenCalled()
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
@@ -231,6 +237,10 @@ describe("scheduler", () => {
       database: mocks.db,
       limit: 40
     })
+    expect(mocks.enrichChineseTitles).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 12
+    })
     expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
   })
 
@@ -263,6 +273,10 @@ describe("scheduler", () => {
     expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
       database: mocks.db,
       limit: 40
+    })
+    expect(mocks.enrichChineseTitles).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 12
     })
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
       database: mocks.db,
@@ -377,6 +391,10 @@ describe("scheduler", () => {
       expect(mocks.enrichMissingPosters).toHaveBeenCalledWith({
         database: mocks.db,
         limit: 40
+      })
+      expect(mocks.enrichChineseTitles).toHaveBeenCalledWith({
+        database: mocks.db,
+        limit: 12
       })
       expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
         database: mocks.db,

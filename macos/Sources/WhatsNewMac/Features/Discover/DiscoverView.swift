@@ -200,15 +200,21 @@ private struct DiscoverCard: View {
       NASPosterView(
         client: client,
         mediaID: item.id,
-        title: item.titleDisplay,
+        title: item.preferredTitle,
         posterAvailable: item.posterUrl != nil,
         mediaStatus: item.status,
         width: .medium
       )
       .frame(maxWidth: .infinity)
-      Text(item.titleDisplay)
+      Text(item.preferredTitle)
         .font(.callout.weight(.medium))
         .lineLimit(2)
+      if let secondaryTitle = item.secondaryTitle {
+        Text(secondaryTitle)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
       HStack {
         SemanticStatusBadge(item.status)
         Spacer()

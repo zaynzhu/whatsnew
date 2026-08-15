@@ -764,6 +764,49 @@ describe("runSourceSync", () => {
     })
   })
 
+  it("adds a trusted Chinese title without replacing the canonical identity title", async () => {
+    const [base] = await demoSeedAdapter.fetchItems()
+    const canonical = {
+      ...base,
+      media: {
+        ...base.media,
+        source: "metadata_only",
+        sourceId: "english-title",
+        titleDisplay: "Echoes Beyond",
+        titleOriginal: "Echoes Beyond",
+        titleAliases: [],
+        posterUrl: null
+      },
+      releases: [],
+      popularitySignals: []
+    }
+    await runSourceSync(prisma, {
+      source: "metadata_only",
+      async fetchItems() { return [canonical] }
+    })
+    await runSourceSync(prisma, {
+      source: "douban",
+      async fetchItems() {
+        return [{
+          ...canonical,
+          media: {
+            ...canonical.media,
+            source: "douban",
+            sourceId: "douban-chinese-title",
+            titleDisplay: "星际回声",
+            titleAliases: ["Echoes Beyond"]
+          }
+        }]
+      }
+    })
+
+    expect(await prisma.mediaItem.findFirstOrThrow()).toMatchObject({
+      titleDisplay: "Echoes Beyond",
+      titleChinese: "星际回声",
+      titleChineseSource: "douban"
+    })
+  })
+
   it("does not create an unmatched enrichment-only item", async () => {
     const [base] = await demoSeedAdapter.fetchItems()
     await runSourceSync(prisma, {

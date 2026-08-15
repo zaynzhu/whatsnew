@@ -27,6 +27,7 @@ export interface MediaSummary {
   mediaType: MediaType
   releaseForm: ReleaseForm
   titleDisplay: string
+  titleChinese: string | null
   titleOriginal: string | null
   posterUrl: string | null
   firstReleaseDate: string | null

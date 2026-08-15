@@ -319,7 +319,7 @@ public struct CalendarView: View {
       return "\(cell.dateKey)，暂无排期"
     }
     if let featured = summary.items.first {
-      return "\(cell.dateKey)，\(summary.count) 部作品，代表作品 \(featured.mediaItem.titleDisplay)"
+      return "\(cell.dateKey)，\(summary.count) 部作品，代表作品 \(featured.mediaItem.preferredTitle)"
     }
     return "\(cell.dateKey)，\(summary.count) 部作品"
   }
@@ -475,14 +475,14 @@ private struct CalendarDayCell: View {
             NASPosterView(
               client: client,
               mediaID: featured.mediaItem.id,
-              title: featured.mediaItem.titleDisplay,
+              title: featured.mediaItem.preferredTitle,
               posterAvailable: featured.mediaItem.posterUrl != nil,
               mediaStatus: featured.mediaItem.status,
               width: .small
             )
             .frame(width: 34, height: 51)
             .accessibilityHidden(true)
-            Text(featured.mediaItem.titleDisplay)
+            Text(featured.mediaItem.preferredTitle)
               .font(.caption.weight(.medium))
               .lineLimit(2)
               .multilineTextAlignment(.leading)
@@ -525,7 +525,7 @@ private struct CalendarReleaseRow: View {
       NASPosterView(
         client: client,
         mediaID: release.mediaItem.id,
-        title: release.mediaItem.titleDisplay,
+        title: release.mediaItem.preferredTitle,
         posterAvailable: release.mediaItem.posterUrl != nil,
         mediaStatus: release.mediaItem.status,
         width: .small
@@ -533,9 +533,15 @@ private struct CalendarReleaseRow: View {
       .frame(width: 48, height: 72)
 
       VStack(alignment: .leading, spacing: 5) {
-        Text(release.mediaItem.titleDisplay)
+        Text(release.mediaItem.preferredTitle)
           .font(.callout.weight(.semibold))
           .lineLimit(2)
+        if let secondaryTitle = release.mediaItem.secondaryTitle {
+          Text(secondaryTitle)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
         Text(release.platform == "Unspecified" ? "平台待确认" : release.platform)
           .font(.caption)
           .foregroundStyle(.secondary)
