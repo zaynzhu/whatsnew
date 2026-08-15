@@ -653,6 +653,7 @@ private struct SourceSettingsEditorView: View {
           ForEach(editableFields, id: \.key) { field in
             fieldEditor(field)
           }
+          SourceManualOperationsView(source: source)
         }
       }
       if let errorMessage {

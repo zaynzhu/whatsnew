@@ -361,6 +361,7 @@ private struct SourceCatalogRow: View {
       }
       sourceOverview
       healthOverview
+      SourceManualOperationsView(source: source)
     }
     .padding(.top, 12)
   }
