@@ -246,25 +246,43 @@ public struct CalendarView: View {
             Task { await model.select(date: cell.date) }
           } label: {
             VStack(alignment: .leading, spacing: 5) {
-              Text(cell.dateKey.suffix(2))
-                .font(.callout.weight(cell.isCurrentMonth ? .semibold : .regular))
-              if let summary, summary.count > 0 {
-                Text("\(summary.count) 部")
-                  .font(.caption2)
-                  .foregroundStyle(DesignSystem.cueRed)
-                if let item = summary.items.first {
-                  Text(item.mediaItem.titleDisplay)
+              HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(cell.dateKey.suffix(2))
+                  .font(.callout.weight(cell.isCurrentMonth ? .semibold : .regular))
+                Spacer(minLength: 0)
+                if let summary, summary.count > 0 {
+                  Text("\(summary.count) 部")
                     .font(.caption2)
-                    .lineLimit(1)
+                    .foregroundStyle(DesignSystem.cueRed)
                 }
-              } else {
-                Text(" ")
-                  .font(.caption2)
               }
               Spacer(minLength: 0)
+              if let featured = summary?.items.first {
+                HStack(alignment: .bottom, spacing: 6) {
+                  Text(featured.mediaItem.titleDisplay)
+                    .font(.caption2.weight(.medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                  Spacer(minLength: 0)
+                  NASPosterView(
+                    client: client,
+                    mediaID: featured.mediaItem.id,
+                    title: featured.mediaItem.titleDisplay,
+                    posterAvailable: featured.mediaItem.posterUrl != nil,
+                    mediaStatus: featured.mediaItem.status,
+                    width: .small
+                  )
+                  .frame(width: 28, height: 42)
+                  .accessibilityHidden(true)
+                }
+              } else {
+                Text("暂无排期")
+                  .font(.caption2)
+                  .foregroundStyle(.tertiary)
+              }
             }
             .padding(8)
-            .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
             .background {
               if cell.dateKey == model.selectedDate {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -277,9 +295,20 @@ public struct CalendarView: View {
             .opacity(cell.isCurrentMonth ? 1 : 0.45)
           }
           .buttonStyle(.plain)
+          .accessibilityLabel(calendarCellAccessibilityLabel(cell: cell, summary: summary))
         }
       }
     }
+  }
+
+  private func calendarCellAccessibilityLabel(cell: CalendarCell, summary: CalendarDay?) -> String {
+    guard let summary, summary.count > 0 else {
+      return "\(cell.dateKey)，暂无排期"
+    }
+    if let featured = summary.items.first {
+      return "\(cell.dateKey)，\(summary.count) 部作品，代表作品 \(featured.mediaItem.titleDisplay)"
+    }
+    return "\(cell.dateKey)，\(summary.count) 部作品"
   }
 
   @ViewBuilder
