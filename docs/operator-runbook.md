@@ -36,6 +36,24 @@ npm test
 npm run build
 ```
 
+## Native macOS Client
+
+The SwiftUI client is an API consumer only. Keep the NAS backend and its single scheduler running; do not start a second backend, database or scheduler on the Mac for the client.
+
+Run the Core test suite and assemble the personal local app with:
+
+```bash
+scripts/test-macos.sh
+scripts/build-macos-app.sh
+open "dist/WhatsNew.app"
+```
+
+On first launch, enter a base URL that serves `GET /api/health` with `service=whatsnew-backend`. A NAS Compose deployment normally uses its reverse-proxy address on port `19992`; local development may use `http://127.0.0.1:19993`. Plain HTTP is accepted only for LAN hosts, local names and loopback addresses; use HTTPS for a public hostname.
+
+The app stores only the last verified base URL. Credentials and proxy values are never read back in plain text or persisted on the Mac. An empty sensitive input does not clear the server value unless the user explicitly chooses clear.
+
+`scripts/build-macos-app.sh` creates an ad-hoc signed `dist/WhatsNew.app` for personal use. It does not create a DMG, Developer ID signature, notarization request or GitHub Release. The macOS GitHub workflow checks debug build, tests and release build without uploading an app artifact.
+
 ## Docker Deployment
 
 The production Docker target is a trusted Extreme Space NAS, not the primary Mac mini. The stack keeps MySQL external and runs one backend scheduler plus one Nginx frontend. It never packages, creates, migrates or copies the application database.
@@ -269,6 +287,8 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 | Poster health shows `undersized` | The image is available but measured below 300×400. Run strict enrichment; unmatched titles intentionally keep the original image until a trustworthy replacement exists. |
 | Current Douban TOP250 artwork is undersized | Re-sync the Douban `popularity` scope, then run `verify:posters`. Official `s_ratio_poster` paths should become `l_ratio_poster` for the same asset. |
 | A Douban card shows the generic movie/TV subject image | Re-sync Douban. The adapter should clear that URL to missing, reset the lookup state and queue strict enrichment. |
+| macOS client rejects a server address | Confirm the URL has `http` or `https`, includes a host, has no query or fragment, and returns the expected `/api/health` service identity. Public hostnames require HTTPS. |
+| macOS client opens but content requests fail | Test the saved base URL from the same Mac. Port `19992` must proxy `/api/*`; otherwise connect directly to the trusted LAN backend on `19993`. |
 
 Useful status commands:
 

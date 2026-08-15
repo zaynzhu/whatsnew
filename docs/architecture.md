@@ -8,11 +8,22 @@ TVmaze combines its country schedule and web schedule before grouping episodes b
 
 - Frontend: React + Vite on `19992`
 - Backend: Express + Prisma on `19993`
+- macOS client: native SwiftUI app for macOS 14+, connecting to the same NAS API without a local backend, database or scheduler
 - Database: MySQL, configured by `DATABASE_URL`
 - Settings store: `backend/.env`, hot-loaded through the settings API
 - China source sandbox: isolated `whatsnew_china_sandbox`, `backend/.env.china-sandbox`, ports `19994` / `19995`, scheduler disabled
 - Scheduler: `node-cron`, hourly and daily adapter groups
 - Poster cache: upstream image responses under `backend/.cache/posters/`; responsive WebP variants under `backend/.cache/poster-variants/`
+
+## Native macOS Client
+
+`macos/` is a Swift Package with a reusable `WhatsNewCore`, a `WhatsNewMac` executable and Core tests. `ServerProfile` validates one user-confirmed base URL and `APIClient` constructs every request from that profile. The Compose reverse proxy on `19992` and direct backend on `19993` are both valid when the chosen address serves `GET /api/health` as `whatsnew-backend`.
+
+The app mirrors the dashboard, discovery, trending, preview, calendar, media detail, sources, source runs, poster health and settings surfaces with `NavigationSplitView` and small feature view models. Poster rendering always uses the NAS width proxy at `320`, `640` or `960`; it does not read remote source images as an independent data path.
+
+Only the last verified server address is persisted locally. Source credentials and proxy values exist only while the user edits them, and an empty field never implies deletion without an explicit `clearKeys` action. The client never connects to MySQL, reads NAS files or starts sync work outside the existing API operations.
+
+`scripts/test-macos.sh` runs the Swift tests with the selected developer toolchain. `scripts/build-macos-app.sh` assembles a local ad-hoc signed `dist/WhatsNew.app`; the GitHub workflow performs build and test checks only and deliberately has no artifact upload, DMG, notarization or release step.
 
 ## Data Model
 

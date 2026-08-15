@@ -79,7 +79,7 @@ WhatsNew for Mac 是现有 WhatsNew NAS 服务的完整原生客户端，不是 
 ### 2.3 原生设置
 
 1. NAS 连接
-   - 首次启动填写 `http://NAS地址:19992` 或 HTTPS 地址
+   - 首次启动填写能返回 `GET /api/health` 的 NAS 基础地址；Compose 通常使用 `http://NAS地址:19992`，本地开发也可直连后端 `19993`
    - 规范化末尾斜杠，拒绝缺少 host 的地址
    - 通过 `GET /api/health` 验证服务身份和环境
    - 保存最近一次验证成功的地址
@@ -116,7 +116,7 @@ WhatsNew for Mac 是现有 WhatsNew NAS 服务的完整原生客户端，不是 
 - 网络：`URLSession`，原生请求不受浏览器 CORS 限制。
 - 状态：Observation；按 feature 建立小型 view model，不创建单个巨型全局 store。
 - 图表：Swift Charts。
-- 持久化：`UserDefaults` 只保存 NAS 地址和非敏感 UI 偏好。
+- 持久化：`UserDefaults` 只保存最近一次验证成功的 NAS 地址。
 - 图片：`URLCache` 配合受限的 `NSCache`，统一请求 `/api/media/:id/poster?width=320|640|960`。
 - 第三方依赖：第一版不引入。
 

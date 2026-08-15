@@ -8,7 +8,9 @@ WhatsNew 是独立的全球与中国电影、剧集上新及热度监控项目�
 
 - `backend/`：Express、Prisma、来源适配器、同步任务与设置 API
 - `frontend/`：React 管理界面，默认端口 `19992`
+- `macos/`：原生 SwiftUI 客户端、共享 Core 与客户端测试；只连接现有 NAS API，不承载后端或调度
 - `shared/`：前后端共享类型
+- `scripts/`：macOS 客户端测试与本地 ad-hoc 应用打包脚本
 - `CONTEXT.md`：项目统一术语表，修改来源健康、Heat、图片或关注度语义时同步核对
 - `docs/architecture.md`：数据模型、同步流、状态聚合和 API 路由
 - `docs/operator-runbook.md`：环境变量、运行命令、调度和排障
@@ -27,7 +29,11 @@ npm run dev:frontend
 npm run typecheck
 npm test
 npm run build
+scripts/test-macos.sh
+scripts/build-macos-app.sh
 ```
+
+macOS 打包只生成本机 `dist/WhatsNew.app`，不制作 DMG、不上传应用产物、不创建 GitHub Release。
 
 后端默认端口为 `19993`。Prisma schema 变更后先执行：
 

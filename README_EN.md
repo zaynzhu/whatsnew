@@ -39,6 +39,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 |-------|------|
 | Frontend | React 18 + Vite + TypeScript + TanStack Query + Zustand + React Router |
 | Backend | Express 5 + TypeScript + Prisma + MySQL + node-cron + undici |
+| macOS client | SwiftUI + Swift Concurrency + Observation + Swift Charts |
 | Validation | Zod (runtime) |
 | Testing | Vitest + Supertest + Testing Library |
 | Build | npm workspaces monorepo |
@@ -49,7 +50,9 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 whatsnew/
 ├── backend/      # Express + Prisma + MySQL, source adapters and sync scheduling
 ├── frontend/     # React + Vite frontend, port 19992
-├── shared/      # Shared types across frontend & backend
+├── macos/        # Native SwiftUI client and core tests
+├── shared/       # Shared types across frontend & backend
+├── scripts/      # macOS tests and local app packaging
 └── docs/        # Architecture, integration, operations, handoff and design archives
 ```
 
@@ -61,6 +64,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | Private JSON API, curl examples and error semantics |
 | [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
 | [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
+| [macOS v1 Plan](docs/macos-v1-plan.md) | Native client scope, architecture, security boundary and acceptance criteria |
 | [Glossary](CONTEXT.md) | Shared terminology for source health, Heat, artwork and attention weighting |
 | [Design Archive](docs/superpowers/README.md) | Authority boundary for historical specifications and implementation plans |
 
@@ -91,6 +95,18 @@ The frontend defaults to port `19992`, the backend to `19993`. After launch, vis
 On first launch, verify source switches, credentials and proxy settings in the settings page. Use the read-only source preview before starting a manual sync. Source sync commands are operations, not database initialization steps.
 
 Prime Video, Hulu, Disney+, Apple TV+, Tencent Video, Douban and TheTVDB are disabled by default and can be enabled from the settings page before manual sync. Max is currently restricted because WBD Pressroom requires login or returns 403. IMDb requires a local datasets cache directory first.
+
+### Native macOS Client
+
+The native client connects only to the existing NAS service. It does not start Node, a database, Docker or a second scheduler on the Mac. First ensure that the chosen NAS base URL serves `GET /api/health`; a Compose deployment normally uses the frontend reverse-proxy address on port `19992`, while local development can connect directly to backend port `19993`.
+
+```bash
+scripts/test-macos.sh
+scripts/build-macos-app.sh
+open "dist/WhatsNew.app"
+```
+
+Enter the NAS base URL on first launch. The local build is ad-hoc signed for personal use only. GitHub Actions runs Swift build and test checks without uploading the `.app`, creating a DMG or publishing a GitHub Release.
 
 ## ⚙️ System Settings
 
@@ -144,11 +160,11 @@ Once both services are running, manage global proxies, source enable state, per-
 
 ### Netflix Top 10
 
-The Netflix source reads the official global weekly XLSX and syncs only the latest week's four charts: English films, non-English films, English TV and non-English TV — 40 current signals in total.
+The Netflix source prefers the four official current-week Tudum pages and accepts them only when all categories share one week and each contains ranks 1–10: English films, non-English films, English TV and non-English TV, for 40 current signals. If any page is unavailable or incomplete, the whole batch falls back to the official global XLSX without mixing weeks; fallback data older than 14 days is rejected so it cannot replace a newer snapshot.
 
 - Checked once daily at `09:15` (`Asia/Shanghai`); startup sync still follows `SYNC_ON_START`
 - Repeated syncs within the same week stay idempotent by source identity and week
-- Downloads use the unified proxy settings, a 10-second timeout and a per-source 2-second rate limit
+- Downloads use the unified proxy settings, a 30-second page timeout, a 10-second XLSX timeout and a per-source 2-second rate limit
 - Manual sync: `npm run sync:netflix --workspace backend`
 
 ### Prime Video / Hulu / Disney+ Official Releases And Max Restriction
@@ -225,7 +241,7 @@ The Bilibili source reads the pgc season ranking API (`api.bilibili.com/pgc/seas
 The Apple TV+ source reads the official Press RSS feed (`https://www.apple.com/tv-pr/news-feed.xml`, Atom XML) and syncs the latest 10 press releases.
 
 - `tv.apple.com` collection returns 404 over local HTTP, so the platform catalog is not scraped; the official RSS feed is used as a `news_signal` source instead
-- `<updated>` is the press release date and is used as `releaseDate` (not the exact streaming debut); non-film/TV news (no series/movie/documentary/special keyword) is filtered out
+- `<updated>` is stored only as the news signal time. A `Release` is created only when the linked official article states an explicit premiere or debut date; otherwise no work date is inferred. Horizontal press artwork is not stored as a poster
 - The source is disabled by default and must be enabled from the settings page before manual sync
 - Manual sync: `npm run sync:apple-tv-plus --workspace backend`
 

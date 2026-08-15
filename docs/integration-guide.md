@@ -8,6 +8,8 @@ WhatsNew exposes a private JSON API for dashboards, scripts and local tools. It 
 http://127.0.0.1:19993
 ```
 
+The native macOS client accepts any trusted base URL whose `/api/health` response identifies `whatsnew-backend`. A Compose deployment can use the frontend reverse proxy on port `19992`; local development can use the backend directly on `19993`. LAN HTTP addresses are supported, while a public hostname must use HTTPS. The client does not follow this base URL to a different API host and does not run a local service.
+
 ## Health
 
 ```bash
