@@ -369,7 +369,10 @@ private struct TrendingSpotlightCard: View {
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
-          SemanticStatusBadge(group.mediaItem.mediaType)
+          HStack(spacing: 6) {
+            ContentStatusBadge(group.mediaItem.status)
+            SemanticStatusBadge(group.mediaItem.mediaType)
+          }
           Spacer(minLength: 0)
           ForEach(group.signals.prefix(3)) { signal in
             TrendSignalLine(signal: signal)
@@ -431,9 +434,12 @@ private struct TrendingWorkCard: View {
               .foregroundStyle(.secondary)
               .lineLimit(1)
           }
-          Text(StatusPresentation.label(group.mediaItem.mediaType))
-            .font(.caption)
-            .foregroundStyle(.secondary)
+          HStack(spacing: 6) {
+            ContentStatusBadge(group.mediaItem.status)
+            Text(StatusPresentation.label(group.mediaItem.mediaType))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
           Spacer(minLength: 0)
           ForEach(group.signals.prefix(2)) { signal in
             TrendSignalLine(signal: signal)

@@ -352,7 +352,7 @@ private struct PreviewPosterCard: View {
             mediaStatus: item.mediaItem.status,
             width: .medium
           )
-          .frame(width: 132, height: 198)
+          .frame(width: 112, height: 168)
 
           if let rank = item.doubanHotRank {
             Text("#\(rank)")
@@ -369,18 +369,20 @@ private struct PreviewPosterCard: View {
         Text(item.mediaItem.preferredTitle)
           .font(.callout.weight(.semibold))
           .lineLimit(2)
-          .frame(width: 132, alignment: .leading)
+          .frame(width: 112, alignment: .leading)
 
         if let secondaryTitle = item.mediaItem.secondaryTitle {
           Text(secondaryTitle)
             .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            .frame(width: 132, alignment: .leading)
+            .frame(width: 112, alignment: .leading)
         }
 
-        HStack(spacing: 6) {
-          Text(StatusPresentation.label(item.releasePattern == "theatrical_coming_soon" ? "movie" : "series"))
+        ContentStatusBadge(item.releaseStatus)
+
+        HStack(spacing: 5) {
+          Text(StatusPresentation.label(item.mediaItem.mediaType))
           if let wish = item.doubanWishCount {
             Text("想看 \(SharedFormatters.numberText(wish))")
           }
@@ -389,7 +391,7 @@ private struct PreviewPosterCard: View {
         .foregroundStyle(.secondary)
         .lineLimit(1)
       }
-      .frame(width: 132, alignment: .leading)
+      .frame(width: 112, alignment: .leading)
       .contentShape(Rectangle())
       .offset(y: isHovering ? -4 : 0)
     }

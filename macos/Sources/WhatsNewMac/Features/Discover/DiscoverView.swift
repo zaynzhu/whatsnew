@@ -216,7 +216,7 @@ private struct DiscoverCard: View {
           .lineLimit(1)
       }
       HStack {
-        SemanticStatusBadge(item.status)
+        ContentStatusBadge(item.status)
         Spacer()
         Text("Heat \(SharedFormatters.numberText(item.heatScore))")
           .font(.caption.monospaced())

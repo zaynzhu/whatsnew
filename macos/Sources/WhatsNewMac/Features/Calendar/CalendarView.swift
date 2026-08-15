@@ -471,21 +471,24 @@ private struct CalendarDayCell: View {
         Spacer(minLength: 0)
 
         if let featured = summary?.items.first {
-          HStack(alignment: .bottom, spacing: 7) {
-            NASPosterView(
-              client: client,
-              mediaID: featured.mediaItem.id,
-              title: featured.mediaItem.preferredTitle,
-              posterAvailable: featured.mediaItem.posterUrl != nil,
-              mediaStatus: featured.mediaItem.status,
-              width: .small
-            )
-            .frame(width: 34, height: 51)
-            .accessibilityHidden(true)
-            Text(featured.mediaItem.preferredTitle)
-              .font(.caption.weight(.medium))
-              .lineLimit(2)
-              .multilineTextAlignment(.leading)
+          VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .bottom, spacing: 7) {
+              NASPosterView(
+                client: client,
+                mediaID: featured.mediaItem.id,
+                title: featured.mediaItem.preferredTitle,
+                posterAvailable: featured.mediaItem.posterUrl != nil,
+                mediaStatus: featured.mediaItem.status,
+                width: .small
+              )
+              .frame(width: 34, height: 51)
+              .accessibilityHidden(true)
+              Text(featured.mediaItem.preferredTitle)
+                .font(.caption.weight(.medium))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            }
+            ContentStatusBadge(featured.releaseStatus)
           }
         } else {
           Text("暂无排期")
@@ -558,7 +561,7 @@ private struct CalendarReleaseRow: View {
       }
       Spacer(minLength: 6)
       VStack(alignment: .trailing, spacing: 5) {
-        SemanticStatusBadge(release.releaseStatus)
+        ContentStatusBadge(release.releaseStatus)
         Text(release.releasePattern.replacingOccurrences(of: "_", with: " "))
           .font(.caption2)
           .foregroundStyle(.secondary)

@@ -324,7 +324,7 @@ private struct DashboardReleaseCard: View {
             .lineLimit(1)
           Spacer(minLength: 0)
           HStack(spacing: 7) {
-            SemanticStatusBadge(release.releaseStatus)
+            ContentStatusBadge(release.releaseStatus)
             if let episode = release.episodeNumber {
               Text("E\(episode)")
                 .font(.caption.monospaced())
@@ -398,9 +398,12 @@ private struct DashboardMediaCard: View {
             .lineLimit(1)
             .frame(width: 144, alignment: .leading)
         }
-        Text(StatusPresentation.label(item.mediaType))
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        HStack(spacing: 6) {
+          ContentStatusBadge(item.status)
+          Text(StatusPresentation.label(item.mediaType))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
       }
       .frame(width: 144, alignment: .leading)
       .contentShape(Rectangle())

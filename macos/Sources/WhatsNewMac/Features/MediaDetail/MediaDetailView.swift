@@ -131,7 +131,7 @@ public struct MediaDetailView: View {
         HStack(spacing: 8) {
           SemanticStatusBadge(detail.mediaType)
           SemanticStatusBadge(detail.releaseForm)
-          SemanticStatusBadge(detail.status)
+          ContentStatusBadge(detail.status)
           Text("Heat \(SharedFormatters.numberText(detail.heatScore))")
             .font(.caption.monospaced())
             .foregroundStyle(DesignSystem.cueRed)
@@ -185,7 +185,7 @@ public struct MediaDetailView: View {
               Spacer()
               Text(release.releaseDate ?? "日期待定")
                 .font(.caption)
-              SemanticStatusBadge(release.releaseStatus)
+              ContentStatusBadge(release.releaseStatus)
               Text(release.source)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)

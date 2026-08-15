@@ -91,3 +91,45 @@ public struct SemanticStatusBadge: View {
     StatusBadge(text: StatusPresentation.label(value), color: StatusPresentation.color(value))
   }
 }
+
+public struct ContentStatusBadge: View {
+  public let value: String
+
+  public init(_ value: String) {
+    self.value = value
+  }
+
+  public var body: some View {
+    Label(label, systemImage: systemImage)
+      .font(.caption.weight(.semibold))
+      .foregroundStyle(color)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 4)
+      .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+      .overlay {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+          .strokeBorder(color.opacity(0.35), lineWidth: 1)
+      }
+      .help("作品状态：\(label)")
+  }
+
+  private var label: String {
+    value == "unknown" || value.isEmpty ? "状态待确认" : StatusPresentation.label(value)
+  }
+
+  private var color: Color {
+    StatusPresentation.color(value)
+  }
+
+  private var systemImage: String {
+    switch value {
+    case "upcoming", "returning": return "clock"
+    case "airing_today": return "dot.radiowaves.left.and.right"
+    case "available", "released": return "checkmark.circle.fill"
+    case "ongoing": return "play.circle.fill"
+    case "ended": return "flag.checkered"
+    case "delayed": return "exclamationmark.arrow.triangle.2.circlepath"
+    default: return "questionmark.circle"
+    }
+  }
+}

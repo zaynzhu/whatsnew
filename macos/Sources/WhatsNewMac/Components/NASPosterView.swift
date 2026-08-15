@@ -36,7 +36,9 @@ public struct NASPosterView: View {
         PosterPlaceholder(title: title, label: fallbackLabel, tint: DesignSystem.archiveOlive)
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .aspectRatio(2.0 / 3.0, contentMode: .fit)
+    .clipped()
     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     .overlay {
       RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -64,6 +66,8 @@ private struct CachedPosterImage: View {
         Image(nsImage: image)
           .resizable()
           .scaledToFill()
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .clipped()
       } else if failed {
         PosterPlaceholder(title: title, label: "图片暂不可用", tint: DesignSystem.cueRed)
       } else {
