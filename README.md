@@ -39,6 +39,7 @@
 |----|------|
 | 前端 | React 18 + Vite + TypeScript + TanStack Query + Zustand + React Router |
 | 后端 | Express 5 + TypeScript + Prisma + MySQL + node-cron + undici |
+| macOS 客户端 | SwiftUI + Swift Concurrency + Observation + Swift Charts |
 | 校验 | Zod（运行时校验） |
 | 测试 | Vitest + Supertest + Testing Library |
 | 构建 | npm workspaces monorepo |
@@ -49,8 +50,10 @@
 whatsnew/
 ├── backend/      # Express + Prisma + MySQL，数据源适配与同步调度
 ├── frontend/     # React + Vite 前端，端口 19992
-├── shared/      # 前后端共享类型
-└── docs/        # 架构、接入、运维、交接与设计归档
+├── macos/        # 原生 SwiftUI 客户端与核心测试
+├── shared/       # 前后端共享类型
+├── scripts/      # macOS 测试与本地应用打包脚本
+└── docs/         # 架构、接入、运维、交接与设计归档
 ```
 
 ## 📚 文档入口
@@ -61,6 +64,7 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | 私有 JSON API、curl 示例和错误语义 |
 | [Operator Runbook](docs/operator-runbook.md) | 环境变量、运行命令、定时任务和排障 |
 | [Handoff](docs/handoff.md) | 当前分支、已接入来源、约束和交接清单 |
+| [macOS 第一版计划](docs/macos-v1-plan.md) | 原生客户端范围、架构、安全边界和验收标准 |
 | [Glossary](CONTEXT.md) | 来源健康、Heat、图片链路和内容关注度等统一术语 |
 | [Design Archive](docs/superpowers/README.md) | 历史设计规格和实施计划的权威边界 |
 
@@ -91,6 +95,18 @@ npm run dev:frontend
 首次启动后在设置页检查来源开关、凭据和代理，先使用只读预览核对真实返回，再执行对应来源的手动同步。不要把一串来源同步命令当作数据库初始化步骤。
 
 Prime Video、Hulu、Disney+、Apple TV+、腾讯视频、豆瓣和 TheTVDB 默认关闭，可在设置页启用后手动同步；Max 因 WBD Pressroom 当前要求登录或返回 403，暂列为受限来源；IMDb 需要先配置本地 datasets 缓存目录。
+
+### macOS 原生客户端
+
+原生客户端只连接现有 NAS 服务，不在 Mac 启动 Node、数据库、Docker 或第二个 scheduler。先确保 NAS 基础地址能够访问 `GET /api/health`；Compose 部署通常使用前端反向代理地址，本地开发也可直接使用后端 `19993` 端口。
+
+```bash
+scripts/test-macos.sh
+scripts/build-macos-app.sh
+open "dist/WhatsNew.app"
+```
+
+应用首次启动时填写 NAS 基础地址。构建产物使用本地 ad-hoc 签名，仅供本人使用；GitHub Actions 只运行 Swift 构建和测试，不上传 `.app`、不制作 DMG，也不创建 GitHub Release。
 
 ## ⚙️ 系统设置
 
