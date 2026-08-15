@@ -156,7 +156,7 @@ macos/
 └── Resources/
 ```
 
-当前机器只有 Command Line Tools，没有完整 Xcode。第一阶段使用 Swift Package 保证源码可由 `swift build` 和 `swift test` 验证；正式 `.app`、图标、签名、公证和 DMG 工作流在完整 Xcode 环境或 GitHub macOS runner 中完成。
+当前机器只有 Command Line Tools，没有完整 Xcode。第一版沿用页匣的开发方式：Swift Package 源码与应用都在当前 GitHub 仓库维护，本机使用 `swift build`、`swift test` 和打包脚本完成开发、验证与 `dist/WhatsNew.app` 构建；GitHub Actions 只执行同一组自动化检查，不上传应用产物。第一版不制作 DMG，不做 Developer ID 签名、公证或 GitHub Release。
 
 ## 6. 应用信息架构
 
@@ -287,8 +287,8 @@ macos/
 工作：
 
 - 固化本计划。
-- 核对 Swift、SwiftUI 和 Xcode 可用性。
-- 记录当前缺少完整 Xcode 的限制。
+- 核对 Swift、SwiftUI 和 Command Line Tools 可用性。
+- 明确第一版不依赖完整 Xcode。
 
 验证：
 
@@ -374,29 +374,29 @@ macos/
 
 验证：
 
-- 完整 Xcode 环境下逐页截图验收。
-- Instruments 或 `footprint` 达到第 12 节目标，或记录真实差距。
+- 从本地 `.app` 启动后逐页截图验收。
+- `footprint` 与系统进程采样达到第 12 节目标，或记录真实差距。
 - 所有交互可通过键盘完成。
 
 提交：`style: 完善 macOS 原生界面体验`
 
-### M6：DMG 与 GitHub 发布
+### M6：本地应用打包与 GitHub 检查
 
 工作：
 
-- 创建正式 `.app` target、应用图标和 Info.plist。
-- 构建 Apple Silicon 与 Intel 通用应用。
-- Developer ID 签名、notarize、staple。
-- GitHub Actions 生成 DMG 和 SHA-256，并附加到 GitHub Release。
+- 增加 `scripts/build-macos-app.sh`，用 Release 可执行文件、Info.plist 和图标组装 `dist/WhatsNew.app`。
+- 使用本地 ad-hoc 签名生成仅供本人使用的 Apple Silicon 应用。
+- GitHub Actions 在标准 macOS runner 执行 Swift 构建、测试和 Release 检查。
+- 工作流保持只读，不使用 Secret，不上传 `.app`，不创建 DMG 或 GitHub Release。
 
 验证：
 
 - `codesign --verify --deep --strict` 通过。
-- `spctl --assess --type execute` 通过。
-- 公证 ticket 已 staple。
-- 全新 macOS 用户环境可完成拖拽安装、首次连接和升级。
+- `open "dist/WhatsNew.app"` 可启动并连接 NAS。
+- GitHub Actions 与本地核心检查通过。
+- 构建与运行全程不依赖完整 Xcode。
 
-提交：`ci: 添加 macOS 应用发布流程`
+提交：`build: 添加 macOS 本地应用打包`
 
 ## 14. 测试矩阵
 
@@ -437,5 +437,5 @@ macos/
 3. 所有写操作仍由 NAS API 执行，Mac 不存在本地服务或 scheduler。
 4. 敏感设置不落地到 Mac，错误和日志不泄露凭据。
 5. `swift build`、`swift test` 和现有 `npm run typecheck`、`npm test`、`npm run build` 通过。
-6. 完整 Xcode 环境完成逐页视觉、无障碍和内存验收。
-7. 签名、公证、安装和 GitHub Release 验收通过。
+6. 本地 `.app` 完成逐页视觉、无障碍和内存验收。
+7. ad-hoc 签名、本地启动与 GitHub Actions 检查通过。
