@@ -41,6 +41,7 @@ const FIELD_LABELS: Record<string, string> = {
   TRAKT_CLIENT_SECRET: "Trakt Client Secret",
   TRAKT_ACCESS_TOKEN: "Trakt Access Token",
   OMDB_API_KEY: "OMDb API Key",
+  OMDB_BASE_URL: "OMDb Base URL",
   THETVDB_API_KEY: "TheTVDB API Key",
   THETVDB_PIN: "TheTVDB PIN（可选）",
   IMDB_DATASET_CACHE_DIR: "IMDb 数据集缓存目录",

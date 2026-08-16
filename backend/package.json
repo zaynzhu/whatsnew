@@ -28,6 +28,7 @@
     "dev:sandbox": "SETTINGS_ENV_PATH=.env.china-sandbox tsx watch src/server.ts",
     "enrich:posters": "tsx src/scripts/enrichPosters.ts",
     "enrich:titles": "tsx src/scripts/enrichChineseTitles.ts",
+    "enrich:ratings": "tsx src/scripts/enrichRatings.ts",
     "audit:posters": "tsx src/scripts/auditPosters.ts",
     "verify:posters": "tsx src/scripts/verifyPosters.ts",
     "prune:posters": "tsx src/scripts/prunePosterCache.ts",

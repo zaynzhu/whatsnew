@@ -85,6 +85,8 @@ beforeEach(async () => {
   await writeFile(envPath, [
     "HTTPS_PROXY=http://proxy-user:secret-proxy-password@proxy.test:7890",
     "TMDB_API_KEY=secret-tmdb-key",
+    "OMDB_API_KEY=secret-omdb-key",
+    "OMDB_BASE_URL=https://omdb.test",
     "TRAKT_CLIENT_ID=secret-trakt-client-id",
     "THETVDB_API_KEY=free-thetvdb-key",
     "THETVDB_PIN=1234",
@@ -162,11 +164,24 @@ describe("settings API", () => {
     expect(response.body.proxyFields.find((field: any) => field.key === "HTTPS_PROXY").value).toBeNull()
     expect(JSON.stringify(response.body)).not.toContain("secret-proxy-password")
     expect(JSON.stringify(response.body)).not.toContain("secret-tmdb-key")
+    expect(JSON.stringify(response.body)).not.toContain("secret-omdb-key")
     expect(JSON.stringify(response.body)).not.toContain("secret-trakt-client-id")
     const trakt = response.body.sources.find((source: any) => source.id === "trakt")
     const clientId = trakt.fields.find((field: any) => field.key === "TRAKT_CLIENT_ID")
     expect(clientId.value).toBeNull()
     expect(clientId.sensitive).toBe(true)
+    const imdb = response.body.sources.find((source: any) => source.id === "imdb")
+    expect(imdb.fields.find((field: any) => field.key === "OMDB_API_KEY")).toMatchObject({
+      label: "OMDb API Key",
+      value: null,
+      sensitive: true,
+      configured: true
+    })
+    expect(imdb.fields.find((field: any) => field.key === "OMDB_BASE_URL")).toMatchObject({
+      label: "OMDb Base URL",
+      value: "https://omdb.test",
+      sensitive: false
+    })
   })
 
   it("returns source semantics for settings and source catalog APIs", async () => {
@@ -215,6 +230,10 @@ describe("settings API", () => {
       expect.objectContaining({
         label: "同步 IMDb 本地缓存",
         command: "npm run sync:imdb --workspace backend"
+      }),
+      expect.objectContaining({
+        label: "补全多来源评分",
+        command: "npm run enrich:ratings --workspace backend -- --limit=20"
       })
     ])
     expect(JSON.stringify(imdbSettings.localState)).not.toContain(imdbCacheDir)
@@ -226,7 +245,8 @@ describe("settings API", () => {
     })
     expect(imdbSources.manualCommands.map((command: any) => command.command)).toEqual([
       "npm run download:imdb --workspace backend",
-      "npm run sync:imdb --workspace backend"
+      "npm run sync:imdb --workspace backend",
+      "npm run enrich:ratings --workspace backend -- --limit=20"
     ])
     expect(JSON.stringify(sourcesResponse.body)).not.toContain(imdbCacheDir)
     expect(tmdb).toMatchObject({

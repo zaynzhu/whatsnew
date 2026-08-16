@@ -99,6 +99,7 @@ public struct MediaDetailView: View {
           Spacer()
         }
         hero(detail)
+        ratings(detail)
         releases(detail)
         signals(detail)
         references(detail)
@@ -162,6 +163,81 @@ public struct MediaDetailView: View {
       }
     }
     .font(.callout)
+  }
+
+  @ViewBuilder
+  private func ratings(_ detail: MediaDetailResponse) -> some View {
+    let values = detail.ratings ?? []
+    if ["released", "ongoing", "returning", "ended"].contains(detail.status), !values.isEmpty {
+      VStack(alignment: .leading, spacing: 12) {
+        SectionHeader(title: "口碑评分", subtitle: "各来源保留原始量表")
+        LazyVGrid(
+          columns: [GridItem(.adaptive(minimum: 180), alignment: .leading)],
+          alignment: .leading,
+          spacing: 9
+        ) {
+          ForEach(values) { rating in
+            ratingCard(rating)
+          }
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func ratingCard(_ rating: MediaRating) -> some View {
+    let card = VStack(alignment: .leading, spacing: 7) {
+      HStack(alignment: .firstTextBaseline) {
+        Text(ratingSourceName(rating.source))
+          .font(.callout.weight(.medium))
+        Spacer()
+        Text(ratingAudienceName(rating.audience))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      Text(rating.scale == 100
+        ? "\(SharedFormatters.numberText(rating.value))%"
+        : "\(SharedFormatters.numberText(rating.value))/\(rating.scale)")
+        .font(.title2.weight(.semibold).monospacedDigit())
+        .foregroundStyle(DesignSystem.reelBlue)
+      if let voteCount = rating.voteCount {
+        Text("\(SharedFormatters.numberText(Double(voteCount)))人评价")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(12)
+    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+    if let url = safeExternalURL(rating.sourceUrl) {
+      Link(destination: url) {
+        card
+      }
+      .buttonStyle(.plain)
+      .help("在默认浏览器打开评分来源")
+    } else {
+      card
+    }
+  }
+
+  private func ratingSourceName(_ source: String) -> String {
+    switch source {
+    case "douban": return "豆瓣"
+    case "imdb": return "IMDb"
+    case "tmdb": return "TMDb"
+    case "rotten_tomatoes": return "烂番茄"
+    default: return source
+    }
+  }
+
+  private func ratingAudienceName(_ audience: String) -> String {
+    switch audience {
+    case "users": return "用户评分"
+    case "critics": return "影评人"
+    case "audience": return "观众"
+    default: return audience
+    }
   }
 
   private func releases(_ detail: MediaDetailResponse) -> some View {

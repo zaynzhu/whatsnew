@@ -29,10 +29,11 @@ Only the last verified server address is persisted locally. Source credentials a
 
 | Model | Purpose |
 |---|---|
-| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry time, availability health, measured poster dimensions and `posterQuality`. |
+| `MediaItem` | Canonical title record. Stores `mediaType`, `releaseForm`, external IDs, aliases, `heatScore`, `posterUrl`, enrichment retry times, availability health, measured poster dimensions and `posterQuality`. |
 | `MediaSourceRef` | Stable identity link from a source item to a `MediaItem`. Unique by `source + sourceId`. |
 | `Release` | Platform or broadcast rows. Stores platform, region, date, season, episode and source attribution. |
 | `PopularitySignal` | Source-specific ranking or metric snapshots. `rankingScope` keeps independent subcharts separate; current rows power `/api/trending`, while historical rows power detail charts. |
+| `MediaRating` | Current source-attributed reputation score. `source + audience` keeps Douban, IMDb, TMDb and Rotten Tomatoes critics/audience values separate from Heat and ranking history. |
 | `SourceSyncRun` | One adapter execution, including `source`, `scope`, status, counts, duration and redacted errors. |
 | `ChangeEvent` | Change feed events. Types: `media_detected`, `release_announced`, `airing_today`, `available_now`, `rank_entered`, `rank_changed`, `heat_rising`, `delayed`, `source_failed`. `mediaItemId` is nullable for `source_failed`. |
 
@@ -48,7 +49,8 @@ Current catalog surfaces require at least one active `MediaSourceRef`: dashboard
 6. Complete snapshots can retire missing releases or mark missing popularity signals historical.
 7. The sync run is finished as `success`, `warning` or `failed`.
 8. After initial, hourly and daily adapter batches, data-quality maintenance repairs legacy work and release date/status contradictions before duplicate reconciliation. Stable-identity reconciliation connects records through matching TMDb, TVmaze, IMDb, Trakt or TheTVDB IDs within one work kind, rejects a whole component when any external ID conflicts, and keeps specialized classifications over generic `movie` / `series`; TMDb poster enrichment then processes up to 40 eligible missing-poster titles when TMDb is runnable.
-9. A stable source-owned schedule from Douban, iQIYI, Youku or Tencent may move its own source-only record's `firstReleaseDate` when the same `source + sourceId` is synced again. Once the work has any external identity, platform schedule dates remain release-level data and cannot overwrite the canonical first release date.
+9. The daily group enriches at most 12 already released, airing or completed works with current ratings. It uses only stable TMDb, IMDb or Douban identities, updates `MediaRating` independently by source and audience, and records `ratingsCheckedAt` without changing Heat, ranking history or events. Douban reads one matching mobile subject JSON and stops further Douban rating requests for the run after HTTP 403 or 429.
+10. A stable source-owned schedule from Douban, iQIYI, Youku or Tencent may move its own source-only record's `firstReleaseDate` when the same `source + sourceId` is synced again. Once the work has any external identity, platform schedule dates remain release-level data and cannot overwrite the canonical first release date.
 
 `SchedulerController` registers one hourly-group task and one daily-group task in `Asia/Shanghai`. `SCHEDULER_HOURLY_INTERVAL_HOURS` accepts `1, 2, 3, 4, 6, 12`; `SCHEDULER_DAILY_TIME` accepts `HH:mm`. A settings update stops the old future tasks and registers the new cron expressions without restarting the process or re-running startup sync. The settings response computes both next-run timestamps. The China sandbox disables scheduled and startup sync regardless of these values.
 
@@ -140,7 +142,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/health` | Backend health check. |
 | `GET /api/dashboard` | Dashboard slices: today, week, trending, events, source runs. Same-work episode events sharing type, source, platform, region and date are summarized into one feed item. `source_failed` events sharing a source and UTC `eventAt` date expose only the latest feed item while preserving every stored `ChangeEvent`. |
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
-| `GET /api/media/:id` | Media detail with releases, refs, current signals and events. |
+| `GET /api/media/:id` | Media detail with releases, refs, current ratings, current signals and events. |
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |
 | `GET /api/poster-health` | Return poster coverage, persistent health counts, separate original/variant cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |

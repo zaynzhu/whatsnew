@@ -33,6 +33,7 @@ model MediaItem {
   genres                  String    @default("[]")
   firstReleaseDate        String?
   status                  String    @default("unknown")
+  ratingsCheckedAt        DateTime?
   heatScore               Float     @default(0)
   tmdbId                  Int?
   tvmazeId                Int?
@@ -45,6 +46,7 @@ model MediaItem {
   releases          Release[]
   sourceRefs        MediaSourceRef[]
   popularitySignals PopularitySignal[]
+  ratings           MediaRating[]
   changeEvents      ChangeEvent[]
 
   @@index([mediaType])
@@ -58,6 +60,25 @@ model MediaItem {
   @@index([posterLookupAttemptedAt])
   @@index([posterStatus])
   @@index([posterQuality])
+  @@index([ratingsCheckedAt])
+}
+
+model MediaRating {
+  id          String   @id @default(cuid())
+  mediaItemId String
+  source      String
+  audience    String
+  value       Float
+  scale       Int
+  voteCount   Int?
+  sourceUrl   String?  @db.Text
+  capturedAt  DateTime @default(now())
+
+  mediaItem MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaItemId, source, audience])
+  @@index([source])
+  @@index([capturedAt])
 }
 
 model MediaSourceRef {

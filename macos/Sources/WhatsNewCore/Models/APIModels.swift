@@ -195,6 +195,18 @@ public struct ChangeEvent: Codable, Identifiable, Sendable {
   }
 }
 
+public struct MediaRating: Codable, Identifiable, Sendable {
+  public let id: String
+  public let mediaItemId: String
+  public let source: String
+  public let audience: String
+  public let value: Double
+  public let scale: Int
+  public let voteCount: Int?
+  public let sourceUrl: String?
+  public let capturedAt: String
+}
+
 public struct SourceSyncRun: Codable, Identifiable, Sendable {
   public let id: String
   public let source: String
@@ -337,6 +349,7 @@ public struct MediaDetailResponse: Codable, Sendable {
   public let releases: [ReleaseDetail]
   public let sourceRefs: [MediaSourceRef]
   public let popularitySignals: [PopularitySignal]
+  public let ratings: [MediaRating]?
   public let changeEvents: [ChangeEvent]
 
   public struct ReleaseDetail: Codable, Identifiable, Sendable {

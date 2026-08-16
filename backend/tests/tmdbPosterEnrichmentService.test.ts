@@ -32,6 +32,7 @@ function media(overrides: Partial<MediaItem>): MediaItem {
     genres: "[]",
     firstReleaseDate: null,
     status: "unknown",
+    ratingsCheckedAt: null,
     heatScore: 100,
     tmdbId: null,
     tvmazeId: null,

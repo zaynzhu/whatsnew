@@ -150,6 +150,60 @@ struct APIModelsTests {
     #expect(response.sources.first?.localState == nil)
   }
 
+  @Test("作品详情解码多来源评分并兼容旧接口")
+  func decodesMediaRatingsAndLegacyDetails() throws {
+    let base = """
+      "id": "media-1",
+      "mediaType": "movie",
+      "releaseForm": "theatrical_movie",
+      "titleDisplay": "测试电影",
+      "status": "released",
+      "heatScore": 42,
+      "releases": [],
+      "sourceRefs": [],
+      "popularitySignals": [],
+      "changeEvents": []
+    """
+    let ratedJSON = """
+    {
+      \(base),
+      "ratings": [
+        {
+          "id": "rating-1",
+          "mediaItemId": "media-1",
+          "source": "douban",
+          "audience": "users",
+          "value": 8.8,
+          "scale": 10,
+          "voteCount": 123456,
+          "sourceUrl": "https://movie.douban.com/subject/1292052/",
+          "capturedAt": "2026-08-16T08:00:00.000Z"
+        },
+        {
+          "id": "rating-2",
+          "mediaItemId": "media-1",
+          "source": "rotten_tomatoes",
+          "audience": "critics",
+          "value": 91,
+          "scale": 100,
+          "voteCount": null,
+          "sourceUrl": null,
+          "capturedAt": "2026-08-16T08:00:00.000Z"
+        }
+      ]
+    }
+    """
+    let legacyJSON = "{\(base)}"
+
+    let rated = try decoder.decode(MediaDetailResponse.self, from: Data(ratedJSON.utf8))
+    let legacy = try decoder.decode(MediaDetailResponse.self, from: Data(legacyJSON.utf8))
+
+    #expect(rated.ratings?.count == 2)
+    #expect(rated.ratings?.first?.source == "douban")
+    #expect(rated.ratings?.last?.scale == 100)
+    #expect(legacy.ratings == nil)
+  }
+
   @Test("来源健康身份包含 scope")
   func sourceHealthIdentityIncludesScope() throws {
     let row = """

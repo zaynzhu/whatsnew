@@ -41,6 +41,7 @@ describe("source catalog", () => {
       implementationStatus: "planned",
       supportsSync: false,
       supportsEnable: false,
+      optionalCredentialKeys: ["OMDB_API_KEY", "OMDB_BASE_URL"],
       localSettingKeys: ["IMDB_DATASET_CACHE_DIR"]
     })
     expect(getSourceDefinition("imdb").manualCommands).toEqual([
@@ -51,6 +52,10 @@ describe("source catalog", () => {
       expect.objectContaining({
         label: "同步 IMDb 本地缓存",
         command: "npm run sync:imdb --workspace backend"
+      }),
+      expect.objectContaining({
+        label: "补全多来源评分",
+        command: "npm run enrich:ratings --workspace backend -- --limit=20"
       })
     ])
     expect(getSourceDefinition("tmdb").manualCommands).toEqual([

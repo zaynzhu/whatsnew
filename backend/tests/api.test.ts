@@ -958,6 +958,64 @@ describe("api routes", () => {
     ]))
   })
 
+  it("作品详情返回独立评分且删除作品时级联清理", async () => {
+    const media = await prisma.mediaItem.create({
+      data: {
+        mediaType: "movie",
+        releaseForm: "theatrical_movie",
+        titleDisplay: "Rating Detail Movie",
+        status: "released",
+        heatScore: 42,
+        sourceRefs: {
+          create: { source: "tmdb", sourceId: "rating-detail-movie", isActive: true }
+        }
+      }
+    })
+    await prisma.mediaRating.createMany({
+      data: [
+        {
+          mediaItemId: media.id,
+          source: "tmdb",
+          audience: "users",
+          value: 8.1,
+          scale: 10,
+          voteCount: 123,
+          sourceUrl: "https://www.themoviedb.org/movie/1"
+        },
+        {
+          mediaItemId: media.id,
+          source: "rotten_tomatoes",
+          audience: "audience",
+          value: 88,
+          scale: 100
+        },
+        {
+          mediaItemId: media.id,
+          source: "rotten_tomatoes",
+          audience: "critics",
+          value: 91,
+          scale: 100
+        }
+      ]
+    })
+
+    const detail = await request(createApp()).get(`/api/media/${media.id}`)
+
+    expect(detail.status).toBe(200)
+    expect(detail.body.heatScore).toBe(42)
+    expect(detail.body.ratings.map((rating: { source: string; audience: string }) => (
+      `${rating.source}:${rating.audience}`
+    ))).toEqual([
+      "rotten_tomatoes:critics",
+      "rotten_tomatoes:audience",
+      "tmdb:users"
+    ])
+    expect(detail.body.ratings[0]).toMatchObject({ value: 91, scale: 100, voteCount: null })
+
+    await prisma.mediaItem.delete({ where: { id: media.id } })
+    expect(await prisma.mediaRating.count({ where: { mediaItemId: media.id } })).toBe(0)
+  })
+
   it("rejects popularity history windows outside 1 to 90 days", async () => {
     const media = await prisma.mediaItem.findFirstOrThrow()
     const response = await request(createApp()).get(

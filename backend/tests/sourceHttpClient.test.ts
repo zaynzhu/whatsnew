@@ -265,7 +265,8 @@ describe("SourceHttpClient", () => {
 
   it("throws a redacted bounded error for failed HTTP responses", async () => {
     const secret = "super-secret-key"
-    const responseBody = `request failed for ${secret} ${"x".repeat(600)}`
+    const omdbSecret = "omdb-secret-key"
+    const responseBody = `request failed for ${secret} ${omdbSecret} ${"x".repeat(600)}`
     const transport = vi.fn<SourceTransport>(async () => new Response(responseBody, {
       status: 403,
       statusText: "Forbidden"
@@ -274,7 +275,7 @@ describe("SourceHttpClient", () => {
 
     const error = await client.fetchText(
       "tmdb",
-      `https://api.example.test/data?api_key=${secret}&token=${secret}`,
+      `https://api.example.test/data?api_key=${secret}&token=${secret}&apikey=${omdbSecret}`,
       { timeoutMs: 1000 }
     ).catch((caught) => caught)
 
@@ -283,6 +284,8 @@ describe("SourceHttpClient", () => {
     expect(error.bodySnippet.length).toBeLessThanOrEqual(500)
     expect(error.message).not.toContain(secret)
     expect(error.bodySnippet).not.toContain(secret)
+    expect(error.message).not.toContain(omdbSecret)
+    expect(error.bodySnippet).not.toContain(omdbSecret)
   })
 
   it("redacts only explicitly supplied sensitive values while preserving HTTP metadata", async () => {

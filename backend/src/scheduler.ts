@@ -17,6 +17,7 @@ import {
 import { reconcileReleaseStatuses } from "./services/releaseStatusReconciliationService.js"
 import { enrichChineseTitles } from "./services/chineseTitleEnrichmentService.js"
 import { enrichMissingPosters } from "./services/tmdbPosterEnrichmentService.js"
+import { enrichRatings } from "./services/ratingEnrichmentService.js"
 import { runSourceSync } from "./services/sourceSyncService.js"
 import { runtimeSettings } from "./settings/runtimeSettingsService.js"
 import {
@@ -27,6 +28,7 @@ import {
 
 const AUTOMATIC_POSTER_LIMIT = 40
 const AUTOMATIC_CHINESE_TITLE_LIMIT = 12
+const AUTOMATIC_RATING_LIMIT = 12
 const HOURLY_POSTER_VERIFICATION_LIMIT = 20
 const DAILY_POSTER_VERIFICATION_LIMIT = 100
 const PLATFORM_SNAPSHOT_SOURCES = ["disney_plus", "hulu", "max", "prime_video"]
@@ -100,6 +102,23 @@ async function enrichChineseTitlesAfterSync() {
   }
 }
 
+async function enrichRatingsAfterSync() {
+  try {
+    const result = await enrichRatings({
+      database: db,
+      limit: AUTOMATIC_RATING_LIMIT
+    })
+    if (result.failed > 0) {
+      console.warn("Automatic rating enrichment completed with failures", {
+        failed: result.failed,
+        failures: result.failures
+      })
+    }
+  } catch (error) {
+    console.error("Automatic rating enrichment failed", error)
+  }
+}
+
 async function verifyPostersAfterSync(limit: number) {
   try {
     await verifyPosterImages({
@@ -150,6 +169,7 @@ function scheduleRecurringJobs() {
   scheduledTasks.push(cron.schedule(config.dailyCron, async () => {
     await runScheduledAdapters("daily")
     await maintainDataQuality(true)
+    await enrichRatingsAfterSync()
     await enrichChineseTitlesAfterSync()
     await enrichPostersAfterSync()
     await verifyPostersAfterSync(DAILY_POSTER_VERIFICATION_LIMIT)

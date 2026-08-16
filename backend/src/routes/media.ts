@@ -181,6 +181,12 @@ export function createMediaRouter(dependencies: MediaRouterDependencies = {}): R
           where: { isCurrent: true },
           orderBy: { capturedAt: "desc" }
         },
+        ratings: {
+          orderBy: [
+            { source: "asc" },
+            { audience: "desc" }
+          ]
+        },
         changeEvents: { orderBy: { eventAt: "desc" } }
       }
     })

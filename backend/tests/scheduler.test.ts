@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   cleanupOrphanedMedia: vi.fn(async () => ({ matched: 0, deleted: 0 })),
   enrichChineseTitles: vi.fn(async () => ({ scanned: 0, enriched: 0, failed: 0 })),
   enrichMissingPosters: vi.fn(async () => ({ scanned: 0, enriched: 0 })),
+  enrichRatings: vi.fn(async () => ({ scanned: 0, updated: 0, unchanged: 0, failed: 0, failures: [] })),
   verifyPosterImages: vi.fn(async () => ({ scanned: 0, healthy: 0 })),
   prunePosterCache: vi.fn(async () => ({ removedEntries: 0 })),
   prunePosterVariantCache: vi.fn(async () => ({ removedEntries: 0 })),
@@ -158,6 +159,10 @@ vi.mock("../src/services/chineseTitleEnrichmentService.js", () => ({
   enrichChineseTitles: mocks.enrichChineseTitles
 }))
 
+vi.mock("../src/services/ratingEnrichmentService.js", () => ({
+  enrichRatings: mocks.enrichRatings
+}))
+
 vi.mock("../src/services/posterVerificationService.js", () => ({
   verifyPosterImages: mocks.verifyPosterImages
 }))
@@ -199,6 +204,7 @@ describe("scheduler", () => {
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.enrichMissingPosters).not.toHaveBeenCalled()
     expect(mocks.enrichChineseTitles).not.toHaveBeenCalled()
+    expect(mocks.enrichRatings).not.toHaveBeenCalled()
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
@@ -241,6 +247,7 @@ describe("scheduler", () => {
       database: mocks.db,
       limit: 12
     })
+    expect(mocks.enrichRatings).not.toHaveBeenCalled()
     expect(mocks.cleanupOrphanedMedia).not.toHaveBeenCalled()
   })
 
@@ -278,6 +285,10 @@ describe("scheduler", () => {
       database: mocks.db,
       limit: 12
     })
+    expect(mocks.enrichRatings).toHaveBeenCalledWith({
+      database: mocks.db,
+      limit: 12
+    })
     expect(mocks.reconcileMediaStatuses).toHaveBeenCalledWith({
       database: mocks.db,
       apply: true
@@ -303,6 +314,7 @@ describe("scheduler", () => {
       return !["netflix", "prime_video", "thetvdb", "hulu", "disney_plus", "max"].includes(sourceId)
     })
     await dailyJob()
+    expect(mocks.enrichRatings).toHaveBeenCalledTimes(2)
     expect(mocks.runSourceSync).toHaveBeenCalledTimes(5)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.traktCalendarAdapter)
     expect(mocks.runSourceSync).toHaveBeenCalledWith(mocks.db, mocks.bilibiliAdapter)

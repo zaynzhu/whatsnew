@@ -13,7 +13,7 @@ import {
 import { RateLimiter } from "./rateLimiter.js"
 import { currentSourceSyncSignal } from "./sourceSyncContext.js"
 
-const SENSITIVE_QUERY_KEYS = new Set(["api_key", "key", "token", "access_token"])
+const SENSITIVE_QUERY_KEYS = new Set(["api_key", "apikey", "key", "token", "access_token"])
 
 export type SourceRequestOptions = Omit<RequestInit, "signal"> & {
   timeoutMs: number
