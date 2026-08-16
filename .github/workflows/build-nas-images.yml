@@ -43,7 +43,11 @@ jobs:
             deploy/nas/compose.env.example > dist/compose.env.example
           sed "s|__VERSION__|${VERSION}|g" \
             deploy/nas/compose.extremespace.template.yaml > dist/compose.extremespace.yaml
+          mkdir -p dist/config
+          touch dist/config/settings.env
           docker compose -f dist/compose.extremespace.yaml config --quiet
+          rm dist/config/settings.env
+          rmdir dist/config
           cp deploy/nas/settings.env.example dist/settings.env.example
           cp deploy/nas/README.md dist/README.md
 
