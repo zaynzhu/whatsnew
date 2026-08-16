@@ -1,32 +1,32 @@
-name: whatsnew
+name: whatsnews
 
 services:
   backend:
-    image: ${WHATSNEW_BACKEND_IMAGE:-whatsnew-backend:latest}
-    platform: ${WHATSNEW_PLATFORM:-linux/amd64}
+    image: whatsnew-backend:__VERSION__
+    platform: linux/amd64
     env_file:
-      - ${WHATSNEW_CONFIG_DIR:-./runtime/config}/settings.env
+      - ./config/settings.env
     environment:
       NODE_ENV: production
       PORT: 19993
       SETTINGS_ENV_PATH: /app/config/settings.env
-      TZ: ${WHATSNEW_TIMEZONE:-Asia/Shanghai}
-    user: "${WHATSNEW_PUID:-1000}:${WHATSNEW_PGID:-1000}"
+      TZ: Asia/Shanghai
+    user: "1000:1000"
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${WHATSNEW_BACKEND_BIND_ADDRESS:-127.0.0.1}:${WHATSNEW_BACKEND_PORT:-19993}:19993"
+      - "50016:19993"
     volumes:
-      - ${WHATSNEW_CONFIG_DIR:-./runtime/config}:/app/config
-      - ${WHATSNEW_DATA_DIR:-./runtime/data}/cache:/app/backend/.cache
+      - ./config:/app/config
+      - ./backend:/app/backend/.cache
     logging:
       driver: json-file
       options:
-        max-size: ${WHATSNEW_LOG_MAX_SIZE:-10m}
-        max-file: "${WHATSNEW_LOG_MAX_FILES:-3}"
+        max-size: 10m
+        max-file: "3"
     healthcheck:
       test:
         - CMD
@@ -39,20 +39,20 @@ services:
       retries: 3
 
   frontend:
-    image: ${WHATSNEW_FRONTEND_IMAGE:-whatsnew-frontend:latest}
-    platform: ${WHATSNEW_PLATFORM:-linux/amd64}
+    image: whatsnew-frontend:__VERSION__
+    platform: linux/amd64
     init: true
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "${WHATSNEW_BIND_ADDRESS:-0.0.0.0}:${WHATSNEW_FRONTEND_PORT:-19992}:80"
+      - "50015:80"
     logging:
       driver: json-file
       options:
-        max-size: ${WHATSNEW_LOG_MAX_SIZE:-10m}
-        max-file: "${WHATSNEW_LOG_MAX_FILES:-3}"
+        max-size: 10m
+        max-file: "3"
     healthcheck:
       test:
         - CMD-SHELL

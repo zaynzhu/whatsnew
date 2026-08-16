@@ -1,6 +1,6 @@
 # 极空间 NAS 部署
 
-本目录用于把 WhatsNew 的前后端镜像打成一个 tar，再导入极空间 NAS。镜像包不包含数据库、运行设置或凭据。
+本目录用于把 WhatsNew 的前后端镜像打成一个 tar，再导入极空间 NAS。Compose 只保留 `backend` 和 `frontend` 两个容器；镜像包不包含数据库、运行设置或凭据。
 
 ## 1. 确认 NAS 架构
 
@@ -62,7 +62,7 @@ chown -R 1000:1000 runtime
 
 如果 `.env` 使用了其他 PUID/PGID，这里使用相同数值。
 
-Compose 会先运行一次 `cache-init`，按 `.env` 中的 PUID/PGID 修正配置、海报和 IMDb 缓存目录权限，完成后才启动 backend。配置目录保持 `0700`，设置文件及其本地备份保持 `0600`，因此设置页可以安全地原子写回 `settings.env`。backend 本身仍以普通用户运行。升级时必须同时使用 artifact 中的新 `compose.yaml`，否则旧部署不会执行这一步。
+Compose 不再创建一次性的权限初始化容器。首次部署前必须手动创建并授权持久化目录；升级现有实例时保留已经初始化好的目录即可。配置目录保持 `0700`，设置文件及其本地备份保持 `0600`，backend 仍以普通用户运行。
 
 编辑 `runtime/config/settings.env`，至少确认：
 
@@ -80,11 +80,10 @@ sha256sum -c whatsnew-0.1.2-linux-amd64.tar.sha256
 docker load --input whatsnew-0.1.2-linux-amd64.tar
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d --pull never
-docker compose --env-file .env ps -a cache-init
 docker compose --env-file .env ps
 ```
 
-`cache-init` 应显示退出码 `0`。它是一次性初始化任务，显示 `Exited (0)` 属于正常状态。
+极空间现有 `50015/50016` 端口和 `./config`、`./backend` 目录布局可直接使用 artifact 中的 `compose.extremespace.yaml`。它已经写入对应端口、目录和本次镜像版本，只包含两个容器。不要用示例 `settings.env` 覆盖现有 `./config/settings.env`。
 
 验收同源前端和后端代理：
 
@@ -110,7 +109,7 @@ curl -s http://127.0.0.1:19992/api/source-health
 
 ## 6. 升级与回滚
 
-升级时导入新 tar，用 artifact 中的新版 `compose.yaml` 替换部署目录中的旧文件，修改 `.env` 中两个镜像 tag，再执行：
+升级时导入新 tar。通用部署使用 artifact 中的新版 `compose.yaml` 并修改 `.env` 中两个镜像 tag；上述极空间现有布局直接使用 `compose.extremespace.yaml`。如果 Prisma schema 有变化，应先停止旧 backend、备份数据库，再从可信管理机的当前 checkout 执行 `npm run prisma:push --workspace backend`；生产容器不包含 Prisma CLI。
 
 ```bash
 docker compose --env-file .env up -d --pull never
