@@ -26,7 +26,12 @@ frontendImage="whatsnew-frontend:${version}"
 docker buildx build --platform "$platform" --target backend --tag "$backendImage" --load .
 docker buildx build --platform "$platform" --target frontend --tag "$frontendImage" --load .
 docker save --output "$output" "$backendImage" "$frontendImage"
-sha256sum "$output" > "${output}.sha256"
+outputDir=$(dirname "$output")
+outputName=$(basename "$output")
+(
+  cd "$outputDir"
+  sha256sum "$outputName" > "${outputName}.sha256"
+)
 
 echo "镜像包已生成: $output"
 echo "校验文件已生成: ${output}.sha256"
