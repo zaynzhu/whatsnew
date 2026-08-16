@@ -29,21 +29,23 @@ public struct NASPosterView: View {
   }
 
   public var body: some View {
-    Group {
-      if posterAvailable, let url = client.posterURL(mediaID: mediaID, width: width) {
-        CachedPosterImage(url: url, title: title)
-      } else {
-        PosterPlaceholder(title: title, label: fallbackLabel, tint: DesignSystem.archiveOlive)
+    GeometryReader { geometry in
+      Group {
+        if posterAvailable, let url = client.posterURL(mediaID: mediaID, width: width) {
+          CachedPosterImage(url: url, title: title)
+        } else {
+          PosterPlaceholder(title: title, label: fallbackLabel, tint: DesignSystem.archiveOlive)
+        }
+      }
+      .frame(width: geometry.size.width, height: geometry.size.height)
+      .clipped()
+      .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      .overlay {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
       }
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .aspectRatio(2.0 / 3.0, contentMode: .fit)
-    .clipped()
-    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    .overlay {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-    }
   }
 
   private var fallbackLabel: String {
@@ -66,8 +68,6 @@ private struct CachedPosterImage: View {
         Image(nsImage: image)
           .resizable()
           .scaledToFill()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .clipped()
       } else if failed {
         PosterPlaceholder(title: title, label: "图片暂不可用", tint: DesignSystem.cueRed)
       } else {
