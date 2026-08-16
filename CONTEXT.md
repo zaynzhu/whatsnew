@@ -60,6 +60,14 @@ _Avoid_: demo validation, mock data check
 A source-specific popularity, catalog, release, rating, availability or news observation that keeps its original source, platform, region and time window.
 _Avoid_: unified ranking, global score
 
+**Rating Observation**:
+A current source-attributed score for an already released, airing or completed work, retaining its scale, audience kind, vote count and capture time. It is independent of rankings and never contributes to Auxiliary Heat or popularity movement events.
+_Avoid_: heat score, composite score, popularity rank
+
+**Rating Eligibility**:
+A work may enter rating enrichment only after it has been released or aired and has a stable source or external identity for the requested provider. An upcoming or identity-ambiguous work is not rating-eligible.
+_Avoid_: title-only rating match, pre-release rating
+
 **Chinese Display Title**:
 A trustworthy Chinese title attached to a `MediaItem` by a Chinese-facing source or stable external identity. It is presentation metadata, not the original title or an identity key; a work without a trustworthy Chinese title keeps this value empty.
 _Avoid_: machine-translated title, canonical identity title, title alias
