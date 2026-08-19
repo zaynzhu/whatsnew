@@ -10,8 +10,9 @@ This is the short operational handoff for the current integration branch. Use th
 
 ## Runtime Entry Points
 
-- Frontend: `http://127.0.0.1:19992`
-- Backend: `http://127.0.0.1:19993`
+- Extreme Space frontend: `http://NAS_HOST:50015`
+- Extreme Space backend: `http://NAS_HOST:50016`
+- Local development defaults only: frontend `19992`, backend `19993`
 - Health: `GET /api/health`
 - Source health: `GET /api/source-health`
 - Poster health: `GET /api/poster-health`
@@ -19,28 +20,26 @@ This is the short operational handoff for the current integration branch. Use th
 - macOS package: `macos/Package.swift`
 - macOS local app: `dist/WhatsNew.app` after `scripts/build-macos-app.sh`
 
-The normal local backend uses the main environment. The domestic sandbox remains isolated in `whatsnew_china_sandbox`, forces scheduling and startup sync off, and must never copy business rows into the main database. The native Mac client connects to this existing API and never starts its own backend, database or scheduler.
+The Extreme Space project is the current main runtime and contains only `backend` and `frontend` containers; MySQL remains external. The Mac LaunchAgent `com.zaynzhu.whatsnew.backend` is disabled and local port `19993` should remain closed during normal use. The domestic sandbox remains isolated in `whatsnew_china_sandbox`, forces scheduling and startup sync off, and must never copy business rows into the main database. The native Mac client connects to the NAS API and never starts its own backend, database or scheduler.
 
 ## Current Acceptance Snapshot
 
-Verified against the running main backend on 2026-08-15 at 15:33 CST. These counts are an operational snapshot; query the live endpoints again before maintenance:
+Verified against the running NAS main backend on 2026-08-19. These counts are an operational snapshot; query the live endpoints again before maintenance:
 
 - `GET /api/health` returned `ok=true`, `service=whatsnew-backend` and `environment=main`.
-- Source health reported 24 scopes: 14 passed, two failed, eight blocked, zero degraded and zero stale. Sixteen scopes were runnable.
-- The failed scopes were Trakt `popularity` and `calendar`; both latest runs returned HTTP 403 and this database had no accepted success for either scope. Do not describe the persisted older Trakt samples as current health.
-- Passed scopes were TVmaze, TMDb, TheTVDB, Netflix, Prime Video, Hulu, Disney+, Apple TV+, Youku, iQIYI, Tencent Video, Bilibili, Douban popularity and Douban upcoming.
-- Poster health covered 3,552 active works: 3,412 with posters and 140 missing, for 96.1% coverage. Availability was 3,407 healthy, one degraded, four broken and zero unverified; quality was 3,398 adequate, nine undersized and five unknown.
-- All 140 missing-poster lookups and all nine undersized replacements were cooling, with zero unattempted or retry-eligible items. The next recorded expiry times were 2026-08-16 09:27 CST for missing lookup and 2026-08-16 21:14 CST for replacement.
-- The original poster cache had 3,432 complete entries using 875,269,869 bytes; the responsive cache had 333 entries using 9,718,211 bytes. Both reported zero orphaned or corrupt entries.
-- Backend port `19993` was listening. Frontend port `19992` and sandbox ports `19994` / `19995` were not listening.
-- The macOS v1 source baseline, 29 Swift tests, local ad-hoc app build and the `macOS client checks` workflow were verified before this handoff. GitHub performs checks only; it does not publish the app.
+- The Extreme Space frontend returned HTTP 200 for `/healthz`, dashboard, calendar, preview, source health and poster health through port `50015`.
+- Scheduler state was enabled with one hourly job every hour and one daily job at `09:15` in `Asia/Shanghai`; the Mac LaunchAgent was disabled and local port `19993` had no listener.
+- Source health reported 24 scopes: 13 passed, three failed, eight blocked, zero degraded and one stale. Trakt `popularity` and `calendar` had never succeeded; Prime Video's last success was stale.
+- Poster health covered 3,709 active works: 3,500 with posters and 209 missing, for 94.4% coverage. Availability was 3,496 healthy and four broken; quality was 3,486 adequate, ten undersized and four unknown. Retry eligibility must be read live before maintenance.
+- The rating schema upgrade was applied after a full database backup. Business row counts were unchanged by the schema operation.
+- The first manual rating batch scanned 20 eligible works, updated 19, left one unchanged and had zero failures. It stored 55 current observations across Douban, IMDb, TMDb and Rotten Tomatoes; a NAS media-detail response was verified to return four rating rows for one work.
 
 ## Source Coverage
 
 | Source | Current contract |
 |---|---|
 | TVmaze | Series and episode schedules. |
-| TMDb | Movies, TV, trends and strict metadata/poster enrichment. |
+| TMDb | Movies, TV, trends, strict metadata/poster enrichment and stable-ID user ratings. |
 | Trakt | Popularity plus the 14-day movie/series release calendar. |
 | TheTVDB | Free-only metadata and exact-ID poster fallback. |
 | Netflix | Four validated Tudum Top 10 charts with official XLSX fallback. |
@@ -52,8 +51,8 @@ Verified against the running main backend on 2026-08-15 at 15:33 CST. These coun
 | iQIYI | `newOnlinePCW` upcoming reservation page. |
 | Tencent Video | Accepted `getMVLPage` movie/series upcoming filters. |
 | Bilibili | Independent bangumi, guochuang and documentary rankings. |
-| Douban | Separate TOP250 popularity and complete movie/TV coming-soon scopes. |
-| IMDb | Manual local-datasets enrichment; source health treats a ready cache as blocked until a manual sync supplies an accepted run. |
+| Douban | Separate TOP250 popularity, complete movie/TV coming-soon scopes and stable-subject user ratings. |
+| IMDb | Manual local-datasets enrichment plus exact-ID IMDb and Rotten Tomatoes rating observations through OMDb. |
 | Max | Blocked while WBD Pressroom returns 403; recovery testing targets the durable official HBO Max brand release listing. |
 | MangoTV | Blocked because the former homepage modules are not a trustworthy upcoming contract. |
 
@@ -66,12 +65,14 @@ Verified against the running main backend on 2026-08-15 at 15:33 CST. These coun
 - Platform catalog additions are not work premieres. Preserve release-pattern labels in calendar and dashboard ranking.
 - Poster enrichment must retain strict identity boundaries and validate every candidate image before persistence. Transport failures do not start a three-day title cooldown.
 - Current listing queries require at least one enabled source reference; direct media details remain available for inactive history.
+- Ratings stay in `MediaRating`, require stable identity and eligible lifecycle status, and never affect Heat, chart rank or popularity events.
 - Scheduler settings hot-reload after saving. The domestic sandbox always keeps `SCHEDULER_ENABLED=false`.
+- Direct edits to Docker `settings.env` require backend container recreation; a plain restart does not reload `env_file` values.
 - `backend/.env`, proxy addresses, credentials, tokens and cookies must not be committed or printed.
 
 ## Next Priority
 
-Investigate the two Trakt HTTP 403 scopes by checking the configured public client ID and request contract without printing credentials. For posters, wait until the recorded cooldowns expire before touching the 140 missing and nine undersized items; do not use `--force` or relax strict TMDb, IMDb and TheTVDB identity rules. Re-read `/api/source-health` and `/api/poster-health` before acting because these counts change with every sync.
+Investigate the two never-successful Trakt scopes and the stale Prime Video scope without printing credentials. Continue rating enrichment in small daily or manual batches, and read `/api/source-health` plus `/api/poster-health` before any source or poster maintenance because the eligibility counts change with every sync. Do not use `--force` or relax strict identity rules as routine maintenance.
 
 ## Validation Baseline
 
@@ -88,7 +89,7 @@ scripts/build-macos-app.sh
 Operational spot checks:
 
 ```bash
-curl -s http://127.0.0.1:19993/api/health
-curl -s http://127.0.0.1:19993/api/source-health
-curl -s http://127.0.0.1:19993/api/poster-health
+curl -s http://NAS_HOST:50015/api/health
+curl -s http://NAS_HOST:50015/api/source-health
+curl -s http://NAS_HOST:50015/api/poster-health
 ```

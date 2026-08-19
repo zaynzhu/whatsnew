@@ -85,14 +85,22 @@ docker compose --env-file .env ps
 
 极空间现有 `50015/50016` 端口和 `./config`、`./backend` 目录布局可直接使用 artifact 中的 `compose.extremespace.yaml`。它已经写入对应端口、目录和本次镜像版本，只包含两个容器。不要用示例 `settings.env` 覆盖现有 `./config/settings.env`。
 
-验收同源前端和后端代理：
+通用 `compose.yaml` 使用 `19992` 验收同源前端和后端代理：
 
 ```bash
 curl -s http://127.0.0.1:19992/api/health
 curl -s http://127.0.0.1:19992/api/source-health
 ```
 
-浏览器访问 `http://NAS地址:19992`。设置页保存的来源、代理、凭据、关注权重和调度时间会原子写回 `runtime/config/settings.env`，容器重建后仍然保留。
+极空间专用 `compose.extremespace.yaml` 改用实际端口：
+
+```bash
+curl -s http://127.0.0.1:50015/api/health
+curl -s http://127.0.0.1:50015/api/source-health
+curl -s http://127.0.0.1:50016/api/health
+```
+
+通用部署浏览器访问 `http://NAS地址:19992`；极空间专用部署访问 `http://NAS地址:50015`。设置页保存会原子更新通用布局的 `runtime/config/settings.env` 或极空间布局的 `./config/settings.env`，容器重建后仍然保留。
 
 设置和同步接口没有身份认证，只能把前端端口开放在可信内网，不要通过路由器端口转发或公网反向代理直接暴露。
 
@@ -101,11 +109,13 @@ curl -s http://127.0.0.1:19992/api/source-health
 首次烟测通过前保持 NAS 的 `SCHEDULER_ENABLED=false`。准备正式切换时：
 
 1. 停止 Mac mini 的 WhatsNew LaunchAgent。
-2. 把 NAS `runtime/config/settings.env` 的 `SCHEDULER_ENABLED` 改为 `true`。
+2. 把当前布局对应的 `settings.env` 中 `SCHEDULER_ENABLED` 改为 `true`；极空间现有布局使用 `./config/settings.env`。
 3. 重新创建 NAS 后端容器。
 4. 确认设置页只显示一个 hourly 和 daily 下次运行时间。
 
 不要让 Mac mini 与 NAS 同时启用 scheduler，否则会重复同步同一主库。
+
+直接编辑 `settings.env` 后，仅点击“重启”不够：Docker 不会重新读取 `env_file`。必须在极空间项目中重建后端容器，或通过 Compose 执行 `up -d --force-recreate backend`。通过设置页修改小时间隔和日组时间则会在当前进程内热重排，不需要重建。
 
 ## 6. 升级与回滚
 

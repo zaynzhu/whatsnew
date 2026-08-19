@@ -52,7 +52,20 @@ Common query fields:
 curl -s http://127.0.0.1:19993/api/media/<mediaItemId>
 ```
 
-Returns the media item plus releases, source refs, current popularity signals and change events.
+Returns the media item plus releases, source refs, current ratings, current popularity signals and change events. `ratings` is always an array and is empty when no eligible rating has been collected.
+
+Each rating keeps its source-native meaning:
+
+| Field | Meaning |
+|---|---|
+| `source` | `douban`, `imdb`, `tmdb` or `rotten_tomatoes`. |
+| `audience` | `users`, `critics` or `audience`; Rotten Tomatoes critics and audience are separate rows. |
+| `value`, `scale` | Original score and scale. Douban, IMDb and TMDb use scale 10; Rotten Tomatoes uses scale 100. |
+| `voteCount` | Optional source-provided rating count. |
+| `sourceUrl` | Optional traceable work page. |
+| `capturedAt` | Time when the current observation was collected. |
+
+Ratings are not normalized or averaged and never contribute to `heatScore`, rankings, movement or change events.
 
 ## Media Poster
 

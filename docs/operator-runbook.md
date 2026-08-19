@@ -72,6 +72,8 @@ Use `linux/arm64` when the NAS reports `aarch64` or `arm64`. The resulting tar c
 
 Follow [`deploy/nas/README.md`](../deploy/nas/README.md) for image import, persistent directory setup, first-run smoke testing, scheduler cutover, upgrades and rollback. Keep the NAS scheduler disabled until its health checks pass, then stop the Mac LaunchAgent before enabling the NAS scheduler. Two schedulers must never write the main database concurrently.
 
+The current personal deployment uses the NAS as the only backend and scheduler. The Mac LaunchAgent should remain disabled during normal app use. Editing the bind-mounted `settings.env` directly is different from saving through the Settings API: a plain container restart does not reload Docker `env_file` values, so recreate the backend container after changing startup-only values such as `SCHEDULER_ENABLED` or `SYNC_ON_START`.
+
 ## China Source Sandbox
 
 Never evaluate domestic adapters against the main `whatsnew` database. Rebuild the isolated sandbox from the current main database baseline:
@@ -116,6 +118,8 @@ Open `http://127.0.0.1:19995/`. The backend health response and frontend header 
 | `CORS_ORIGIN` | Allowed frontend origin, default `http://localhost:19992`. |
 | `HTTP_PROXY`, `HTTPS_PROXY` | Global outbound proxies. |
 | `TMDB_API_KEY` | Required for TMDb sync. |
+| `OMDB_API_KEY` | Required for IMDb ratings, Rotten Tomatoes fallback scores and exact-ID OMDb poster fallback. |
+| `OMDB_BASE_URL` | OMDb endpoint, normally `https://www.omdbapi.com`. |
 | `TRAKT_CLIENT_ID` | Required for Trakt public sync. |
 | `THETVDB_API_KEY` | Required for TheTVDB when enabled. |
 | `IMDB_DATASET_CACHE_DIR` | Local cache directory for IMDb datasets. |
@@ -151,6 +155,7 @@ npm run sync:tencent --workspace backend
 npm run sync:bilibili --workspace backend
 npm run sync:apple-tv-plus --workspace backend
 npm run sync:douban --workspace backend
+npm run enrich:ratings --workspace backend -- --limit=20
 npm run enrich:posters --workspace backend -- --limit=120
 ```
 
@@ -167,6 +172,18 @@ npm run sync:imdb --workspace backend
 
 TheTVDB is free-only and disabled by default. Enable it with `SOURCE_THETVDB_ENABLED=true` and a free project `THETVDB_API_KEY`.
 
+## Rating Enrichment
+
+`enrich:ratings` processes only active works in `released`, `ongoing`, `returning` or `ended` state. It requires an existing stable TMDb, IMDb or Douban identity and never falls back to an unrestricted title match.
+
+- TMDb ratings require `TMDB_API_KEY` and an existing `tmdbId`.
+- IMDb and Rotten Tomatoes observations require `OMDB_API_KEY` and an existing IMDb ID. `OMDB_BASE_URL` normally remains at its default.
+- Douban ratings require the work's existing `douban-<subjectId>` source reference. The collector reads only that matching mobile subject JSON through the shared limiter; it does not search by title or scrape desktop HTML. HTTP 403 or 429 stops further Douban rating reads for the current run.
+- Every external origin keeps the shared minimum two-second interval. Existing observations remain intact when a provider returns no score or a different provider fails.
+- Ratings are current source observations in `MediaRating`. They do not change Heat, chart ranks, lifecycle status or popularity events.
+
+The daily scheduler runs rating enrichment after source sync and identity maintenance, with a maximum of 12 works. The manual command defaults to stale or never-checked candidates and accepts a bounded `--limit`; use the JSON summary to confirm `scanned`, `updated`, `unchanged`, `failed` and redacted failures.
+
 ## Scheduled Sync
 
 | Group | Default cron | Sources |
@@ -180,19 +197,15 @@ The settings page can change the hourly interval and daily time. Saving stops th
 
 Each source sync has a 15-minute total deadline. The deadline propagates to active HTTP requests and is checked between persistence stages; an expired run is recorded as `failed`. Scheduled batches isolate each source, so one timeout or unexpected exception does not prevent later sources or maintenance steps from running.
 
-On the primary macOS workstation, the backend runs from the compiled output through `~/Library/LaunchAgents/com.zaynzhu.whatsnew.backend.plist`. The LaunchAgent uses `RunAtLoad` and `KeepAlive`, so it starts after login and restarts after an unexpected exit. Rebuild before restarting it after backend changes:
+The legacy Mac backend LaunchAgent is not part of the current production topology. Keep it disabled while NAS Docker is the backend and unique scheduler:
 
 ```bash
-npm run build
-launchctl kickstart -k gui/$(id -u)/com.zaynzhu.whatsnew.backend
-curl -s http://127.0.0.1:19993/api/health
+launchctl disable gui/$(id -u)/com.zaynzhu.whatsnew.backend
+launchctl print-disabled gui/$(id -u) | rg com.zaynzhu.whatsnew.backend
+lsof -nP -iTCP:19993 -sTCP:LISTEN
 ```
 
-Inspect its state with:
-
-```bash
-launchctl print gui/$(id -u)/com.zaynzhu.whatsnew.backend
-```
+The last command should have no listener during normal NAS-backed app use. Only re-enable the LaunchAgent as an explicit rollback after disabling the NAS scheduler; never allow both runtimes to schedule against the main database.
 
 Max is currently classified as restricted because WBD Pressroom requires login or returns 403. Its parser remains in the repository, but it is not runnable until public access is verified again. The settings-page connection test targets the official HBO Max brand release listing; a successful test is only a recovery signal and must be followed by parser validation before the source is re-enabled.
 
@@ -270,7 +283,9 @@ Check the row reason before retrying a sync. A single `fetch failed` run does no
 |---|---|
 | Source stays `running` after restart | Backend startup should mark interrupted runs as `failed`. Refresh `/sources` after 5 seconds. |
 | One source blocks the rest of a scheduled batch | Runs should fail after the 15-minute total deadline and the scheduler should continue. Check the backend log and verify later sources received newer `SourceSyncRun` rows. |
-| Backend is unavailable after an unexpected exit | Check the LaunchAgent state, rebuild if `dist` is stale, then use `launchctl kickstart -k gui/$(id -u)/com.zaynzhu.whatsnew.backend`. |
+| NAS backend is unavailable after an unexpected exit | Check the Extreme Space project and backend container health, then verify the frontend proxy and direct backend health endpoints. Do not start the disabled Mac LaunchAgent as an implicit workaround. |
+| `SCHEDULER_ENABLED` changed but the scheduler state did not | If the file was edited directly, recreate the backend container. `docker restart` does not reload values from `env_file`. Settings API changes to interval and daily time still hot-reload in the running process. |
+| A released work has no ratings | Confirm it has an active source reference and a stable TMDb, IMDb or Douban identity, then run a small `enrich:ratings` batch. Do not match by title or assign ratings to upcoming works. |
 | `/api/settings` and `/api/sources` disagree | Both must use `aggregateLatestSourceRuns()`; rerun tests if this regresses. |
 | Source shows `降级可用` | The latest run failed or warned, but a fresh successful snapshot still exists. Inspect the row reason before manually retrying. |
 | Trakt fails with network errors | Verify `TRAKT_CLIENT_ID` and proxy settings. Trakt only needs the public client ID. |

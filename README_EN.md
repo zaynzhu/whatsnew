@@ -26,6 +26,7 @@ A new-release intelligence dashboard for tracking film & TV releases, broadcasts
 - **Today / This week** —— Aggregated new releases and broadcasts across all sources
 - **Poster calendar** —— Browse a monthly poster wall and open image-first film and series lineups by date
 - **Popularity tracking** —— Rising, new entries, falling, with a 90-day rank timeline
+- **Multi-source ratings** —— Released works show source-native Douban, IMDb, TMDb and Rotten Tomatoes scores without blending them into Heat
 - **Source status** —— Real-time view of each source's sync state and connectivity
 - **Independent per-source scope** —— No mixing platforms into one "true combined chart"; each signal is stored separately
 - **Global & per-source proxy** —— Global `HTTP_PROXY` / `HTTPS_PROXY`, per-source `inherit` / `direct` / `custom`
@@ -65,6 +66,7 @@ whatsnew/
 | [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
 | [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
 | [macOS v1 Plan](docs/macos-v1-plan.md) | Native client scope, architecture, security boundary and acceptance criteria |
+| [Ratings v1 Plan](docs/ratings-v1-plan.md) | Rating sources, stable identity, access boundaries, scheduling and acceptance criteria |
 | [Glossary](CONTEXT.md) | Shared terminology for source health, Heat, artwork and attention weighting |
 | [Design Archive](docs/superpowers/README.md) | Authority boundary for historical specifications and implementation plans |
 
@@ -121,6 +123,15 @@ Once both services are running, manage global proxies, source enable state, per-
 - Planned, restricted-access and commercial-interface sources are listed for discovery only and cannot be enabled or synced
 - Source and settings pages refresh source status every 5 seconds; backend startup marks interrupted `running` sync runs as `failed`
 - The settings page controls the hourly interval and daily Beijing time. Saving immediately reschedules future jobs; defaults are every hour at minute `0` and daily at `09:15`
+
+## ⭐ Multi-source Ratings
+
+- Ratings are stored independently in `MediaRating`; Douban, IMDb, TMDb, Rotten Tomatoes critics and audience scores retain their original scale, vote count, source URL and capture time
+- Only active works that are released, airing, returning or completed are eligible; upcoming or identity-ambiguous works are never matched by title guesses
+- Douban is read at low frequency only through an existing stable subject ID. The backend does not perform title search, scrape desktop HTML or bypass login, captcha, HTTP 403 or HTTP 429
+- TMDb uses an existing `tmdbId`; IMDb and Rotten Tomatoes use an existing IMDb ID through OMDb. `TMDB_API_KEY`, `OMDB_API_KEY` and `OMDB_BASE_URL` remain server-side settings
+- The daily group enriches a small batch after source sync and identity maintenance. Operators can also run `npm run enrich:ratings --workspace backend -- --limit=20`
+- Ratings appear in media detail only and never affect Heat, chart rank, movement or popularity events
 
 ## 🖼️ Poster Acquisition And Delivery
 
