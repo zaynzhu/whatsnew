@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { demoSeedAdapter } from "../src/adapters/demoSeedAdapter.js"
 import type { SourceAdapter, SourceFetchBatch } from "../src/domain/types.js"
 import { PopularitySnapshotService } from "../src/services/popularitySnapshotService.js"
-import { recoverInterruptedSourceRuns, runSourceSync } from "../src/services/sourceSyncService.js"
+import { recoverInterruptedSourceRuns, recoverInterruptedSourceRunsForStartup, runSourceSync } from "../src/services/sourceSyncService.js"
 import { resetTestDatabase, testPrisma } from "./helpers/testDatabase.js"
 
 const prisma: PrismaClient = testPrisma
@@ -379,6 +379,153 @@ describe("runSourceSync", () => {
       finishedAt: new Date("2026-07-01T12:06:00Z"),
       itemCount: 151
     })
+  })
+
+  it("恢复批次中超出 Int32 毫秒上限的僵尸记录时钳制耗时并全部收尾", async () => {
+    const now = new Date("2026-09-19T12:00:00Z")
+    // 35 天前的僵尸记录，耗时约 30.24 亿毫秒，超出 MySQL INT 上限
+    const ancient = await prisma.sourceSyncRun.create({
+      data: {
+        source: "ancient_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date("2026-08-15T12:00:00Z")
+      }
+    })
+    const recent = await prisma.sourceSyncRun.create({
+      data: {
+        source: "recent_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date("2026-09-19T11:50:00Z")
+      }
+    })
+    const completed = await prisma.sourceSyncRun.create({
+      data: {
+        source: "done_source",
+        scope: "all",
+        status: "success",
+        startedAt: new Date("2026-09-19T11:00:00Z"),
+        finishedAt: new Date("2026-09-19T11:01:00Z"),
+        durationMs: 60000,
+        itemCount: 3
+      }
+    })
+
+    const count = await recoverInterruptedSourceRuns(prisma, now)
+
+    expect(count).toBe(2)
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: ancient.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      finishedAt: now,
+      durationMs: 2147483647,
+      errorMessage: "同步进程中断，已自动收尾；请重新触发同步"
+    })
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: recent.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      finishedAt: now,
+      durationMs: 600000
+    })
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: completed.id }
+    })).resolves.toMatchObject({
+      status: "success",
+      durationMs: 60000
+    })
+  })
+
+  it("钳制恰好等于上限、超出一毫秒与时间回拨的恢复耗时，且二次恢复返回 0", async () => {
+    const now = new Date("2026-09-19T12:00:00Z")
+    const atLimit = await prisma.sourceSyncRun.create({
+      data: {
+        source: "at_limit_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date(now.getTime() - 2147483647)
+      }
+    })
+    const overLimit = await prisma.sourceSyncRun.create({
+      data: {
+        source: "over_limit_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date(now.getTime() - 2147483648)
+      }
+    })
+    const future = await prisma.sourceSyncRun.create({
+      data: {
+        source: "future_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date(now.getTime() + 60000)
+      }
+    })
+
+    const count = await recoverInterruptedSourceRuns(prisma, now)
+
+    expect(count).toBe(3)
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: atLimit.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      durationMs: 2147483647
+    })
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: overLimit.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      durationMs: 2147483647
+    })
+    await expect(prisma.sourceSyncRun.findUniqueOrThrow({
+      where: { id: future.id }
+    })).resolves.toMatchObject({
+      status: "failed",
+      durationMs: 0
+    })
+    await expect(recoverInterruptedSourceRuns(prisma, now)).resolves.toBe(0)
+  })
+
+  it("启动恢复失败时记录错误并返回 null 而不阻塞启动", async () => {
+    // 用注入的故障 client 模拟数据库不可用，不 spy 共享单例避免 restore 后污染后续测试
+    const brokenPrisma = {
+      sourceSyncRun: {
+        findMany: () => Promise.reject(new Error("simulated database failure"))
+      }
+    } as unknown as PrismaClient
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const result = await recoverInterruptedSourceRunsForStartup(brokenPrisma)
+
+    expect(result).toBeNull()
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    const logged = warnSpy.mock.calls[0].join(" ")
+    expect(logged).toContain("simulated database failure")
+    expect(logged).not.toContain("Recovered")
+  })
+
+  it("启动恢复成功时返回收尾数量并提示", async () => {
+    await prisma.sourceSyncRun.create({
+      data: {
+        source: "startup_source",
+        scope: "all",
+        status: "running",
+        startedAt: new Date()
+      }
+    })
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const result = await recoverInterruptedSourceRunsForStartup(prisma)
+
+    expect(result).toBe(1)
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy.mock.calls[0].join(" ")).toContain("Recovered 1 interrupted source sync run(s)")
+    await expect(prisma.sourceSyncRun.findFirstOrThrow({
+      where: { source: "startup_source" }
+    })).resolves.toMatchObject({ status: "failed" })
   })
 
   it("serializes concurrent runs for the same source", async () => {

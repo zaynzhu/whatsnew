@@ -31,6 +31,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const TITLE_ALIASES_STORAGE_LIMIT = 191
 const INTERRUPTED_SYNC_ERROR = "同步进程中断，已自动收尾；请重新触发同步"
 const DEFAULT_SOURCE_SYNC_TIMEOUT_MS = 15 * 60 * 1000
+const MAX_DURATION_MS = 2147483647
 const sourceSyncTails = new Map<string, Promise<void>>()
 
 type SourceSyncOptions = {
@@ -47,6 +48,12 @@ const UNKNOWN_PRODUCTION_COUNTRY_SOURCES = new Set(["iqiyi", "youku"])
 
 function uniqueValues(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
+}
+
+// 耗时按 Int32 上限钳制并保持非负：超长中断记录截断、时间回拨归零，保留真实起止时间
+function clampDurationMs(startedAt: Date, finishedAt: Date): number {
+  const elapsedMs = finishedAt.getTime() - startedAt.getTime()
+  return Math.min(MAX_DURATION_MS, Math.max(0, elapsedMs))
 }
 
 function compactTitleAliases(values: string[]): string[] {
@@ -531,7 +538,7 @@ async function runSourceSyncUnlocked(
       data: {
         status,
         finishedAt,
-        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        durationMs: clampDurationMs(startedAt, finishedAt),
         itemCount: items.length,
         errorMessage
       }
@@ -545,7 +552,7 @@ async function runSourceSyncUnlocked(
       data: {
         status: "failed",
         finishedAt,
-        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        durationMs: clampDurationMs(startedAt, finishedAt),
         errorMessage
       }
     })
@@ -604,11 +611,25 @@ export async function recoverInterruptedSourceRuns(prisma: PrismaClient, now = n
       data: {
         status: "failed",
         finishedAt: now,
-        durationMs: now.getTime() - run.startedAt.getTime(),
+        durationMs: clampDurationMs(run.startedAt, now),
         errorMessage: INTERRUPTED_SYNC_ERROR
       }
     })
   )))
 
   return interruptedRuns.length
+}
+
+// 启动时的中断恢复兜底：失败只记录脱敏错误并返回 null，不阻塞服务启动
+export async function recoverInterruptedSourceRunsForStartup(prisma: PrismaClient, now = new Date()): Promise<number | null> {
+  try {
+    const recoveredRuns = await recoverInterruptedSourceRuns(prisma, now)
+    if (recoveredRuns > 0) {
+      console.warn(`Recovered ${recoveredRuns} interrupted source sync run(s)`)
+    }
+    return recoveredRuns
+  } catch (error) {
+    console.warn(`Failed to recover interrupted source sync runs; continuing startup: ${errorMessageFrom(error)}`)
+    return null
+  }
 }
