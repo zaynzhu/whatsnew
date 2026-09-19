@@ -5,7 +5,7 @@
 - 接收方：Claude Code；下一位角色：**执行**。
 - 目标：修复极空间 NAS 上 WhatsNew backend 因 `SourceSyncRun.durationMs` 溢出而启动失败、被 Docker 反复重启的问题；修复部署后自动收尾遗留运行记录，无需手动清库。
 - 故障信息：Prisma `P2020: Value out of range for column 'durationMs' at row 1`。
-- 当前进度：Claude Code 已完成根因诊断，用户在本次交接请求中提供了诊断及方案 A；发送方已核对本地代码与相关历史，**尚未实施或验证修复**。
+- 当前进度：修复已由 Claude Code（执行角色）实施、验证并提交（`e7deeeb`，2026-09-19）；生产部署与验收待用户执行，详见文末"执行结果与交回"。
 - 第一动作：读取适用规则及下列必读材料，核对工作区；为超过 Int32 毫秒上限的恢复记录补充失败回归用例，再执行方案 A。
 - 本轮发送方仅生成此文档，不修改源代码、不访问或修改生产数据库、不构建或部署镜像。
 
@@ -115,6 +115,41 @@ NAS 原始日志、具体僵尸记录及线上镜像源码未在本轮独立读�
 5. 按执行角色修复及验证；提交遵守项目明确要求，推送、发布及生产数据操作遵守接收会话已有授权。不要读取或输出凭据文件，不提交 Token、Cookie、代理地址或数据库凭据；设置及备份权限保持 `0600`。
 6. 缺工具时可使用等价方式完成；无法复现、测试或访问 NAS 时如实标为未验证或受阻，不能把代码完成写成生产恢复。
 7. 完成或需要交回时，先读取本文最新版本，再更新实际改动、提交、方案偏离及依据、测试命令与结果、NAS 新旧镜像版本、生产验收及剩余问题；只有只读权限时在回复中提供摘要。建议交回用户验收，不自动指派新的执行者或触发发布。
+
+## 执行结果与交回（2026-09-19）
+
+### 实际改动
+
+提交 `e7deeeb`（`fix: 钳制同步耗时并兜底启动恢复`），3 个文件、174 行新增：
+
+- `backend/src/services/sourceSyncService.ts`：新增 `clampDurationMs`（`Math.min(2147483647, Math.max(0, elapsed))`，非负、上限截断），成功、失败、恢复三处 `durationMs` 写入统一改用该函数；新增导出 `recoverInterruptedSourceRunsForStartup`，内部 try/catch 包裹恢复调用及其成功提示，失败经 `errorMessageFrom` 脱敏后 `console.warn` 并返回 `null`，不阻塞启动，不伪报恢复成功。
+- `backend/src/server.ts`：顶层恢复调用改为 `recoverInterruptedSourceRunsForStartup(db)`，成功日志移入函数内，语义不变。
+- `backend/tests/sync.test.ts`：新增 4 个回归测试（见下）。schema 未改动，无生产迁移。
+
+方案偏离说明：与决策表一致，无实质偏离；"局部 try/catch"具体化为 `recoverInterruptedSourceRunsForStartup` 函数以便单测覆盖。
+
+### 验证结果
+
+- 新增测试先看 RED 后实施（TDD）：35 天僵尸记录批次复现 `P2020 Out of range value for column 'durationMs'`（与 NAS 生产报错一致）→ 修复后钳制为 `2147483647`，同批普通记录正常收尾、已完成记录不受影响；恰好上限（`2147483647`）精确保留、上限 +1 截断、时间回拨钳为 0、二次恢复返回 0；兜底失败路径（注入故障 client）返回 `null` 且日志不含 "Recovered" 成功提示、成功路径返回数量并提示。
+- 全部 4 个新测试在 `vitest run tests/sync.test.ts` 与全量套件中通过。
+- `npm run typecheck`、`npm run build` 通过。
+- 全量 `npm test`：4 个失败全部实证为预存在（stash 本次改动后原始代码同样失败且更多一个），与本修复无关：
+  - `tests/api.test.ts > counts unique works instead of episode rows in calendar summaries`
+  - `tests/api.test.ts > returns the complete Douban preview beyond the former 500-row cap`
+  - `tests/doubanAdapter.test.ts > replaces a generic coming-soon image from the same Douban subject detail`
+  - `tests/sync.test.ts > marks source signals missing from the next complete snapshot as historical`
+  这些失败呈现顺序敏感性（单文件与组合跑结果不同），属预存在的测试隔离问题，按范围约定未在本任务处理。
+
+### 实现过程中的踩坑记录
+
+对 Prisma delegate 使用 `vi.spyOn(prisma.sourceSyncRun, "findMany")` 后，`afterEach` 的 `vi.restoreAllMocks()` 未能恢复原方法，污染共享 `testPrisma` 单例导致后续测试失败（vitest 2.0.5）。兜底失败路径测试改为注入仅含故障 `findMany` 的假 client，不再 spy 共享单例。后续写测试应避免 spy Prisma delegate 方法。
+
+### 剩余步骤（待用户执行）
+
+1. 推送分支后手动触发 GitHub Actions"构建极空间镜像包"（选择包含 `e7deeeb` 的分支，填写新版本号），下载 artifact 并核对 SHA-256；构建仅在 GitHub runner 执行。
+2. 按 `deploy/nas/README.md` 在极空间导入新镜像并更新 `whatsnews` 项目，保留既有挂载与 `settings.env`，不覆盖真实设置。
+3. 按"剩余步骤与验收标准"第 6 条执行生产验收：`50016`/`50015` 两个 `/api/health` 返回 `ok=true`；观察 ≥5 分钟容器不再重启循环；日志不再出现本次 durationMs P2020；只读查询确认旧僵尸记录已标 `failed`。
+4. 预存在的 4 个测试失败建议另立任务排查。
 
 ## 可直接转发的启动指令
 
