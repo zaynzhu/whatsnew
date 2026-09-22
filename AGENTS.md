@@ -16,6 +16,7 @@ WhatsNew 是独立的全球与中国电影、剧集上新及热度监控项目�
 - `docs/operator-runbook.md`：环境变量、运行命令、调度和排障
 - `docs/integration-guide.md`：私有 API 接入示例和错误语义
 - `docs/handoff.md`：当前分支、已接入来源和交接清单
+- `docs/lessons/`：排坑经验库。排坑、配置、调试类任务开始前，先查 `docs/lessons/INDEX.md` 按报错稳定片段检索，命中先核对现状再复用；解决新坑后按 lesson-vault 流程沉淀
 - `docs/adr/`：仍有效的架构决策及其理由
 - `docs/superpowers/specs/`：已归档的设计规格，只保留历史决策上下文
 - `docs/superpowers/plans/`：已归档的实施计划，不作为当前运行状态来源

@@ -86,6 +86,8 @@ scripts/test-macos.sh
 scripts/build-macos-app.sh
 ```
 
+Note: `npm test` currently has four pre-existing failures unrelated to recent work (2026-09-22, verified by stash comparison). Treat them as noise, not new regressions; see `docs/lessons/backend-preexisting-test-failures.md` for the verified list and per-test triage commands.
+
 Operational spot checks:
 
 ```bash
