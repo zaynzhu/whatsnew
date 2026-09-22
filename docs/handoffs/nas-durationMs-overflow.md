@@ -151,6 +151,14 @@ NAS 原始日志、具体僵尸记录及线上镜像源码未在本轮独立读�
 3. 按"剩余步骤与验收标准"第 6 条执行生产验收：`50016`/`50015` 两个 `/api/health` 返回 `ok=true`；观察 ≥5 分钟容器不再重启循环；日志不再出现本次 durationMs P2020；只读查询确认旧僵尸记录已标 `failed`。
 4. 预存在的 4 个测试失败建议另立任务排查。
 
+### 生产验收结果（2026-09-22）
+
+- 部署 `whatsnew-backend:0.1.3` / `whatsnew-frontend:0.1.3` 成功（run #7，`35677362926`，构建 success）。
+- `50016`/`50015` 两个 `/api/health` 均返回 `ok=true`、`service=whatsnew-backend`；`/api/preview` 返回 200（556KB）；iOS 客户端 dashboard、海报等业务请求全部 200。
+- backend 启动日志：`WhatsNew backend (main) listening` 后输出 **`Recovered 17 interrupted source sync run(s)`**——历史多次重新部署累积的 17 条僵尸 `running` 记录（含超过 Int32 上限的行）一次全部收尾为 `failed`，未再出现 durationMs P2020。此前该批记录因事务全有全无被单条溢出行持续拖垮，与诊断的死循环机制一致。
+- frontend 日志干净：仅一次正常启动序列，无重启循环；极空间面板图标抓取请求与 nginx 大响应缓冲 warn 为无害噪音。
+- 部署过程备注：极空间项目更新时若先改 compose 后导入镜像，会触发对 Docker Hub 的 pull 报 `pull access denied`；正确顺序为先在极空间导入镜像 tar（`docker save` 合集，一包含两镜像）再更新项目。
+
 ## 可直接转发的启动指令
 
 请阅读 WhatsNew 项目中的 `docs/handoffs/nas-durationMs-overflow.md`，以 Claude Code、角色“执行”接手。先核对适用规则、相关代码和工作区，简短说明目标、边界与第一步；无阻塞即继续修复和验证。当前部署镜像为 `0.1.2`，仍需核对镜像 ID 和构建提交；镜像仅通过 GitHub Actions 打包，Mac mini 不安装任何 Docker 相关组件。生产操作遵守本会话已有授权。完成或受阻时更新交接结果，不把本地通过当作 NAS 已恢复。
