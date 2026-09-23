@@ -67,6 +67,69 @@ Each rating keeps its source-native meaning:
 
 Ratings are not normalized or averaged and never contribute to `heatScore`, rankings, movement or change events.
 
+## Media Batch Lookup
+
+```bash
+curl -s -X POST http://127.0.0.1:19993/api/media/lookup \
+  -H "content-type: application/json" \
+  -d '{"contractVersion":1,"mediaType":"series","doubanIds":[35644140],"imdbIds":[]}'
+```
+
+Read-only batch identity lookup for external consumers: exchange local identity lists for matched works with their current popularity signals and Douban rating. It performs no source sync, writes nothing and reuses the same data-snapshot semantics as `GET /api/media/:id`.
+
+| Body field | Meaning |
+|---|---|
+| `contractVersion` | Optional; must be `1` when present. |
+| `mediaType` | Required work kind, `movie` or `series`. The server enforces the movie/series boundary by `releaseForm` (`animated_film` and `documentary_film` are movie-kind; `anime` and `documentary` media types span both kinds), so a `movie` query never returns series-kind works. |
+| `doubanIds` | Douban subject numbers. Matched through the stored `douban-<id>` source ref, exact identity only. |
+| `imdbIds` | Work-level `tt` ids. Episode-level ids (a season premiere row rather than the show id) have no bridged work identity in this library and are reported as `unmatched`; the endpoint performs no title guessing and no external bridging. |
+
+`doubanIds.length + imdbIds.length` must be between 1 and 50 per request; each input row gets exactly one output row, ordered with the `doubanIds` inputs first, then the `imdbIds` inputs, both in request order.
+
+Response:
+
+```json
+{
+  "contractVersion": 1,
+  "counts": { "matched": 1, "unmatched": 1, "ambiguous": 0 },
+  "items": [
+    {
+      "query": { "kind": "douban", "id": 35644140 },
+      "status": "matched",
+      "mediaId": "…",
+      "matchBasis": "douban",
+      "matchLevel": "work",
+      "titleDisplay": "一瓯春",
+      "mediaType": "series",
+      "releaseForm": "web_series",
+      "firstReleaseDate": "2026-09-17",
+      "workStatus": "released",
+      "heatScore": 0,
+      "signals": [],
+      "lastSignalCapturedAt": "2026-09-17T01:08:09.533Z",
+      "doubanRating": null,
+      "imdbId": null,
+      "tmdbId": 294990,
+      "tvdbId": null,
+      "traktId": null
+    },
+    { "query": { "kind": "imdb", "id": "tt3658012" }, "status": "unmatched", "reason": "no_work_level_identity" }
+  ]
+}
+```
+
+`matched` rows carry `matchBasis` (`douban` or `imdb`) and `matchLevel: work` so consumers can show on what basis a work was aligned. `signals` rows use the same shape as the trending and media-detail routes and contain only `isCurrent` rows. `lastSignalCapturedAt` is the newest historical capture across all signals, so a work that exists but currently has no signal is returned as `matched` with empty `signals` instead of being confused with "not in the library". `doubanRating` is `null` when no Douban rating has been collected; ratings stay separate from `signals` and never mix into heat.
+
+`unmatched` (with `reason: no_work_level_identity`) means the library has no work-level identity for that input. `ambiguous` (with `reason: multiple_candidates` and `candidateMediaIds`) means more than one distinct work carries the same identity; the endpoint never silently picks one.
+
+| Status | Meaning |
+|---|---|
+| `200` | Always per-row statuses; request-level success. |
+| `400 invalid_body` | Body is not a valid lookup request, including malformed `tt` ids or non-integer Douban ids. |
+| `400 unsupported_contract_version` | `contractVersion` is present but not `1`; the response carries `supportedVersion`. |
+| `400 batch_too_large` | More than 50 queries in one request; the response carries `maxBatchSize`. Rejected, not truncated. |
+| `400 empty_lookup_batch` | Both `doubanIds` and `imdbIds` are empty. |
+
 ## Media Poster
 
 ```bash

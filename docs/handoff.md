@@ -17,6 +17,7 @@ This is the short operational handoff for the current integration branch. Use th
 - Source health: `GET /api/source-health`
 - Poster health: `GET /api/poster-health`
 - Media detail route: `/media/:id`
+- Batch identity lookup (read-only): `POST /api/media/lookup`, contract documented in `docs/integration-guide.md`
 - macOS package: `macos/Package.swift`
 - macOS local app: `dist/WhatsNew.app` after `scripts/build-macos-app.sh`
 
@@ -65,6 +66,7 @@ Verified against the running NAS main backend on 2026-08-19. These counts are an
 - Platform catalog additions are not work premieres. Preserve release-pattern labels in calendar and dashboard ranking.
 - Poster enrichment must retain strict identity boundaries and validate every candidate image before persistence. Transport failures do not start a three-day title cooldown.
 - Current listing queries require at least one enabled source reference; direct media details remain available for inactive history.
+- `POST /api/media/lookup` is strictly read-only: no source sync, no writes, no title guessing; episode-level IMDb ids are reported as unmatched instead of bridged.
 - Ratings stay in `MediaRating`, require stable identity and eligible lifecycle status, and never affect Heat, chart rank or popularity events.
 - Scheduler settings hot-reload after saving. The domestic sandbox always keeps `SCHEDULER_ENABLED=false`.
 - Direct edits to Docker `settings.env` require backend container recreation; a plain restart does not reload `env_file` values.
