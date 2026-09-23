@@ -5,6 +5,11 @@ import { db } from "../config/db.js"
 import { ACTIVE_MEDIA_WHERE } from "../domain/mediaActivity.js"
 import { withDataSources } from "../domain/mediaPresenter.js"
 import {
+  LOOKUP_CONTRACT_VERSION,
+  MAX_LOOKUP_BATCH_SIZE,
+  createMediaLookupService
+} from "../services/mediaLookupService.js"
+import {
   markPosterDegraded,
   markPosterHealthy,
   type PosterHealthRecord
@@ -36,11 +41,49 @@ const posterQuerySchema = z.object({
   ).optional()
 })
 
+// mediaType 在本端点语义为作品大类（movie/series），服务端按 mediaWorkKind 大类边界隔离
+const lookupBodySchema = z.object({
+  contractVersion: z.literal(LOOKUP_CONTRACT_VERSION).optional(),
+  mediaType: z.enum(["movie", "series"]),
+  doubanIds: z.array(z.number().int().positive()).default([]),
+  imdbIds: z.array(z.string().regex(/^tt\d+$/)).default([])
+})
+
 export function createMediaRouter(dependencies: MediaRouterDependencies = {}): Router {
   const router = Router()
   const database = dependencies.database ?? db
   const posters = dependencies.posterService ?? posterImageService
   const variants = dependencies.variantService ?? posterVariantService
+
+  // 只读批量身份查询：不触发同步、不写库，复用详情端点的数据快照语义
+  router.post("/lookup", async (req, res) => {
+    const body = typeof req.body === "object" && req.body != null ? req.body : {}
+    const version = (body as { contractVersion?: unknown }).contractVersion
+    if (version !== undefined && version !== LOOKUP_CONTRACT_VERSION) {
+      res.status(400).json({ error: "unsupported_contract_version", supportedVersion: LOOKUP_CONTRACT_VERSION })
+      return
+    }
+
+    const parsed = lookupBodySchema.safeParse(body)
+    if (!parsed.success) {
+      res.status(400).json({ error: "invalid_body" })
+      return
+    }
+
+    const { mediaType, doubanIds, imdbIds } = parsed.data
+    const totalQueries = doubanIds.length + imdbIds.length
+    if (totalQueries > MAX_LOOKUP_BATCH_SIZE) {
+      res.status(400).json({ error: "batch_too_large", maxBatchSize: MAX_LOOKUP_BATCH_SIZE })
+      return
+    }
+    if (totalQueries === 0) {
+      res.status(400).json({ error: "empty_lookup_batch" })
+      return
+    }
+
+    const lookup = createMediaLookupService(database).lookup
+    res.json(await lookup({ workKind: mediaType, doubanIds, imdbIds }))
+  })
 
   router.get("/", async (req, res) => {
     const { mediaType, releaseForm, status, sort = "heat", limit = "50" } = req.query
