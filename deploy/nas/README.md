@@ -28,13 +28,13 @@ Mac mini 不安装 Docker 时，在 GitHub 仓库的 Actions 页面打开“构�
 只在 Linux Docker 构建机或 CI 中执行，不在运行 WhatsNew LaunchAgent 的 Mac mini 上执行：
 
 ```bash
-./deploy/nas/build-image-tar.sh 0.1.0 linux/amd64
+./deploy/nas/build-image-tar.sh <版本> linux/amd64
 ```
 
 构建机需要 Docker Buildx 和 `sha256sum`。脚本生成一个同时包含以下镜像的 tar，并生成对应的 `.sha256` 校验文件：
 
-- `whatsnew-backend:0.1.0`
-- `whatsnew-frontend:0.1.0`
+- `whatsnew-backend:<版本>`
+- `whatsnew-frontend:<版本>`
 
 在 NAS 建立部署目录，并放入以下文件：
 
@@ -76,8 +76,8 @@ Compose 不再创建一次性的权限初始化容器。首次部署前必须手
 在极空间镜像界面导入 tar，或通过 SSH 执行：
 
 ```bash
-sha256sum -c whatsnew-0.1.2-linux-amd64.tar.sha256
-docker load --input whatsnew-0.1.2-linux-amd64.tar
+sha256sum -c whatsnew-<版本>-linux-amd64.tar.sha256
+docker load --input whatsnew-<版本>-linux-amd64.tar
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d --pull never
 docker compose --env-file .env ps

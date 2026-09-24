@@ -143,6 +143,7 @@ Item counts and durations are summed across latest scopes. Error messages are pr
 | `GET /api/dashboard` | Dashboard slices: today, week, trending, events, source runs. Same-work episode events sharing type, source, platform, region and date are summarized into one feed item. `source_failed` events sharing a source and UTC `eventAt` date expose only the latest feed item while preserving every stored `ChangeEvent`. |
 | `GET /api/media` | Browse media with type, form, status and sort filters. |
 | `GET /api/media/:id` | Media detail with releases, refs, current ratings, current signals and events. |
+| `POST /api/media/lookup` | Read-only batch identity lookup for external consumers: exchanges Douban/IMDb identity lists for matched works with current signals and the Douban rating. Movie/series kind enforced by `releaseForm`; episode-level IMDb ids stay `unmatched` (no bridging). |
 | `GET /api/media/:id/poster` | Fetch and cache a stored remote poster; optional `width=160|320|640|960` returns a bounded WebP variant. |
 | `GET /api/poster-health` | Return poster coverage, persistent health counts, separate original/variant cache integrity and high-priority samples. |
 | `GET /api/media/:id/popularity-history` | Bounded 1-90 day popularity history. |

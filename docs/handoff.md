@@ -35,6 +35,10 @@ Verified against the running NAS main backend on 2026-08-19. These counts are an
 - The rating schema upgrade was applied after a full database backup. Business row counts were unchanged by the schema operation.
 - The first manual rating batch scanned 20 eligible works, updated 19, left one unchanged and had zero failures. It stored 55 current observations across Douban, IMDb, TMDb and Rotten Tomatoes; a NAS media-detail response was verified to return four rating rows for one work.
 
+## Pending Deployment
+
+- `0.1.4` images were built on GitHub Actions (run 35871388951, source commit `7ee20c3`) and verified at `dist/nas-0.1.4/` on 2026-09-23; they add the read-only batch lookup endpoint and await manual NAS import. NAS currently runs `0.1.3`; roll back by pointing compose back to `:0.1.3` after import (the old images stay until manually deleted).
+
 ## Source Coverage
 
 | Source | Current contract |
