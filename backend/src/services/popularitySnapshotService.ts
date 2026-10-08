@@ -127,28 +127,32 @@ export class PopularitySnapshotService {
   ): Promise<number> {
     if (signalSources.length === 0) return 0
 
-    return this.prisma.$transaction(async (tx) => {
-      const staleSignals = await tx.popularitySignal.findMany({
-        where: {
-          source: { in: signalSources },
-          isCurrent: true,
-          ...(currentSignalIds.length > 0 ? { id: { notIn: currentSignalIds } } : {})
-        },
-        select: { id: true, mediaItemId: true }
-      })
-      if (staleSignals.length === 0) return 0
+    return this.prisma.$transaction(
+      async (tx) => {
+        const staleSignals = await tx.popularitySignal.findMany({
+          where: {
+            source: { in: signalSources },
+            isCurrent: true,
+            ...(currentSignalIds.length > 0 ? { id: { notIn: currentSignalIds } } : {})
+          },
+          select: { id: true, mediaItemId: true }
+        })
+        if (staleSignals.length === 0) return 0
 
-      await tx.popularitySignal.updateMany({
-        where: { id: { in: staleSignals.map((signal) => signal.id) } },
-        data: { isCurrent: false }
-      })
+        await tx.popularitySignal.updateMany({
+          where: { id: { in: staleSignals.map((signal) => signal.id) } },
+          data: { isCurrent: false }
+        })
 
-      const mediaItemIds = [...new Set(staleSignals.map((signal) => signal.mediaItemId))]
-      for (const mediaItemId of mediaItemIds) {
-        await this.updateHeatScore(tx, mediaItemId)
-      }
-      return staleSignals.length
-    })
+        const mediaItemIds = [...new Set(staleSignals.map((signal) => signal.mediaItemId))]
+        for (const mediaItemId of mediaItemIds) {
+          await this.updateHeatScore(tx, mediaItemId)
+        }
+        return staleSignals.length
+      },
+      // 大批量停用旧信号时逐作品重算热度，循环耗时容易超过默认 5 秒
+      { timeout: 60_000 }
+    )
   }
 
   private currentIdentity(input: PersistSignalInput) {
