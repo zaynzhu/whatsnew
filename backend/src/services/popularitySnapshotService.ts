@@ -22,82 +22,86 @@ export class PopularitySnapshotService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async persistSignal(input: PersistSignalInput): Promise<PopularitySignal> {
-    return this.prisma.$transaction(async (tx) => {
-      const previous = await tx.popularitySignal.findFirst({
-        where: this.currentIdentity(input),
-        orderBy: { capturedAt: "desc" }
-      })
+    return this.prisma.$transaction(
+      async (tx) => {
+        const previous = await tx.popularitySignal.findFirst({
+          where: this.currentIdentity(input),
+          orderBy: { capturedAt: "desc" }
+        })
 
-      if (previous?.capturedAt.getTime() === input.capturedAt.getTime()) {
-        const updated = await tx.popularitySignal.update({
-          where: { id: previous.id },
+        if (previous?.capturedAt.getTime() === input.capturedAt.getTime()) {
+          const updated = await tx.popularitySignal.update({
+            where: { id: previous.id },
+            data: {
+              sourceSyncRunId: input.sourceSyncRunId,
+              sourceCategory: input.signal.sourceCategory,
+              rankingScope: input.signal.rankingScope ?? "overall",
+              rankingEntryLabel: input.signal.rankingEntryLabel ?? null,
+              rank: input.signal.rank,
+              rankDelta: calculateRankDelta(previous.previousRank, input.signal.rank),
+              value: input.signal.value,
+              valueLabel: input.signal.valueLabel,
+              sourceUrl: input.signal.sourceUrl
+            }
+          })
+          await this.updateHeatScore(tx, input.mediaItemId)
+          return updated
+        }
+
+        const previousRank = previous?.rank ?? null
+        const rankDelta = calculateRankDelta(previousRank, input.signal.rank)
+
+        await tx.popularitySignal.updateMany({
+          where: this.currentIdentity(input),
+          data: { isCurrent: false }
+        })
+
+        const created = await tx.popularitySignal.create({
           data: {
+            mediaItemId: input.mediaItemId,
             sourceSyncRunId: input.sourceSyncRunId,
+            source: input.signal.source,
             sourceCategory: input.signal.sourceCategory,
+            platform: input.signal.platform,
+            region: input.signal.region,
+            window: input.signal.window,
             rankingScope: input.signal.rankingScope ?? "overall",
+            rankingEntryKey: input.signal.rankingEntryKey ?? "work",
             rankingEntryLabel: input.signal.rankingEntryLabel ?? null,
             rank: input.signal.rank,
-            rankDelta: calculateRankDelta(previous.previousRank, input.signal.rank),
+            previousRank,
+            rankDelta,
             value: input.signal.value,
             valueLabel: input.signal.valueLabel,
+            capturedAt: input.capturedAt,
+            isCurrent: true,
             sourceUrl: input.signal.sourceUrl
           }
         })
-        await this.updateHeatScore(tx, input.mediaItemId)
-        return updated
-      }
 
-      const previousRank = previous?.rank ?? null
-      const rankDelta = calculateRankDelta(previousRank, input.signal.rank)
-
-      await tx.popularitySignal.updateMany({
-        where: this.currentIdentity(input),
-        data: { isCurrent: false }
-      })
-
-      const created = await tx.popularitySignal.create({
-        data: {
-          mediaItemId: input.mediaItemId,
-          sourceSyncRunId: input.sourceSyncRunId,
-          source: input.signal.source,
-          sourceCategory: input.signal.sourceCategory,
-          platform: input.signal.platform,
-          region: input.signal.region,
-          window: input.signal.window,
-          rankingScope: input.signal.rankingScope ?? "overall",
-          rankingEntryKey: input.signal.rankingEntryKey ?? "work",
-          rankingEntryLabel: input.signal.rankingEntryLabel ?? null,
-          rank: input.signal.rank,
-          previousRank,
-          rankDelta,
-          value: input.signal.value,
-          valueLabel: input.signal.valueLabel,
-          capturedAt: input.capturedAt,
-          isCurrent: true,
-          sourceUrl: input.signal.sourceUrl
+        const eventType = isHeatBearingSignal(input.signal)
+          ? classifyPopularityEvent(previousRank, input.signal.rank)
+          : null
+        if (eventType) {
+          await createPopularityEvent(tx, input.mediaItemId, input.mediaTitle, eventType, {
+            source: input.signal.source,
+            platform: input.signal.platform,
+            region: input.signal.region,
+            window: input.signal.window,
+            rankingScope: input.signal.rankingScope ?? "overall",
+            previousRank,
+            currentRank: input.signal.rank,
+            rankDelta,
+            capturedAt: input.capturedAt.toISOString()
+          }, input.signal.sourceUrl)
         }
-      })
 
-      const eventType = isHeatBearingSignal(input.signal)
-        ? classifyPopularityEvent(previousRank, input.signal.rank)
-        : null
-      if (eventType) {
-        await createPopularityEvent(tx, input.mediaItemId, input.mediaTitle, eventType, {
-          source: input.signal.source,
-          platform: input.signal.platform,
-          region: input.signal.region,
-          window: input.signal.window,
-          rankingScope: input.signal.rankingScope ?? "overall",
-          previousRank,
-          currentRank: input.signal.rank,
-          rankDelta,
-          capturedAt: input.capturedAt.toISOString()
-        }, input.signal.sourceUrl)
-      }
-
-      await this.updateHeatScore(tx, input.mediaItemId)
-      return created
-    })
+        await this.updateHeatScore(tx, input.mediaItemId)
+        return created
+      },
+      // 信号表数据量大时 findFirst/updateHeatScore 偶发变慢，默认 5 秒超时曾导致整轮同步失败
+      { timeout: 30_000 }
+    )
   }
 
   async persistSignals(inputs: PersistSignalInput[]): Promise<PopularitySignal[]> {
