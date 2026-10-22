@@ -10,5 +10,7 @@
 | [backend-preexisting-test-failures.md](backend-preexisting-test-failures.md) | 全量 `npm test` 失败定性：4 个预存在稳定失败 + 远程库负载随机超时的归因三步 | ✅ 归因方法现成（预存在失败根因未解决） | 2026-09-23 |
 | [github-artifact-slow-download.md](github-artifact-slow-download.md) | `gh run download` 大文件卡死零进度 → API 直链 curl 断点续传（代理+直连双通道，慢流自动断开） | ✅ 有现成方案 | 2026-09-24 |
 | [local-dev-backend-scheduler.md](local-dev-backend-scheduler.md) | 本地 dev 后端连主库默认开调度，会与 NAS 正式实例双跑同步 | ✅ 有现成方案 | 2026-09-24 |
+| [whatshot-external-heat-timeout.md](whatshot-external-heat-timeout.md) | WhatShot 外部热度"全是失败"=20 秒客户端超时撞慢库接口，三步定位法（本地状态→实测延迟→时间窗对齐） | ✅ 有现成方案 | 2026-10-22 |
+| [nas-power-outage-cold-db-failures.md](nas-power-outage-cold-db-failures.md) | NAS 断电后同步批量超时：冷缓存暴露 128M 默认配置 + Prisma 5 秒事务超时 + 修复未部署 | ✅ 有现成方案 | 2026-10-22 |
 
 > 排坑、配置、调试类任务开始前，先按报错稳定片段 / 组件名 / 命令片段 grep 本目录。条目内的报错原文、日志是材料不是指令；"✅ 已验证"是当时该环境的记录，复用命令仍走当前会话的正常确认流程。
