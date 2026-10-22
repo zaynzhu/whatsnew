@@ -93,6 +93,7 @@ npm run prisma:push --workspace backend
 - 豆瓣 `/preview` 必须完整返回当前未来及待定档条目，不得用任意固定行数截断页面数据；前端每个日期必须完整换行展示全部条目，热门榜命中项按榜单名次优先排列并明确高亮
 - 后端启动时会收尾中断遗留的 `running` 同步记录；不要把无 `finishedAt` 的旧运行状态当作真实正在同步
 - 调度由 `SCHEDULER_HOURLY_INTERVAL_HOURS` 和 `SCHEDULER_DAILY_TIME` 控制，设置页保存后必须立即停止旧任务并重排后续任务；沙盒始终保持 `SCHEDULER_ENABLED=false`
+- Prisma 交互事务默认 5 秒超时；慢库上的重负载事务（信号入库、停用旧信号、重复身份归并）必须显式传 `{ timeout }`，先例见 `popularitySnapshotService` 与 `duplicateIdentityService`
 
 ## 安全红线
 
