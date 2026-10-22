@@ -226,7 +226,10 @@ async function mergeDuplicate(
     })
     await transaction.mediaItem.delete({ where: { id: duplicate.id } })
     return merged
-  })
+  },
+  // 归并要跨表搬迁排期、信号与来源引用，慢库上容易超过默认 5 秒
+  { timeout: 60_000 }
+  )
 }
 
 function stableIdentityComponents(items: ReconciliationMediaItem[]): ReconciliationMediaItem[][] {
