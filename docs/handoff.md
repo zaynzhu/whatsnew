@@ -25,19 +25,19 @@ The Extreme Space project is the current main runtime and contains only `backend
 
 ## Current Acceptance Snapshot
 
-Verified against the running NAS main backend on 2026-08-19. These counts are an operational snapshot; query the live endpoints again before maintenance:
+Verified against the running NAS main backend on 2026-10-22 after the 0.1.5 deployment and the external MySQL tuning. These counts are an operational snapshot; query the live endpoints again before maintenance:
 
-- `GET /api/health` returned `ok=true`, `service=whatsnew-backend` and `environment=main`.
-- The Extreme Space frontend returned HTTP 200 for `/healthz`, dashboard, calendar, preview, source health and poster health through port `50015`.
-- Scheduler state was enabled with one hourly job every hour and one daily job at `09:15` in `Asia/Shanghai`; the Mac LaunchAgent was disabled and local port `19993` had no listener.
-- Source health reported 24 scopes: 13 passed, three failed, eight blocked, zero degraded and one stale. Trakt `popularity` and `calendar` had never succeeded; Prime Video's last success was stale.
-- Poster health covered 3,709 active works: 3,500 with posters and 209 missing, for 94.4% coverage. Availability was 3,496 healthy and four broken; quality was 3,486 adequate, ten undersized and four unknown. Retry eligibility must be read live before maintenance.
-- The rating schema upgrade was applied after a full database backup. Business row counts were unchanged by the schema operation.
-- The first manual rating batch scanned 20 eligible works, updated 19, left one unchanged and had zero failures. It stored 55 current observations across Douban, IMDb, TMDb and Rotten Tomatoes; a NAS media-detail response was verified to return four rating rows for one work.
+- `GET /api/health` returned `ok=true` through both 50015 (frontend proxy) and 50016 (backend direct).
+- The 15:00/16:00/17:00 hourly batches on 2026-10-22 succeeded across tvmaze, tmdb, youku, iqiyi and tencent — the first fully green runs since the 2026-10-11 NAS power outage. Trakt `popularity` still returns 403 (chronic since July).
+- The external MySQL (pixelreel-mysql container, shared with other projects) was tuned on 2026-10-22: `innodb_buffer_pool_size` 128M→1G and `innodb_redo_log_capacity` 100M→512M, applied online and persisted in the MySQL compose `command:`; `innodb_flush_log_at_trx_commit` stays 1. Post-tuning buffer pool hit rate measured 99.1% (dual-source) and `/api/trending` answered 0.79s mid-batch-window (24.5s before).
+- 616 interrupted `SourceSyncRun` rows from the outage window were swept to `failed` with guarded SQL; the sources page no longer shows phantom running states.
+- WhatShot's optional WhatsNew external-heat integration recovered without any WhatShot change: its 20s client timeout now holds 25x headroom even mid-batch. See `docs/lessons/whatshot-external-heat-timeout.md`.
+- Outbound flakiness remains for proxy-routed daily sources: Netflix, Hulu, Disney+, TheTVDB and Prime returned `fetch failed` on some daily batches around 2026-10-20–22 while succeeding on manual retries — the proxy side on the NAS still needs attention.
 
 ## Deployment Status
 
-- `0.1.4` is live on the Extreme Space runtime since 2026-09-24: `GET /api/health` on port `50016` returned `ok=true` and `POST /api/media/lookup` was verified with a live request (one matched Douban work plus one correctly `unmatched` episode-level IMDb id). Images were built on GitHub Actions (run 35871388951, source commit `7ee20c3`) and verified at `dist/nas-0.1.4/` on 2026-09-23. Rollback path: point compose back to `:0.1.3` (the old images stay until manually deleted).
+- `0.1.5` is live on the Extreme Space runtime since 2026-10-22: built on GitHub Actions (run 39730803980, source commit `584a0d3`) and packaged at `dist/nas-0.1.5/` with SHA256SUMS. It ships the three interactive-transaction timeout fixes (`e33a95e` 60s deactivate, `8ffb861` 30s per-signal, `584a0d3` 60s identity merge). Verified live: tmdb/youku/iqiyi hourly syncs all succeeded in the first post-deploy batch and stayed green through the day. Rollback path: point compose back to `:0.1.4` (the old images stay until manually deleted).
+- No Prisma schema change shipped in 0.1.5, so no database migration was needed. The backend container was recreated for the deploy around 14:57 Beijing on 2026-10-22; the external MySQL container was recreated around 15:34 when its compose gained the tuning args.
 
 ## Source Coverage
 
@@ -78,7 +78,7 @@ Verified against the running NAS main backend on 2026-08-19. These counts are an
 
 ## Next Priority
 
-Investigate the two never-successful Trakt scopes and the stale Prime Video scope without printing credentials. Continue rating enrichment in small daily or manual batches, and read `/api/source-health` plus `/api/poster-health` before any source or poster maintenance because the eligibility counts change with every sync. Do not use `--force` or relax strict identity rules as routine maintenance.
+Investigate the never-successful Trakt scopes (popularity 403 since July, calendar fetch failures) and Prime's monthly-article detection without printing credentials. Watch the NAS proxy path for the intermittent `fetch failed` waves on proxy-routed daily sources (Netflix, Hulu, Disney+, TheTVDB, Prime) observed around 2026-10-19–22. Let the 1G buffer pool run for a full day before judging steady-state `Slow_queries` growth, and read `/api/source-health` plus `/api/poster-health` before any source or poster maintenance because the eligibility counts change with every sync. Do not use `--force` or relax strict identity rules as routine maintenance.
 
 ## Validation Baseline
 
