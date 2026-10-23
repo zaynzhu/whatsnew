@@ -65,8 +65,6 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | Private JSON API, curl examples and error semantics |
 | [Operator Runbook](docs/operator-runbook.md) | Environment variables, commands, schedules and troubleshooting |
 | [Handoff](docs/handoff.md) | Current branch, integrated sources, constraints and handoff checklist |
-| [macOS v1 Plan](docs/macos-v1-plan.md) | Native client scope, architecture, security boundary and acceptance criteria |
-| [Ratings v1 Plan](docs/ratings-v1-plan.md) | Rating sources, stable identity, access boundaries, scheduling and acceptance criteria |
 | [Glossary](CONTEXT.md) | Shared terminology for source health, Heat, artwork and attention weighting |
 | [Design Archive](docs/superpowers/README.md) | Authority boundary for historical specifications and implementation plans |
 

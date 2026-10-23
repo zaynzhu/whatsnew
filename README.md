@@ -65,8 +65,6 @@ whatsnew/
 | [Integration Guide](docs/integration-guide.md) | 私有 JSON API、curl 示例和错误语义 |
 | [Operator Runbook](docs/operator-runbook.md) | 环境变量、运行命令、定时任务和排障 |
 | [Handoff](docs/handoff.md) | 当前分支、已接入来源、约束和交接清单 |
-| [macOS 第一版计划](docs/macos-v1-plan.md) | 原生客户端范围、架构、安全边界和验收标准 |
-| [多来源评分第一版](docs/ratings-v1-plan.md) | 评分来源、稳定身份、反爬边界、调度与验收标准 |
 | [Glossary](CONTEXT.md) | 来源健康、Heat、图片链路和内容关注度等统一术语 |
 | [Design Archive](docs/superpowers/README.md) | 历史设计规格和实施计划的权威边界 |
 
